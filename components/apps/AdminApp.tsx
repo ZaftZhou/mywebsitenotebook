@@ -3,11 +3,15 @@ import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth, db, storage } from '../../src/firebase';
 import { useAuth } from '../../src/context/AuthContext';
 import { doc, setDoc, deleteDoc, collection } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, listAll } from 'firebase/storage';
-import { PROJECTS } from '../../constants';
-import { Project, MediaItem } from '../../types';
+import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
+import { Project, MediaItem, Skill } from '../../types';
 import { Lock, LogOut, Upload, Database, Plus, Trash2, Edit2, Save, Image as ImageIcon, Film, X, Loader, ArrowUp, ArrowDown, Star } from 'lucide-react';
-import { useProjects } from '../../src/hooks/useContent';
+import { useProjects, useSkills } from '../../src/hooks/useContent';
+import { PROJECTS, SKILLS } from '../../constants';
+// Add doc/addDoc/etc imports needed for SkillsEditor if not present
+// Actually I see doc/setDoc/deleteDoc/collection/ref/uploadBytes/getDownloadURL/listAll are imported.
+// I need addDoc, query, orderBy, onSnapshot which might be missing.
+import { addDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
 
 // Helper to upload and analyze a single file
 const uploadAndCreateMedia = async (file: File, projectId: string): Promise<MediaItem> => {
@@ -61,46 +65,81 @@ const uploadAndCreateMedia = async (file: File, projectId: string): Promise<Medi
 const MediaLibraryModal: React.FC<{ projectId: string; onSelect: (url: string, type: 'image' | 'video') => void; onClose: () => void }> = ({ projectId, onSelect, onClose }) => {
     const [files, setFiles] = useState<{ url: string; name: string; type: 'image' | 'video' }[]>([]);
     const [loading, setLoading] = useState(true);
+    const [manageMode, setManageMode] = useState(false);
+    const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+
+    const fetchFiles = async () => {
+        setLoading(true);
+        try {
+            const listRef = ref(storage, `project-media/${projectId}`);
+            const res = await listAll(listRef);
+            const filePromises = res.items.map(async (itemRef) => {
+                const url = await getDownloadURL(itemRef);
+                const isVideo = itemRef.name.toLowerCase().match(/\.(mp4|webm|mov)$/);
+                return {
+                    url,
+                    name: itemRef.name,
+                    type: isVideo ? 'video' as const : 'image' as const
+                };
+            });
+            const fetchedFiles = await Promise.all(filePromises);
+            setFiles(fetchedFiles);
+        } catch (err) {
+            console.error("Failed to list files", err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchFiles = async () => {
-            try {
-                const listRef = ref(storage, `project-media/${projectId}`);
-                const res = await listAll(listRef);
-                const filePromises = res.items.map(async (itemRef) => {
-                    const url = await getDownloadURL(itemRef);
-                    const isVideo = itemRef.name.toLowerCase().match(/\.(mp4|webm|mov)$/);
-                    return {
-                        url,
-                        name: itemRef.name,
-                        type: isVideo ? 'video' as const : 'image' as const
-                    };
-                });
-                const fetchedFiles = await Promise.all(filePromises);
-                setFiles(fetchedFiles);
-            } catch (err) {
-                console.error("Failed to list files", err);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchFiles();
     }, [projectId]);
 
+    const toggleSelection = (name: string) => {
+        const newSet = new Set(selectedItems);
+        if (newSet.has(name)) newSet.delete(name);
+        else newSet.add(name);
+        setSelectedItems(newSet);
+    };
+
+    const handleDeleteSelected = async () => {
+        if (!confirm(`Delete ${selectedItems.size} items? This cannot be undone.`)) return;
+        setLoading(true);
+        try {
+            const promises = Array.from(selectedItems).map(name =>
+                deleteObject(ref(storage, `project-media/${projectId}/${name}`))
+            );
+            await Promise.all(promises);
+            setSelectedItems(new Set());
+            await fetchFiles();
+        } catch (e: any) {
+            alert("Delete failed: " + e.message);
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-8 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-4xl h-[80vh] rounded-lg flex flex-col shadow-2xl border-2 border-ink">
-                <div className="p-4 border-b border-ink/10 flex justify-between items-center bg-gray-50 rounded-t-lg">
+            <div className="bg-white w-full max-w-4xl h-[80vh] rounded-lg flex flex-col shadow-2xl border-2 border-ink overflow-hidden">
+                <div className="p-4 border-b border-ink/10 flex justify-between items-center bg-gray-50">
                     <h3 className="font-bold text-lg flex items-center gap-2">
                         <Database size={18} /> Media Library
                     </h3>
-                    <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded text-gray-500 transition-colors"><X size={20} /></button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => { setManageMode(!manageMode); setSelectedItems(new Set()); }}
+                            className={`px-3 py-1 rounded text-xs font-bold border ${manageMode ? 'bg-ink text-white border-ink' : 'bg-white text-gray-500 border-gray-300'}`}
+                        >
+                            {manageMode ? 'Done Managing' : 'Manage / Delete'}
+                        </button>
+                        <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded text-gray-500 transition-colors"><X size={20} /></button>
+                    </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 bg-paper">
+                <div className="flex-1 overflow-y-auto p-6 bg-paper relative">
                     {loading ? (
                         <div className="flex items-center justify-center h-full text-gray-400 gap-2">
-                            <Loader className="animate-spin" /> Loading Library...
+                            <Loader className="animate-spin" /> {manageMode ? 'Processing...' : 'Loading Library...'}
                         </div>
                     ) : files.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2 border-2 border-dashed border-ink/10 rounded-lg m-4">
@@ -109,26 +148,50 @@ const MediaLibraryModal: React.FC<{ projectId: string; onSelect: (url: string, t
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                            {files.map((f, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => onSelect(f.url, f.type)}
-                                    className="group relative aspect-square bg-gray-100 border-2 border-transparent hover:border-ink rounded-lg overflow-hidden transition-all shadow-sm hover:shadow-md"
-                                >
-                                    {f.type === 'image' ? (
-                                        <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url("${f.url}")` }} />
-                                    ) : (
-                                        <video src={f.url} className="w-full h-full object-cover" />
-                                    )}
-                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] p-1 truncate px-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {f.name}
-                                    </div>
-                                </button>
-                            ))}
+                            {files.map((f, i) => {
+                                const isSelected = selectedItems.has(f.name);
+                                return (
+                                    <button
+                                        key={i}
+                                        onClick={() => manageMode ? toggleSelection(f.name) : onSelect(f.url, f.type)}
+                                        className={`group relative aspect-square bg-gray-100 border-2 rounded-lg overflow-hidden transition-all shadow-sm hover:shadow-md 
+                                            ${manageMode && isSelected ? 'border-red-500 ring-2 ring-red-200' : 'border-transparent hover:border-ink'}
+                                        `}
+                                    >
+                                        {f.type === 'image' ? (
+                                            <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url("${f.url}")` }} />
+                                        ) : (
+                                            <video src={f.url} className="w-full h-full object-cover" />
+                                        )}
+
+                                        {/* Overlay for selection mode */}
+                                        {manageMode && (
+                                            <div className={`absolute inset-0 flex items-center justify-center transition-colors ${isSelected ? 'bg-red-500/20' : 'bg-transparent group-hover:bg-black/10'}`}>
+                                                {isSelected && <div className="bg-red-500 text-white p-1 rounded-full"><Trash2 size={16} /></div>}
+                                            </div>
+                                        )}
+
+                                        {!manageMode && <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />}
+
+                                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] p-1 truncate px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            {f.name}
+                                        </div>
+                                    </button>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
+
+                {/* Footer for Manage Mode */}
+                {manageMode && selectedItems.size > 0 && (
+                    <div className="p-4 bg-red-50 border-t border-red-100 flex justify-between items-center animate-in slide-in-from-bottom duration-200">
+                        <span className="text-red-800 text-xs font-bold">{selectedItems.size} items selected</span>
+                        <button onClick={handleDeleteSelected} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-bold text-xs flex items-center gap-2 shadow-sm">
+                            <Trash2 size={14} /> Delete Selected
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -448,6 +511,151 @@ const MediaListEditor: React.FC<{ media: MediaItem[]; onChange: (m: MediaItem[])
     );
 };
 
+const SkillsEditor: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+    const [localSkills, setLocalSkills] = useState<{ id: string, data: Skill }[]>([]);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [formData, setFormData] = useState<Skill | null>(null);
+
+    useEffect(() => {
+        const q = query(collection(db, 'skills'), orderBy('value', 'desc'));
+        const unsub = onSnapshot(q, snap => {
+            setLocalSkills(snap.docs.map(d => ({ id: d.id, data: d.data() as Skill })));
+        });
+        return unsub;
+    }, []);
+
+    const handleEdit = (skill: Skill, id: string) => {
+        setEditingId(id);
+        setFormData({ ...skill });
+    };
+
+    const handleCreate = () => {
+        setEditingId('new');
+        setFormData({ name: '', desc: '', value: 80, bg: 'bg-gray-200', category: 'Core' });
+    };
+
+    const saveSkill = async () => {
+        if (!formData) return;
+        try {
+            if (editingId === 'new') {
+                await addDoc(collection(db, 'skills'), formData);
+            } else if (editingId) {
+                await setDoc(doc(db, 'skills', editingId), formData);
+            }
+            setEditingId(null);
+            setFormData(null);
+        } catch (e: any) {
+            alert("Error: " + e.message);
+        }
+    };
+
+    const deleteSkill = async (id: string) => {
+        if (confirm("Delete skill?")) await deleteDoc(doc(db, 'skills', id));
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white w-full max-w-4xl h-[80vh] flex overflow-hidden rounded-lg shadow-2xl border-2 border-ink">
+                {/* List */}
+                <div className="w-1/3 border-r-2 border-ink bg-gray-50 flex flex-col">
+                    <div className="p-4 border-b-2 border-ink/10 flex justify-between items-center bg-white">
+                        <h3 className="font-bold">Skills</h3>
+                        <button onClick={handleCreate} className="bg-ink text-white p-1 rounded hover:opacity-80"><Plus size={16} /></button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                        {localSkills.length === 0 && (
+                            <div className="flex flex-col items-center justify-center p-8 text-center space-y-4">
+                                <p className="text-xs text-gray-500">No skills found in Database.</p>
+                                <button
+                                    onClick={async () => {
+                                        if (!confirm("Restore default skills from constants?")) return;
+                                        try {
+                                            for (const s of SKILLS) {
+                                                await addDoc(collection(db, 'skills'), s);
+                                            }
+                                        } catch (e: any) { alert(e.message); }
+                                    }}
+                                    className="px-4 py-2 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded text-xs font-bold hover:bg-yellow-200"
+                                >
+                                    Restore Defaults
+                                </button>
+                            </div>
+                        )}
+                        {localSkills.map(({ id, data }) => (
+                            <div key={id} onClick={() => handleEdit(data, id)} className={`p-3 rounded border border-ink/10 cursor-pointer hover:bg-white transition-colors ${editingId === id ? 'bg-white ring-2 ring-ink ring-inset' : 'bg-paper'}`}>
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="font-bold text-sm">{data.name}</span>
+                                    <span className="text-[10px] font-mono bg-gray-200 px-1 rounded">{data.value}%</span>
+                                </div>
+                                <div className="text-[10px] text-gray-500 truncate">{data.desc}</div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="p-4 border-t-2 border-ink/10 bg-white">
+                        <button onClick={onClose} className="w-full py-2 border-2 border-ink text-ink font-bold rounded hover:bg-gray-50">Close Manager</button>
+                    </div>
+                </div>
+
+                {/* Editor */}
+                <div className="flex-1 bg-white p-8 overflow-y-auto">
+                    {editingId ? (
+                        <div className="max-w-md mx-auto space-y-4">
+                            <h3 className="font-bold text-xl border-b-2 border-ink/10 pb-2 mb-6">
+                                {editingId === 'new' ? 'New Skill' : 'Edit Skill'}
+                            </h3>
+
+                            {formData && (
+                                <>
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase mb-1">Skill Name</label>
+                                        <input className="w-full border-2 border-ink/20 p-2 rounded" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase mb-1">Description (Role/Context)</label>
+                                        <input className="w-full border-2 border-ink/20 p-2 rounded" value={formData.desc} onChange={e => setFormData({ ...formData, desc: e.target.value })} />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase mb-1">Value (0-100)</label>
+                                            <input type="number" className="w-full border-2 border-ink/20 p-2 rounded" value={formData.value} onChange={e => setFormData({ ...formData, value: Number(e.target.value) })} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase mb-1">Category</label>
+                                            <input className="w-full border-2 border-ink/20 p-2 rounded" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase mb-1">Color Class</label>
+                                        <input className="w-full border-2 border-ink/20 p-2 rounded" value={formData.bg} onChange={e => setFormData({ ...formData, bg: e.target.value })} />
+                                    </div>
+
+                                    <div className="flex gap-2 pt-4">
+                                        <button onClick={saveSkill} className="flex-1 bg-ink text-white py-2 rounded font-bold shadow-sm hover:shadow-md flex items-center justify-center gap-2">
+                                            <Save size={14} /> Save
+                                        </button>
+                                        {editingId !== 'new' && (
+                                            <button onClick={() => deleteSkill(editingId)} className="px-4 border-2 border-red-200 text-red-500 rounded font-bold hover:bg-red-50">
+                                                Delete
+                                            </button>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-gray-300">
+                            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                                <Database size={32} />
+                            </div>
+                            <p className="font-bold">Select a skill to edit</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const ProjectEditor: React.FC<{ project?: Project | null; onSave: (p: Project) => void; onCancel: () => void }> = ({ project, onSave, onCancel }) => {
     const [formData, setFormData] = useState<Project>(project || {
         id: Date.now().toString(),
@@ -579,6 +787,7 @@ const AdminApp: React.FC = () => {
     const [msg, setMsg] = useState('');
 
     const [isEditing, setIsEditing] = useState(false);
+    const [isSkillsOpen, setIsSkillsOpen] = useState(false);
     const [currentProject, setCurrentProject] = useState<Project | null>(null);
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -587,6 +796,23 @@ const AdminApp: React.FC = () => {
             await signInWithEmailAndPassword(auth, email, password);
         } catch (err: any) {
             setError(err.message);
+        }
+    };
+
+    const handleSeedSkills = async () => {
+        if (!confirm("Overwrite SKILLS in DB with static data?")) return;
+        setMsg("Seeding skills...");
+        try {
+            // Delete existing? Nah, just add/overwrite if we could match IDs but we don't have IDs.
+            // Let's just add them for now, user can delete duplicates in UI.
+            // Actually, a better seed is to clear and add.
+            // For safety, just adding.
+            for (const s of SKILLS) {
+                await addDoc(collection(db, 'skills'), s);
+            }
+            setMsg("Skills seeded!");
+        } catch (e: any) {
+            setMsg("Error: " + e.message);
         }
     };
 
@@ -695,6 +921,8 @@ const AdminApp: React.FC = () => {
                 />
             )}
 
+            {isSkillsOpen && <SkillsEditor onClose={() => setIsSkillsOpen(false)} />}
+
             <div className="bg-white border-b-2 border-ink/10 p-4 flex justify-between items-center">
                 <div className="flex items-center gap-2">
                     <div className="w-8 h-8 bg-green-200 rounded-md border border-ink flex items-center justify-center font-bold">A</div>
@@ -709,37 +937,32 @@ const AdminApp: React.FC = () => {
             </div>
 
             <div className="p-6 overflow-y-auto flex-1">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white border-2 border-ink p-4 shadow-sm">
-                        <h3 className="font-bold border-b border-ink/10 pb-2 mb-4 flex items-center gap-2">
-                            <Database size={16} /> Data Migration
-                        </h3>
-                        <div className="space-y-2">
-                            <button onClick={handleSeed} className="w-full py-2 bg-yellow-100 border border-yellow-300 rounded text-yellow-900 font-bold hover:bg-yellow-200 text-sm flex items-center justify-center gap-2">
-                                <Upload size={14} /> Re-run Migration
-                            </button>
-                            {msg && <p className="text-xs text-center font-mono py-2">{msg}</p>}
-                            <p className="text-[10px] text-gray-500 leading-tight">
-                                This will read from <code>constants.ts</code> and overwrite ALL projects in Firestore.
-                            </p>
-                        </div>
-                    </div>
+                <h3 className="font-bold border-b border-ink/10 pb-2 mb-4 flex items-center gap-2">
+                    <Plus size={16} /> Quick Actions
+                </h3>
+                <div className="flex gap-4">
+                    <button
+                        onClick={() => { setCurrentProject(null); setIsEditing(true); }}
+                        className="flex-1 py-4 bg-ink text-white rounded font-bold hover:opacity-90 text-sm flex items-center justify-center gap-2"
+                    >
+                        <Plus size={16} /> Create New Project
+                    </button>
+                    <button onClick={() => setIsSkillsOpen(true)} className="flex-1 py-4 bg-white border border-ink text-ink rounded font-bold hover:bg-gray-50 text-sm">
+                        Edit Skills
+                    </button>
+                </div>
 
-                    <div className="bg-white border-2 border-ink p-4 shadow-sm md:col-span-2">
-                        <h3 className="font-bold border-b border-ink/10 pb-2 mb-4 flex items-center gap-2">
-                            <Plus size={16} /> Quick Actions
-                        </h3>
-                        <div className="flex gap-4">
-                            <button
-                                onClick={() => { setCurrentProject(null); setIsEditing(true); }}
-                                className="flex-1 py-4 bg-ink text-white rounded font-bold hover:opacity-90 text-sm flex items-center justify-center gap-2"
-                            >
-                                <Plus size={16} /> Create New Project
-                            </button>
-                            <button className="flex-1 py-4 bg-white border border-ink text-ink rounded font-bold hover:bg-gray-50 text-sm">
-                                Edit Skills (Coming Soon)
-                            </button>
-                        </div>
+                {/* Migration Tools (Collapsed by default or small) */}
+                <div className="mb-8 p-4 border border-ink/10 rounded-lg bg-gray-50">
+                    <h4 className="font-bold text-xs uppercase text-gray-400 mb-2">System Tools</h4>
+                    <div className="flex gap-2">
+                        <button onClick={handleSeed} className="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-bold hover:bg-gray-50">
+                            Re-seed Projects
+                        </button>
+                        <button onClick={handleSeedSkills} className="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-bold hover:bg-gray-50">
+                            Seed Skills (Static)
+                        </button>
+                        <span className="text-xs text-ink ml-2 self-center">{msg}</span>
                     </div>
                 </div>
 
@@ -799,8 +1022,8 @@ const AdminApp: React.FC = () => {
                         </table>
                     </div>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

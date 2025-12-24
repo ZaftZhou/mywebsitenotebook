@@ -39,6 +39,31 @@ export const useProjects = () => {
 };
 
 export const useSkills = () => {
-    // Similar logic for skills if needed, for now returning static
-    return { skills: STATIC_SKILLS, loading: false };
+    const [skills, setSkills] = useState<Skill[]>(STATIC_SKILLS);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        try {
+            const q = query(collection(db, 'skills'));
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+                if (!snapshot.empty) {
+                    const docs = snapshot.docs.map(doc => ({ ...doc.data() } as Skill));
+                    setSkills(docs);
+                }
+                setLoading(false);
+            }, (err) => {
+                console.error("Firestore skills read error (using static):", err);
+                setError(err.message);
+                setLoading(false);
+            });
+
+            return () => unsubscribe();
+        } catch (err: any) {
+            console.error("Firebase init error (skills):", err);
+            setLoading(false);
+        }
+    }, []);
+
+    return { skills, loading, error };
 };

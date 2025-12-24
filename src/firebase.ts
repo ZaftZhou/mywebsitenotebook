@@ -6,13 +6,13 @@ import { getAnalytics } from "firebase/analytics";
 // TODO: REPLACE WITH YOUR FIREBASE CONFIG
 // You can find this in Firebase Console -> Project Settings -> General -> Your apps
 const firebaseConfig = {
-    apiKey: "AIzaSyC_QrT6W6A7W1eD9NoH46xcyygOy_iEEsU",
-    authDomain: "mywebsite-39b94.firebaseapp.com",
-    projectId: "mywebsite-39b94",
-    storageBucket: "mywebsite-39b94.firebasestorage.app",
-    messagingSenderId: "157996000004",
-    appId: "1:157996000004:web:6ae854d44e570781652651",
-    measurementId: "G-262B3YGD7B"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 const app = initializeApp(firebaseConfig);

@@ -1,9 +1,11 @@
 import React from 'react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
-import { SKILLS } from '../../constants';
 import { Download, ExternalLink } from 'lucide-react';
+import { useSkills } from '../../src/hooks/useContent';
 
 export const AboutApp: React.FC = () => {
+  const { skills } = useSkills();
+
   return (
     <div className="h-full overflow-y-auto p-4 md:p-8 bg-paper">
       <div className="max-w-2xl mx-auto bg-white border-2 border-ink p-8 rounded-sm shadow-sm relative rotate-1">
@@ -57,7 +59,7 @@ export const AboutApp: React.FC = () => {
             <div className="w-full h-48 bg-paperDark rounded border border-ink/10 mb-4 p-2 relative">
               <div className="absolute top-2 left-2 text-[10px] font-mono text-gray-400">SKILL_MATRIX.exe</div>
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={SKILLS}>
+                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={skills}>
                   <PolarGrid stroke="#e5e7eb" />
                   <PolarAngleAxis dataKey="name" tick={{ fill: '#666', fontSize: 10, fontFamily: 'monospace' }} />
                   <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
