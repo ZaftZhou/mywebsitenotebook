@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { PROJECTS, SKILLS } from '../constants';
 import { AppId } from '../types';
 import { Pin, Wrench, Mail, Linkedin, Play, Pause, SkipForward, Music } from 'lucide-react';
+
+const widgetHover = {
+  scale: 1.05,
+  rotate: [0, -1, 1, -1, 0],
+  transition: {
+    scale: { type: "spring", stiffness: 300, damping: 15 },
+    rotate: { duration: 0.5, ease: "linear", repeat: 0 }
+  }
+};
 
 interface WidgetPanelProps {
   openApp: (id: AppId, props?: any) => void;
@@ -18,6 +28,7 @@ const Tape = ({ className, rotation = -2, color = "bg-tape/90" }: { className?: 
 );
 
 export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProject }) => {
+  // State logic
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
@@ -35,11 +46,15 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
   };
 
   return (
-    <div className="fixed right-6 top-10 bottom-24 w-64 flex flex-col gap-6 pointer-events-none hidden md:flex z-0 overflow-y-auto no-scrollbar py-2 px-1">
+    <div className="fixed right-6 top-10 bottom-24 w-72 flex flex-col gap-6 pointer-events-none hidden md:flex z-0 overflow-visible no-scrollbar p-6">
 
-      {/* 0. Music Player Widget (New) */}
-      <div className="bg-ink text-paper rounded-sm p-4 shadow-widget -rotate-1 pointer-events-auto relative flex-shrink-0 border-2 border-gray-700">
+      {/* 0. Music Player Widget (Motion) */}
+      <motion.div
+        whileHover={widgetHover}
+        className="bg-ink text-paper rounded-sm p-4 shadow-widget -rotate-1 pointer-events-auto relative flex-shrink-0 border-2 border-gray-700 cursor-pointer origin-center"
+      >
         <Tape className="-top-3 right-10" rotation={2} color="bg-rose-400" />
+        {/* ... content ... */}
         <div className="flex items-center gap-3 mb-3">
           <div className={`w-8 h-8 rounded-full bg-paper/10 flex items-center justify-center ${isPlaying ? 'animate-spin' : ''}`} style={{ animationDuration: '3s' }}>
             <Music size={14} />
@@ -62,11 +77,15 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
           </button>
           <button className="hover:text-tape transition-colors"><SkipForward size={14} /></button>
         </div>
-      </div>
+      </motion.div>
 
-      {/* 1. Featured Projects Widget */}
-      <div className="bg-white border-2 border-ink rounded-sm p-4 shadow-widget rotate-1 pointer-events-auto hover:shadow-floating transition-all relative flex-shrink-0">
+      {/* 1. Featured Projects Widget (Motion) */}
+      <motion.div
+        whileHover={widgetHover}
+        className="bg-white border-2 border-ink rounded-sm p-4 shadow-widget rotate-1 pointer-events-auto hover:shadow-floating transition-shadow relative flex-shrink-0 origin-center"
+      >
         <Tape className="-top-3 left-1/2 -translate-x-1/2" rotation={-2} />
+        {/* ... (content same) ... */}
         <div className="flex items-center justify-between mb-3 border-b-2 border-ink/10 pb-1">
           <h4 className="font-hand font-bold text-xl flex items-center gap-2">
             <Pin className="w-4 h-4" /> Pinned Work
@@ -89,11 +108,15 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
             </div>
           ))}
         </div>
-      </div>
+      </motion.div>
 
-      {/* 2. Skills Badge Wall */}
-      <div className="bg-white border-2 border-ink rounded-sm p-4 shadow-widget -rotate-1 pointer-events-auto hover:shadow-floating transition-all relative flex-shrink-0">
+      {/* 2. Skills Badge Wall (Motion) */}
+      <motion.div
+        whileHover={widgetHover}
+        className="bg-white border-2 border-ink rounded-sm p-4 shadow-widget -rotate-1 pointer-events-auto hover:shadow-floating transition-shadow relative flex-shrink-0 origin-center"
+      >
         <Tape className="-top-3 right-8" rotation={2} color="bg-blue-200" />
+        {/* ... (content same) ... */}
         <div className="mb-3 border-b-2 border-ink/10 pb-1">
           <h4 className="font-hand font-bold text-xl flex items-center gap-2">
             <Wrench className="w-4 h-4" /> Toolbox
@@ -118,14 +141,18 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
             </div>
           ))}
         </div>
-      </div>
+      </motion.div>
 
-      {/* 3. Status Widget */}
-      <div className="bg-[#feff9c] border-2 border-ink rounded-sm p-4 shadow-widget rotate-2 pointer-events-auto relative flex-shrink-0">
+      {/* 3. Status Widget (Motion) */}
+      <motion.div
+        whileHover={widgetHover}
+        className="bg-[#feff9c] border-2 border-ink rounded-sm p-4 shadow-widget rotate-2 pointer-events-auto hover:shadow-floating transition-shadow relative flex-shrink-0 origin-center"
+      >
         {/* Paper Clip Visual */}
         <div className="absolute -top-3 left-6 w-4 h-8 border-2 border-ink rounded-full border-b-0"></div>
         <div className="absolute -top-3 left-7 w-2 h-6 bg-ink/10 rounded-full"></div>
 
+        {/* ... (content same) ... */}
         <div className="flex items-center gap-2 mb-2">
           <span className="relative flex h-3 w-3">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -135,8 +162,8 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
         </div>
 
         <ul className="text-xs space-y-2 font-mono border-t border-ink/10 pt-2 mt-2">
-          <li className="flex gap-2"><span>🔨</span> Building SaaS</li>
-          <li className="flex gap-2"><span>📍</span> Turku, FI</li>
+          <li className="flex gap-2"><span>🔨</span> Unity Systems & VFX</li>
+          <li className="flex gap-2"><span>📍</span> Turku, Finland</li>
         </ul>
         <div className="mt-4 flex gap-2">
           <button onClick={() => openApp('contact')} className="flex-1 bg-white border border-ink text-[10px] py-1.5 font-bold hover:bg-gray-50 shadow-sm flex items-center justify-center gap-1">
@@ -146,7 +173,7 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
             <Linkedin className="w-3 h-3" /> LINKEDIN
           </button>
         </div>
-      </div>
+      </motion.div>
 
     </div>
   );

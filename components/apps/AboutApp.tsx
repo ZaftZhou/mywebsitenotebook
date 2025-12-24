@@ -7,8 +7,10 @@ export const AboutApp: React.FC = () => {
   return (
     <div className="h-full overflow-y-auto p-4 md:p-8 bg-paper">
       <div className="max-w-2xl mx-auto bg-white border-2 border-ink p-8 rounded-sm shadow-sm relative rotate-1">
-        <div className="absolute -top-4 -left-4 bg-catApp text-white text-xs font-bold px-3 py-1 rounded border-2 border-ink rotate-[-10deg] shadow-sm">
-          HIRED!
+        <div className="absolute -top-6 -left-6 bg-green-400 text-ink text-xs font-hand font-bold px-4 py-2 border-2 border-ink shadow-sm rotate-[-15deg] transform hover:scale-110 transition-transform cursor-pointer z-10">
+          <div className="absolute inset-0 border-b-2 border-ink/10 opacity-50"></div>
+          OPEN TO WORK
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-8 h-4 bg-tape/80 backdrop-blur-[1px] rotate-3 shadow-sm border border-white/20"></div>
         </div>
 
         <div className="flex flex-col md:flex-row gap-8 items-start">
@@ -24,8 +26,8 @@ export const AboutApp: React.FC = () => {
             </div>
 
             <div className="mt-8">
-              <h4 className="font-hand font-bold text-lg mb-2">Experience</h4>
-              <ul className="text-xs font-mono space-y-2 text-gray-600 border-l-2 border-ink/10 pl-3">
+              <h4 className="font-hand font-bold text-lg mb-2">Experience & Education</h4>
+              <ul className="text-xs font-mono space-y-3 text-gray-600 border-l-2 border-ink/10 pl-3">
                 <li>
                   <span className="font-bold text-ink">2022 - Present</span>
                   <br />Personal Projects & Prototyping
@@ -41,8 +43,14 @@ export const AboutApp: React.FC = () => {
                   <br />3D Interactive Content Developer
                   <div className="text-[10px] text-gray-400">Full Pipeline (Scan to Web/VR)</div>
                 </li>
+                <li>
+                  <span className="font-bold text-ink">2010 - 2014</span>
+                  <br />Shanghai Maritime University
+                  <div className="text-[10px] text-gray-400">Mechatronics Engineering</div>
+                </li>
               </ul>
             </div>
+
           </div>
 
           <div className="w-full md:w-1/2 flex flex-col items-center">
