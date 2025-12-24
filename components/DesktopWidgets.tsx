@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { PROJECTS, SKILLS } from '../constants';
 import { AppId } from '../types';
 import { Pin, Wrench, Mail, Linkedin } from 'lucide-react';
@@ -19,10 +20,19 @@ const Tape = ({ className, rotation = -2, color = "bg-tape/90" }: { className?: 
 
 export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProject }) => {
   return (
-    <div className="fixed right-6 top-10 bottom-24 w-64 flex flex-col gap-6 pointer-events-none hidden md:flex z-0 overflow-y-auto no-scrollbar py-2 px-1">
-      
+    <div className="fixed right-6 top-10 bottom-24 w-64 flex flex-col gap-6 pointer-events-none hidden md:flex z-0 overflow-y-auto overflow-x-hidden no-scrollbar py-2 px-1">
+
       {/* 1. Featured Projects Widget */}
-      <div className="bg-white border-2 border-ink rounded-sm p-4 shadow-widget rotate-1 pointer-events-auto hover:shadow-floating transition-all relative flex-shrink-0">
+      <motion.div
+        initial={{ rotate: 1 }}
+        whileHover={{
+          rotate: [1, 2, 0, 1],
+          scale: 1.02,
+          boxShadow: "4px 4px 0px rgba(24, 24, 27, 0.2)"
+        }}
+        transition={{ duration: 0.3 }}
+        className="bg-white border-2 border-ink rounded-sm p-4 shadow-widget pointer-events-auto relative flex-shrink-0 cursor-default"
+      >
         <Tape className="-top-3 left-1/2 -translate-x-1/2" rotation={-2} />
         <div className="flex items-center justify-between mb-3 border-b-2 border-ink/10 pb-1">
           <h4 className="font-hand font-bold text-xl flex items-center gap-2">
@@ -36,24 +46,33 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
               onClick={() => openProject(p.id)}
               className="group cursor-pointer flex items-center gap-3 p-1 hover:bg-paperDark rounded border border-transparent hover:border-ink/10 transition-colors"
             >
-              <div className={`w-8 h-8 rounded border border-ink ${p.color === 'catUnity' ? 'bg-blue-300' : p.color === 'catWeb' ? 'bg-orange-300' : p.color === 'cat3D' ? 'bg-purple-300' : 'bg-green-300'} flex-shrink-0 flex items-center justify-center text-xs font-bold`}>
+              <div className={`w-8 h-8 rounded border border-ink ${p.color === 'catUnity' ? 'bg-cat-unity' : p.color === 'catWeb' ? 'bg-cat-web' : p.color === 'cat3D' ? 'bg-cat-3d' : 'bg-cat-app'} flex-shrink-0 flex items-center justify-center text-xs font-bold`}>
                 {p.category[0]}
               </div>
               <div className="overflow-hidden">
-                <div className="font-bold text-xs truncate group-hover:text-catWeb transition-colors">{p.title}</div>
+                <div className="font-bold text-xs truncate group-hover:text-cat-web transition-colors">{p.title}</div>
                 <div className="text-[10px] text-gray-500 truncate">Click to open</div>
               </div>
             </div>
           ))}
         </div>
-      </div>
+      </motion.div>
 
       {/* 2. Skills Badge Wall */}
-      <div className="bg-white border-2 border-ink rounded-sm p-4 shadow-widget -rotate-1 pointer-events-auto hover:shadow-floating transition-all relative flex-shrink-0">
+      <motion.div
+        initial={{ rotate: -1 }}
+        whileHover={{
+          rotate: [-1, -2, 0, -1],
+          scale: 1.02,
+          boxShadow: "4px 4px 0px rgba(24, 24, 27, 0.2)"
+        }}
+        transition={{ duration: 0.3 }}
+        className="bg-white border-2 border-ink rounded-sm p-4 shadow-widget pointer-events-auto relative flex-shrink-0 cursor-default"
+      >
         <Tape className="-top-3 right-8" rotation={2} color="bg-blue-200" />
         <div className="mb-3 border-b-2 border-ink/10 pb-1">
           <h4 className="font-hand font-bold text-xl flex items-center gap-2">
-             <Wrench className="w-4 h-4" /> Toolbox
+            <Wrench className="w-4 h-4" /> Toolbox
           </h4>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -75,10 +94,19 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
             </div>
           ))}
         </div>
-      </div>
+      </motion.div>
 
       {/* 3. Status Widget */}
-      <div className="bg-[#feff9c] border-2 border-ink rounded-sm p-4 shadow-widget rotate-2 pointer-events-auto relative flex-shrink-0">
+      <motion.div
+        initial={{ rotate: 2 }}
+        whileHover={{
+          rotate: [2, 3, 1, 2],
+          scale: 1.02,
+          boxShadow: "4px 4px 0px rgba(24, 24, 27, 0.2)"
+        }}
+        transition={{ duration: 0.3 }}
+        className="bg-[#feff9c] border-2 border-ink rounded-sm p-4 shadow-widget pointer-events-auto relative flex-shrink-0 cursor-default"
+      >
         {/* Paper Clip Visual */}
         <div className="absolute -top-3 left-6 w-4 h-8 border-2 border-ink rounded-full border-b-0"></div>
         <div className="absolute -top-3 left-7 w-2 h-6 bg-ink/10 rounded-full"></div>
@@ -90,7 +118,7 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
           </span>
           <h4 className="font-black text-sm uppercase tracking-wider">Open to Work</h4>
         </div>
-        
+
         <ul className="text-xs space-y-2 font-mono border-t border-ink/10 pt-2 mt-2">
           <li className="flex gap-2"><span>🔨</span> Building SaaS</li>
           <li className="flex gap-2"><span>📍</span> Turku, FI</li>
@@ -103,7 +131,7 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
             <Linkedin className="w-3 h-3" /> LINKEDIN
           </button>
         </div>
-      </div>
+      </motion.div>
 
     </div>
   );

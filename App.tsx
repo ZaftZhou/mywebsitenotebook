@@ -103,7 +103,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div ref={containerRef} className="h-screen w-screen relative overflow-hidden bg-paper bg-grid-paper bg-[length:24px_24px]">
+    <div ref={containerRef} className="h-screen w-full relative overflow-hidden bg-paper bg-grid-paper bg-[length:24px_24px]">
 
       {/* Pro Tip */}
       <AnimatePresence>

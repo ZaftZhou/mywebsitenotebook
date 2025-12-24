@@ -10,45 +10,54 @@ interface WelcomeAppProps {
 export const WelcomeApp: React.FC<WelcomeAppProps> = ({ openApp }) => {
   const d3Container = useRef<SVGSVGElement>(null);
 
-  // Minimal D3: A "System Status" heartbeat line that draws itself
   useEffect(() => {
     if (!d3Container.current) return;
-    
+
     const svg = d3.select(d3Container.current);
-    svg.selectAll("*").remove(); // Clear prev
-    
+    svg.selectAll("*").remove();
+
     const width = 200;
     const height = 60;
-    const dataPoints = 40;
-    const data = d3.range(dataPoints).map(() => Math.random() * 30 + 15);
-    
-    // Create a smooth line
+    const dataPoints = 20;
+
     const x = d3.scaleLinear().domain([0, dataPoints - 1]).range([0, width]);
     const y = d3.scaleLinear().domain([0, 60]).range([height, 0]);
-    
+
     const line = d3.line<number>()
       .x((d, i) => x(i))
       .y(d => y(d))
       .curve(d3.curveBasis);
 
     const path = svg.append("path")
-      .datum(data)
       .attr("fill", "none")
-      .attr("stroke", "#18181b") // ink color
-      .attr("stroke-width", 2)
-      .attr("d", line);
-      
-    // Animate the line simulating a heart monitor
-    function repeat() {
-        path.attr("stroke-dasharray", width + " " + width)
-            .attr("stroke-dashoffset", width)
-            .transition()
-            .duration(2000)
-            .ease(d3.easeLinear)
-            .attr("stroke-dashoffset", 0)
-            .on("end", repeat);
+      .attr("stroke", "#18181b")
+      .attr("stroke-width", 2);
+
+    function animate() {
+      // Generate new random smooth data
+      const data = d3.range(dataPoints).map(() => Math.random() * 40 + 10);
+
+      path.datum(data)
+        .attr("d", line)
+        .attr("opacity", 1);
+
+      const totalLength = path.node()?.getTotalLength() || width;
+
+      path.attr("stroke-dasharray", totalLength + " " + totalLength)
+        .attr("stroke-dashoffset", totalLength)
+        .transition()
+        .duration(4000) // Slower draw: 4 seconds
+        .ease(d3.easeLinear)
+        .attr("stroke-dashoffset", 0)
+        .transition()
+        .duration(1000) // Hold for 1 second
+        .transition() // Fade out
+        .duration(1000)
+        .attr("opacity", 0)
+        .on("end", animate);
     }
-    repeat();
+
+    animate();
 
   }, []);
 
@@ -64,10 +73,10 @@ export const WelcomeApp: React.FC<WelcomeAppProps> = ({ openApp }) => {
 
       {/* D3 System Monitor */}
       <div className="mb-8 opacity-50 grayscale hover:grayscale-0 transition-all">
-          <div className="text-[9px] font-mono text-left w-[200px] mb-1">SYSTEM_ACTIVITY_MONITOR</div>
-          <svg ref={d3Container} width={200} height={60} className="border-b border-ink/20"></svg>
+        <div className="text-[9px] font-mono text-left w-[200px] mb-1">SYSTEM_ACTIVITY_MONITOR</div>
+        <svg ref={d3Container} width={200} height={60} className="border-b border-ink/20"></svg>
       </div>
-      
+
       <div className="grid grid-cols-2 gap-4 w-full max-w-sm mb-6">
         <button
           onClick={() => openApp('projects')}
