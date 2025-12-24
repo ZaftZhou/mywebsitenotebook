@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+    --color-paper: #F9F7F1;
+    --color-paper-dark: #EBE8E0;
+    --color-ink: #18181b;
+    --color-tape: #F4E04D;
+    --color-cat-unity: #60A5FA;
+    --color-cat-web: #F97316;
+    --color-cat-app: #4ADE80;
+    --color-cat-3d: #A78BFA;
+
+    --font-hand: "Patrick Hand", cursive;
+    --font-sans: "Inter", sans-serif;
+    --font-mono: "JetBrains Mono", monospace;
+
+    --shadow-paper: 4px 4px 0px rgba(24, 24, 27, 0.1);
+    --shadow-paper-hover: 6px 6px 0px rgba(24, 24, 27, 0.15);
+    --shadow-window: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --shadow-widget: 2px 2px 0px rgba(0, 0, 0, 0.1);
+
+    --radius-window: 12px;
+}
+
+body {
+    background-color: #F9F7F1;
+    color: #18181b;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+}
+
+.os-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.os-scrollbar::-webkit-scrollbar-thumb {
+    background: #d4d4d8;
+    border-radius: 4px;
+}
+
+.os-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #a1a1aa;
+}
+
+.flip-card {
+    perspective: 1000px;
+}
+
+.flip-card-inner {
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.flip-card:hover .flip-card-inner {
+    transform: rotateY(180deg);
+}
+
+.backface-hidden {
+    backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+    transform: rotateY(180deg);
+}
+
+.transform-style-3d {
+    transform-style: preserve-3d;
+}
