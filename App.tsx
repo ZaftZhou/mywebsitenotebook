@@ -7,9 +7,18 @@ import { WelcomeApp } from './components/apps/WelcomeApp';
 import { ProjectsApp } from './components/apps/ProjectsApp';
 import { AboutApp } from './components/apps/AboutApp';
 import { ContactApp } from './components/apps/ContactApp';
+import { BrowserApp } from './components/apps/BrowserApp';
 import { DesktopWidgets } from './components/DesktopWidgets';
-import { CommandPalette } from './components/CommandPalette'; // Integrated
+import { CommandPalette } from './components/CommandPalette';
 import { WindowData, AppId, AppDefinition } from './types';
+
+const APPS: Record<AppId, AppDefinition> = {
+  welcome: { title: "Welcome!", icon: "👋", component: WelcomeApp, color: "bg-white" },
+  projects: { title: "Projects.app", icon: "📁", component: ProjectsApp, color: "bg-cat-unity" },
+  about: { title: "About.doc", icon: "👤", component: AboutApp, color: "bg-cat-web" },
+  contact: { title: "Contact.txt", icon: "✏️", component: ContactApp, color: "bg-tape" },
+  browser: { title: "Netscape.exe", icon: "🌎", component: BrowserApp, color: "bg-blue-100" },
+};
 
 const DesktopIcon = ({ label, icon, onClick, delay = 0, color = "bg-white", tooltip }: any) => (
   <motion.div
@@ -34,12 +43,8 @@ const DesktopIcon = ({ label, icon, onClick, delay = 0, color = "bg-white", tool
 );
 
 const App: React.FC = () => {
-  const APPS: Record<AppId, AppDefinition> = {
-    welcome: { title: "Welcome!", icon: "👋", component: WelcomeApp, color: "bg-white" },
-    projects: { title: "Projects.app", icon: "📁", component: ProjectsApp, color: "bg-cat-unity" },
-    about: { title: "About.doc", icon: "👤", component: AboutApp, color: "bg-cat-web" },
-    contact: { title: "Contact.txt", icon: "✏️", component: ContactApp, color: "bg-tape" },
-  };
+  // Redundant APPS definition removed, using the global one.
+
 
   const [windows, setWindows] = useState<WindowData[]>([]);
   const [showTip, setShowTip] = useState(true);
@@ -79,13 +84,15 @@ const App: React.FC = () => {
 
     const isMobile = window.innerWidth < 768;
     const appDef = APPS[appId];
+    const maxZ = Math.max(0, ...windows.map(w => w.zIndex));
+
     const newWindow: WindowData = {
       id: appId,
       title: appDef.title,
       icon: appDef.icon,
       component: appDef.component,
       color: appDef.color,
-      zIndex: windows.length + 1,
+      zIndex: maxZ + 1,
       isMinimized: false,
       isMaximized: isMobile,
       isMobile,

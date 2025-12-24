@@ -57,4 +57,4 @@ export interface AppDefinition {
   color: string;
 }
 
-export type AppId = 'welcome' | 'projects' | 'about' | 'contact';
+export type AppId = 'welcome' | 'projects' | 'about' | 'contact' | 'browser';

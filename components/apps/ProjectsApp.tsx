@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, ArrowLeft, ArrowUpRight, Play, Image as ImageIcon } from 'lucide-react';
 import { PROJECTS } from '../../constants';
-import { Project, MediaItem } from '../../types';
+import { Project, MediaItem, AppId } from '../../types';
 
 interface ProjectsAppProps {
   initialProjectId?: string;
+  openApp?: (id: AppId, props?: any) => void;
 }
 
 const TechChip: React.FC<{ label: string; colorClass: string }> = ({ label, colorClass }) => {
@@ -65,7 +66,7 @@ const MediaGalleryItem: React.FC<{ item: MediaItem; index: number }> = ({ item, 
   );
 };
 
-export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialProjectId }) => {
+export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialProjectId, openApp }) => {
   const [filter, setFilter] = useState('All');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
@@ -136,6 +137,15 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialProjectId }) =>
                     <h3 className="font-mono text-xs font-bold uppercase text-gray-400 mb-2">Key Outcome</h3>
                     <p className="font-bold text-ink">{selectedProject.outcome}</p>
                   </div>
+
+                  {/* Demo Button */}
+                  <button
+                    onClick={() => openApp && openApp('browser', { initialUrl: 'https://scene.zeacon.com/' })}
+                    className="w-full py-3 bg-ink text-white font-bold rounded shadow-paper hover:shadow-paper-hover hover:-translate-y-1 transition-all flex items-center justify-center gap-2 group"
+                  >
+                    <span>View Project Demo</span>
+                    <ArrowUpRight className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                  </button>
 
                   <div className="space-y-4 pt-4 border-t-2 border-dashed border-ink/10">
                     <div>
