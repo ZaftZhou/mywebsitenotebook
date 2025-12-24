@@ -226,6 +226,10 @@ const App: React.FC = () => {
           {(Object.keys(APPS) as AppId[]).map((key) => {
             const app = APPS[key];
             const isOpen = windows.find(w => w.id === key);
+
+            // Only show browser in dock if it's currently running
+            if (key === 'browser' && !isOpen) return null;
+
             return (
               <div key={key} className="relative group">
                 <button
@@ -240,6 +244,7 @@ const App: React.FC = () => {
                     {key === 'projects' && <Folder className="text-cat-unity" size={24} />}
                     {key === 'about' && <User className="text-cat-web" size={24} />}
                     {key === 'contact' && <Mail className="text-tape" fill="#F4E04D" size={24} />}
+                    {key === 'browser' && <Globe className="text-blue-500" size={24} />}
                   </div>
                 </button>
                 {/* Active Dot */}
