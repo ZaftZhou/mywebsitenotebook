@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Folder, User, Mail, Gamepad2, Globe, Smartphone, Box, GripHorizontal, Hand } from 'lucide-react';
+import { Folder, User, Mail, Gamepad2, Globe, Smartphone, Box, Hand, Search } from 'lucide-react';
 
 import { WindowFrame } from './components/WindowFrame';
 import { WelcomeApp } from './components/apps/WelcomeApp';
@@ -8,9 +8,8 @@ import { ProjectsApp } from './components/apps/ProjectsApp';
 import { AboutApp } from './components/apps/AboutApp';
 import { ContactApp } from './components/apps/ContactApp';
 import { DesktopWidgets } from './components/DesktopWidgets';
+import { CommandPalette } from './components/CommandPalette'; // Integrated
 import { WindowData, AppId, AppDefinition } from './types';
-
-
 
 const DesktopIcon = ({ label, icon, onClick, delay = 0, color = "bg-white", tooltip }: any) => (
   <motion.div
@@ -44,6 +43,7 @@ const App: React.FC = () => {
 
   const [windows, setWindows] = useState<WindowData[]>([]);
   const [showTip, setShowTip] = useState(true);
+  const [isCmdPaletteOpen, setIsCmdPaletteOpen] = useState(false); // Command Palette State
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -52,8 +52,19 @@ const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // Command Palette Keyboard Listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCmdPaletteOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const openApp = (appId: AppId, props: any = {}) => {
-    // If window exists, focus and update props
     const existing = windows.find(w => w.id === appId);
     if (existing) {
       focusWindow(appId);
@@ -76,7 +87,7 @@ const App: React.FC = () => {
       color: appDef.color,
       zIndex: windows.length + 1,
       isMinimized: false,
-      isMaximized: isMobile, // Auto maximize on mobile
+      isMaximized: isMobile,
       isMobile,
       props
     };
@@ -115,6 +126,14 @@ const App: React.FC = () => {
         }}
       ></div>
 
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={isCmdPaletteOpen}
+        onClose={() => setIsCmdPaletteOpen(false)}
+        openApp={openApp}
+        openProject={openProjectDirectly}
+      />
+
       {/* Pro Tip */}
       <AnimatePresence>
         {showTip && (
@@ -125,7 +144,8 @@ const App: React.FC = () => {
             className="absolute bottom-24 left-8 z-40 bg-[#feff9c] border-2 border-ink px-4 py-3 text-xs font-hand font-bold shadow-md rotate-2 max-w-[200px]"
           >
             <span className="text-xl block mb-1">💡 Pro Tip:</span>
-            Drag windows by the title bar!
+            Drag windows by the title bar! <br />
+            Cmd+K to search.
             <button onClick={() => setShowTip(false)} className="absolute -top-2 -right-2 bg-red-400 text-white rounded-full w-4 h-4 flex items-center justify-center border border-ink">x</button>
           </motion.div>
         )}
@@ -178,6 +198,24 @@ const App: React.FC = () => {
       {/* Bottom Dock */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 w-auto">
         <div className="bg-white/90 backdrop-blur-md border-2 border-ink rounded-2xl px-4 py-3 flex gap-4 shadow-floating items-center">
+
+          {/* Search Trigger */}
+          <button
+            onClick={() => setIsCmdPaletteOpen(true)}
+            className="group relative transition-all hover:-translate-y-2 hover:scale-110 active:scale-95"
+          >
+            <div className="w-12 h-12 bg-ink text-white rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg">
+              <Search size={24} />
+            </div>
+            {/* Tooltip */}
+            <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-ink text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none font-bold">
+              Search (Cmd+K)
+            </div>
+          </button>
+
+          {/* Divider */}
+          <div className="w-0.5 h-8 bg-ink/10 rounded-full mx-1"></div>
+
           {(Object.keys(APPS) as AppId[]).map((key) => {
             const app = APPS[key];
             const isOpen = windows.find(w => w.id === key);

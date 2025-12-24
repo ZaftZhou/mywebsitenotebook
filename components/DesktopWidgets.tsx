@@ -1,8 +1,7 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
 import { PROJECTS, SKILLS } from '../constants';
 import { AppId } from '../types';
-import { Pin, Wrench, Mail, Linkedin } from 'lucide-react';
+import { Pin, Wrench, Mail, Linkedin, Play, Pause, SkipForward, Music } from 'lucide-react';
 
 interface WidgetPanelProps {
   openApp: (id: AppId, props?: any) => void;
@@ -19,20 +18,54 @@ const Tape = ({ className, rotation = -2, color = "bg-tape/90" }: { className?: 
 );
 
 export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProject }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  const togglePlay = () => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio("https://stream.zeno.fm/0r0xa792kwzuv");
+      audioRef.current.volume = 0.6;
+    }
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch(e => console.error("Audio error:", e));
+    }
+    setIsPlaying(!isPlaying);
+  };
+
   return (
-    <div className="fixed right-6 top-10 bottom-24 w-64 flex flex-col gap-6 pointer-events-none hidden md:flex z-0 overflow-y-auto overflow-x-hidden no-scrollbar py-2 px-1">
+    <div className="fixed right-6 top-10 bottom-24 w-64 flex flex-col gap-6 pointer-events-none hidden md:flex z-0 overflow-y-auto no-scrollbar py-2 px-1">
+
+      {/* 0. Music Player Widget (New) */}
+      <div className="bg-ink text-paper rounded-sm p-4 shadow-widget -rotate-1 pointer-events-auto relative flex-shrink-0 border-2 border-gray-700">
+        <Tape className="-top-3 right-10" rotation={2} color="bg-rose-400" />
+        <div className="flex items-center gap-3 mb-3">
+          <div className={`w-8 h-8 rounded-full bg-paper/10 flex items-center justify-center ${isPlaying ? 'animate-spin' : ''}`} style={{ animationDuration: '3s' }}>
+            <Music size={14} />
+          </div>
+          <div className="overflow-hidden">
+            <div className="text-xs font-bold truncate">Lo-fi Study Beats</div>
+            <div className="text-[10px] text-gray-400 truncate">Chillhop Radio 24/7</div>
+          </div>
+        </div>
+        {/* Fake Audio Visualizer */}
+        <div className="flex items-end justify-between h-8 gap-1 mb-3 opacity-50">
+          {[...Array(10)].map((_, i) => (
+            <div key={i} className="w-1 bg-paper/80 rounded-t-sm transition-all duration-300" style={{ height: isPlaying ? `${Math.random() * 100}%` : '20%' }}></div>
+          ))}
+        </div>
+        <div className="flex items-center justify-between border-t border-white/10 pt-2">
+          <button className="hover:text-tape transition-colors"><SkipForward size={14} className="rotate-180" /></button>
+          <button onClick={togglePlay} className="w-8 h-8 bg-paper text-ink rounded-full flex items-center justify-center hover:bg-tape transition-colors">
+            {isPlaying ? <Pause size={12} fill="currentColor" /> : <Play size={12} fill="currentColor" className="ml-0.5" />}
+          </button>
+          <button className="hover:text-tape transition-colors"><SkipForward size={14} /></button>
+        </div>
+      </div>
 
       {/* 1. Featured Projects Widget */}
-      <motion.div
-        initial={{ rotate: 1 }}
-        whileHover={{
-          rotate: [1, 2, 0, 1],
-          scale: 1.02,
-          boxShadow: "4px 4px 0px rgba(24, 24, 27, 0.2)"
-        }}
-        transition={{ duration: 0.3 }}
-        className="bg-white border-2 border-ink rounded-sm p-4 shadow-widget pointer-events-auto relative flex-shrink-0 cursor-default"
-      >
+      <div className="bg-white border-2 border-ink rounded-sm p-4 shadow-widget rotate-1 pointer-events-auto hover:shadow-floating transition-all relative flex-shrink-0">
         <Tape className="-top-3 left-1/2 -translate-x-1/2" rotation={-2} />
         <div className="flex items-center justify-between mb-3 border-b-2 border-ink/10 pb-1">
           <h4 className="font-hand font-bold text-xl flex items-center gap-2">
@@ -46,29 +79,20 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
               onClick={() => openProject(p.id)}
               className="group cursor-pointer flex items-center gap-3 p-1 hover:bg-paperDark rounded border border-transparent hover:border-ink/10 transition-colors"
             >
-              <div className={`w-8 h-8 rounded border border-ink ${p.color === 'catUnity' ? 'bg-cat-unity' : p.color === 'catWeb' ? 'bg-cat-web' : p.color === 'cat3D' ? 'bg-cat-3d' : 'bg-cat-app'} flex-shrink-0 flex items-center justify-center text-xs font-bold`}>
+              <div className={`w-8 h-8 rounded border border-ink ${p.color === 'catUnity' ? 'bg-blue-300' : p.color === 'catWeb' ? 'bg-orange-300' : p.color === 'cat3D' ? 'bg-purple-300' : 'bg-green-300'} flex-shrink-0 flex items-center justify-center text-xs font-bold`}>
                 {p.category[0]}
               </div>
               <div className="overflow-hidden">
-                <div className="font-bold text-xs truncate group-hover:text-cat-web transition-colors">{p.title}</div>
+                <div className="font-bold text-xs truncate group-hover:text-catWeb transition-colors">{p.title}</div>
                 <div className="text-[10px] text-gray-500 truncate">Click to open</div>
               </div>
             </div>
           ))}
         </div>
-      </motion.div>
+      </div>
 
       {/* 2. Skills Badge Wall */}
-      <motion.div
-        initial={{ rotate: -1 }}
-        whileHover={{
-          rotate: [-1, -2, 0, -1],
-          scale: 1.02,
-          boxShadow: "4px 4px 0px rgba(24, 24, 27, 0.2)"
-        }}
-        transition={{ duration: 0.3 }}
-        className="bg-white border-2 border-ink rounded-sm p-4 shadow-widget pointer-events-auto relative flex-shrink-0 cursor-default"
-      >
+      <div className="bg-white border-2 border-ink rounded-sm p-4 shadow-widget -rotate-1 pointer-events-auto hover:shadow-floating transition-all relative flex-shrink-0">
         <Tape className="-top-3 right-8" rotation={2} color="bg-blue-200" />
         <div className="mb-3 border-b-2 border-ink/10 pb-1">
           <h4 className="font-hand font-bold text-xl flex items-center gap-2">
@@ -94,19 +118,10 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
             </div>
           ))}
         </div>
-      </motion.div>
+      </div>
 
       {/* 3. Status Widget */}
-      <motion.div
-        initial={{ rotate: 2 }}
-        whileHover={{
-          rotate: [2, 3, 1, 2],
-          scale: 1.02,
-          boxShadow: "4px 4px 0px rgba(24, 24, 27, 0.2)"
-        }}
-        transition={{ duration: 0.3 }}
-        className="bg-[#feff9c] border-2 border-ink rounded-sm p-4 shadow-widget pointer-events-auto relative flex-shrink-0 cursor-default"
-      >
+      <div className="bg-[#feff9c] border-2 border-ink rounded-sm p-4 shadow-widget rotate-2 pointer-events-auto relative flex-shrink-0">
         {/* Paper Clip Visual */}
         <div className="absolute -top-3 left-6 w-4 h-8 border-2 border-ink rounded-full border-b-0"></div>
         <div className="absolute -top-3 left-7 w-2 h-6 bg-ink/10 rounded-full"></div>
@@ -131,7 +146,7 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
             <Linkedin className="w-3 h-3" /> LINKEDIN
           </button>
         </div>
-      </motion.div>
+      </div>
 
     </div>
   );
