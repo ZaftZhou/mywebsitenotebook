@@ -10,11 +10,35 @@ import { ContactApp } from './components/apps/ContactApp';
 import { DesktopWidgets } from './components/DesktopWidgets';
 import { WindowData, AppId, AppDefinition } from './types';
 
+
+
+const DesktopIcon = ({ label, icon, onClick, delay = 0, color = "bg-white", tooltip }: any) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.5 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ delay, type: "spring" }}
+    className="group relative flex flex-col items-center gap-2 w-20 cursor-pointer"
+    onClick={onClick}
+  >
+    <div className={`w-14 h-14 ${color} border-2 border-ink rounded-lg shadow-paper flex items-center justify-center text-ink group-hover:-translate-y-1 group-hover:shadow-paper-hover transition-all duration-200`}>
+      {icon}
+    </div>
+    <span className="font-sans font-bold bg-white/90 px-1.5 rounded-sm text-xs border border-transparent group-hover:border-ink/20 text-center leading-tight shadow-sm whitespace-nowrap">
+      {label}
+    </span>
+    {/* Tooltip */}
+    <div className="absolute left-full ml-3 top-2 bg-ink text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 font-mono shadow-md">
+      {tooltip}
+      <div className="absolute top-1.5 -left-1 w-2 h-2 bg-ink rotate-45"></div>
+    </div>
+  </motion.div>
+);
+
 const App: React.FC = () => {
   const APPS: Record<AppId, AppDefinition> = {
     welcome: { title: "Welcome!", icon: "👋", component: WelcomeApp, color: "bg-white" },
-    projects: { title: "Projects.app", icon: "📁", component: ProjectsApp, color: "bg-catUnity" },
-    about: { title: "About.doc", icon: "👤", component: AboutApp, color: "bg-catWeb" },
+    projects: { title: "Projects.app", icon: "📁", component: ProjectsApp, color: "bg-cat-unity" },
+    about: { title: "About.doc", icon: "👤", component: AboutApp, color: "bg-cat-web" },
     contact: { title: "Contact.txt", icon: "✏️", component: ContactApp, color: "bg-tape" },
   };
 
@@ -34,10 +58,10 @@ const App: React.FC = () => {
     if (existing) {
       focusWindow(appId);
       if (existing.isMinimized) {
-          toggleMinimize(appId);
+        toggleMinimize(appId);
       }
       if (Object.keys(props).length > 0) {
-        setWindows(prev => prev.map(w => w.id === appId ? { ...w, props: {...w.props, ...props} } : w));
+        setWindows(prev => prev.map(w => w.id === appId ? { ...w, props: { ...w.props, ...props } } : w));
       }
       return;
     }
@@ -64,45 +88,23 @@ const App: React.FC = () => {
   };
 
   const closeWindow = (id: string) => setWindows(prev => prev.filter(w => w.id !== id));
-  
+
   const toggleMinimize = (id: string) => {
     setWindows(prev => prev.map(w => w.id === id ? { ...w, isMinimized: !w.isMinimized } : w));
   };
-  
+
   const toggleMaximize = (id: string) => {
     setWindows(prev => prev.map(w => w.id === id ? { ...w, isMaximized: !w.isMaximized } : w));
   };
-  
+
   const focusWindow = (id: string) => {
     const maxZ = Math.max(0, ...windows.map(w => w.zIndex));
     setWindows(prev => prev.map(w => w.id === id ? { ...w, zIndex: maxZ + 1 } : w));
   };
 
-  const DesktopIcon = ({ label, icon, onClick, delay = 0, color = "bg-white", tooltip }: any) => (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.5 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay, type: "spring" }}
-      className="group relative flex flex-col items-center gap-2 w-20 cursor-pointer"
-      onClick={onClick}
-    >
-      <div className={`w-14 h-14 ${color} border-2 border-ink rounded-lg shadow-paper flex items-center justify-center text-ink group-hover:-translate-y-1 group-hover:shadow-paper-hover transition-all duration-200`}>
-        {icon}
-      </div>
-      <span className="font-sans font-bold bg-white/90 px-1.5 rounded-sm text-xs border border-transparent group-hover:border-ink/20 text-center leading-tight shadow-sm whitespace-nowrap">
-        {label}
-      </span>
-      {/* Tooltip */}
-      <div className="absolute left-full ml-3 top-2 bg-ink text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 font-mono shadow-md">
-         {tooltip}
-         <div className="absolute top-1.5 -left-1 w-2 h-2 bg-ink rotate-45"></div>
-      </div>
-    </motion.div>
-  );
-
   return (
     <div ref={containerRef} className="h-screen w-screen relative overflow-hidden bg-paper bg-grid-paper bg-[length:24px_24px]">
-      
+
       {/* Pro Tip */}
       <AnimatePresence>
         {showTip && (
@@ -122,12 +124,12 @@ const App: React.FC = () => {
       {/* Desktop Icons Left */}
       <div className="absolute top-8 left-8 flex flex-col gap-8 z-0">
         <div>
-          <DesktopIcon 
-            label="Projects" 
-            icon={<Folder size={24} />} 
-            tooltip="My Work" 
-            onClick={() => openApp('projects')} 
-            color="bg-tape" 
+          <DesktopIcon
+            label="Projects"
+            icon={<Folder size={24} />}
+            tooltip="My Work"
+            onClick={() => openApp('projects')}
+            color="bg-tape"
           />
         </div>
         <div>
@@ -180,8 +182,8 @@ const App: React.FC = () => {
                 >
                   <div className={`w-12 h-12 bg-white border-2 border-ink/20 rounded-xl flex items-center justify-center text-2xl shadow-sm ${isOpen ? 'border-ink shadow-md' : ''}`}>
                     {key === 'welcome' && <Hand className="text-ink" size={24} />}
-                    {key === 'projects' && <Folder className="text-catUnity" size={24} />}
-                    {key === 'about' && <User className="text-catWeb" size={24} />}
+                    {key === 'projects' && <Folder className="text-cat-unity" size={24} />}
+                    {key === 'about' && <User className="text-cat-web" size={24} />}
                     {key === 'contact' && <Mail className="text-tape" fill="#F4E04D" size={24} />}
                   </div>
                 </button>

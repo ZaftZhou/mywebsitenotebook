@@ -9,10 +9,10 @@ interface ProjectsAppProps {
 }
 
 const colors: Record<string, string> = {
-  catUnity: 'bg-catUnity',
-  catWeb: 'bg-catWeb',
-  catApp: 'bg-catApp',
-  cat3D: 'bg-cat3D'
+  catUnity: 'bg-cat-unity',
+  catWeb: 'bg-cat-web',
+  catApp: 'bg-cat-app',
+  cat3D: 'bg-cat-3d'
 };
 
 const TechChip: React.FC<{ label: string; colorKey: string }> = ({ label, colorKey }) => {
@@ -36,36 +36,36 @@ const Tape = ({ className, rotation = -2 }: { className?: string; rotation?: num
 
 const MediaGalleryItem: React.FC<{ item: MediaItem; index: number }> = ({ item, index }) => {
   const rotation = index % 2 === 0 ? 'rotate-1' : '-rotate-1';
-  
+
   return (
     <div className={`break-inside-avoid mb-6 relative group ${rotation}`}>
       {/* Tape Effect */}
       <Tape className="-top-2 left-1/2 -translate-x-1/2" rotation={index % 3 === 0 ? 2 : -2} />
-      
+
       <div className="bg-white p-2 pb-8 border-2 border-ink shadow-paper group-hover:shadow-paper-hover transition-shadow duration-300">
         <div className={`w-full ${item.aspect} ${item.color || 'bg-gray-200'} relative overflow-hidden border border-ink/10 flex items-center justify-center`}>
-            {/* Pattern Overlay */}
-            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px]"></div>
-            
-            {item.type === 'video' ? (
-                <div className="flex flex-col items-center justify-center text-ink/50">
-                    <div className="w-12 h-12 rounded-full border-2 border-ink/50 flex items-center justify-center mb-2 bg-white/30 backdrop-blur-sm">
-                        <Play fill="currentColor" className="w-5 h-5 ml-1" />
-                    </div>
-                    <span className="font-mono text-[10px] uppercase">Video Preview</span>
-                </div>
-            ) : (
-                <div className="flex flex-col items-center justify-center text-ink/30">
-                     <ImageIcon className="w-8 h-8 mb-2" />
-                     <span className="font-mono text-[10px] uppercase">Image Asset</span>
-                </div>
-            )}
-        </div>
-        
-        {item.caption && (
-            <div className="mt-3 px-2">
-                <p className="font-hand font-bold text-center text-gray-700 leading-tight">{item.caption}</p>
+          {/* Pattern Overlay */}
+          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px]"></div>
+
+          {item.type === 'video' ? (
+            <div className="flex flex-col items-center justify-center text-ink/50">
+              <div className="w-12 h-12 rounded-full border-2 border-ink/50 flex items-center justify-center mb-2 bg-white/30 backdrop-blur-sm">
+                <Play fill="currentColor" className="w-5 h-5 ml-1" />
+              </div>
+              <span className="font-mono text-[10px] uppercase">Video Preview</span>
             </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center text-ink/30">
+              <ImageIcon className="w-8 h-8 mb-2" />
+              <span className="font-mono text-[10px] uppercase">Image Asset</span>
+            </div>
+          )}
+        </div>
+
+        {item.caption && (
+          <div className="mt-3 px-2">
+            <p className="font-hand font-bold text-center text-gray-700 leading-tight">{item.caption}</p>
+          </div>
         )}
       </div>
     </div>
@@ -100,83 +100,83 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialProjectId }) =>
           >
             {/* Sticky Header */}
             <div className="sticky top-0 bg-white/90 backdrop-blur-md border-b-2 border-ink/10 z-10 px-6 py-4 flex items-center justify-between">
-                <button
+              <button
                 onClick={() => setSelectedProject(null)}
                 className="text-xs font-bold hover:text-catWeb flex items-center gap-1 group transition-colors"
-                >
-                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> 
+              >
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                 <span className="hidden sm:inline">Back to Gallery</span>
-                </button>
-                
-                <div className="flex gap-2">
-                    <span className="px-2 py-1 border border-ink/20 rounded-md text-[10px] uppercase font-bold tracking-wider bg-paper">{selectedProject.year}</span>
-                    <span className={`px-2 py-1 border border-ink/20 rounded-md text-[10px] uppercase font-bold tracking-wider text-white ${colors[selectedProject.color]}`}>{selectedProject.category}</span>
-                </div>
+              </button>
+
+              <div className="flex gap-2">
+                <span className="px-2 py-1 border border-ink/20 rounded-md text-[10px] uppercase font-bold tracking-wider bg-paper">{selectedProject.year}</span>
+                <span className={`px-2 py-1 border border-ink/20 rounded-md text-[10px] uppercase font-bold tracking-wider text-white ${colors[selectedProject.color]}`}>{selectedProject.category}</span>
+              </div>
             </div>
 
             <div className="p-6 md:p-8 max-w-6xl mx-auto">
-                {/* Title Section */}
-                <div className="mb-8">
-                    <h2 className="text-4xl md:text-6xl font-sans font-black mb-2 tracking-tight text-ink">{selectedProject.title}</h2>
-                    <p className="text-lg text-gray-500 font-hand">{selectedProject.oneLiner}</p>
+              {/* Title Section */}
+              <div className="mb-8">
+                <h2 className="text-4xl md:text-6xl font-sans font-black mb-2 tracking-tight text-ink">{selectedProject.title}</h2>
+                <p className="text-lg text-gray-500 font-hand">{selectedProject.oneLiner}</p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+
+                {/* Sidebar / Info Column */}
+                <div className="lg:col-span-4 space-y-8">
+                  <div>
+                    <h3 className="font-hand font-bold text-xl border-b border-ink/10 mb-3 inline-block bg-tape/30 px-2 transform -rotate-1">The Mission</h3>
+                    <p className="text-sm leading-relaxed text-gray-700 font-sans">{selectedProject.content.overview}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-hand font-bold text-xl border-b border-ink/10 mb-3 inline-block">Tech Stack</h3>
+                    <div className="flex gap-2 flex-wrap">
+                      {selectedProject.content.stack.map(t => (
+                        <span key={t} className="bg-paperDark border-2 border-ink/10 px-2 py-1 rounded text-[10px] font-mono font-bold">{t}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-paper p-4 border-l-4 border-ink/20 rounded-r-lg">
+                    <h3 className="font-mono text-xs font-bold uppercase text-gray-400 mb-2">Key Outcome</h3>
+                    <p className="font-bold text-ink">{selectedProject.outcome}</p>
+                  </div>
+
+                  <div className="space-y-4 pt-4 border-t-2 border-dashed border-ink/10">
+                    <div>
+                      <h4 className="font-bold text-xs uppercase text-gray-400 mb-1">Challenge</h4>
+                      <p className="text-xs text-gray-600">{selectedProject.content.challenges}</p>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs uppercase text-gray-400 mb-1">Solution</h4>
+                      <p className="text-xs text-gray-600">{selectedProject.content.solutions}</p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-                    
-                    {/* Sidebar / Info Column */}
-                    <div className="lg:col-span-4 space-y-8">
-                        <div>
-                            <h3 className="font-hand font-bold text-xl border-b border-ink/10 mb-3 inline-block bg-tape/30 px-2 transform -rotate-1">The Mission</h3>
-                            <p className="text-sm leading-relaxed text-gray-700 font-sans">{selectedProject.content.overview}</p>
-                        </div>
+                {/* Main Content / Gallery Column */}
+                <div className="lg:col-span-8">
+                  <div className="mb-6 flex items-center gap-2">
+                    <h3 className="font-hand font-bold text-2xl">Project Gallery</h3>
+                    <span className="text-[10px] font-mono bg-ink text-white px-1.5 rounded-full">{selectedProject.media?.length || 0}</span>
+                  </div>
 
-                        <div>
-                            <h3 className="font-hand font-bold text-xl border-b border-ink/10 mb-3 inline-block">Tech Stack</h3>
-                            <div className="flex gap-2 flex-wrap">
-                                {selectedProject.content.stack.map(t => (
-                                <span key={t} className="bg-paperDark border-2 border-ink/10 px-2 py-1 rounded text-[10px] font-mono font-bold">{t}</span>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="bg-paper p-4 border-l-4 border-ink/20 rounded-r-lg">
-                             <h3 className="font-mono text-xs font-bold uppercase text-gray-400 mb-2">Key Outcome</h3>
-                             <p className="font-bold text-ink">{selectedProject.outcome}</p>
-                        </div>
-
-                        <div className="space-y-4 pt-4 border-t-2 border-dashed border-ink/10">
-                            <div>
-                                <h4 className="font-bold text-xs uppercase text-gray-400 mb-1">Challenge</h4>
-                                <p className="text-xs text-gray-600">{selectedProject.content.challenges}</p>
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-xs uppercase text-gray-400 mb-1">Solution</h4>
-                                <p className="text-xs text-gray-600">{selectedProject.content.solutions}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Main Content / Gallery Column */}
-                    <div className="lg:col-span-8">
-                        <div className="mb-6 flex items-center gap-2">
-                             <h3 className="font-hand font-bold text-2xl">Project Gallery</h3>
-                             <span className="text-[10px] font-mono bg-ink text-white px-1.5 rounded-full">{selectedProject.media?.length || 0}</span>
-                        </div>
-                        
-                        {/* Masonry Layout */}
-                        <div className="columns-1 sm:columns-2 gap-6 space-y-6">
-                            {selectedProject.media?.map((mediaItem, index) => (
-                                <MediaGalleryItem key={index} item={mediaItem} index={index} />
-                            ))}
-                            {!selectedProject.media && (
-                                <div className="p-8 text-center text-gray-400 border-2 border-dashed border-gray-300 rounded-lg">
-                                    No media available for this project.
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
+                  {/* Masonry Layout */}
+                  <div className="columns-1 sm:columns-2 gap-6 space-y-6">
+                    {selectedProject.media?.map((mediaItem, index) => (
+                      <MediaGalleryItem key={index} item={mediaItem} index={index} />
+                    ))}
+                    {!selectedProject.media && (
+                      <div className="p-8 text-center text-gray-400 border-2 border-dashed border-gray-300 rounded-lg">
+                        No media available for this project.
+                      </div>
+                    )}
+                  </div>
                 </div>
+
+              </div>
             </div>
           </motion.div>
         ) : (

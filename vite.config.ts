@@ -17,6 +17,15 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom'],
+            'vendor-anim': ['framer-motion'],
+            'vendor-ui': ['lucide-react', 'recharts', 'd3']
+          }
+        }
+      }
     }
   };
 });
