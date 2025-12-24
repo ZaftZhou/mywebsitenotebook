@@ -10,6 +10,7 @@ import { ContactApp } from './components/apps/ContactApp';
 import { BrowserApp } from './components/apps/BrowserApp';
 import { DesktopWidgets } from './components/DesktopWidgets';
 import { CommandPalette } from './components/CommandPalette';
+import AdminApp from './components/apps/AdminApp';
 import { WindowData, AppId, AppDefinition } from './types';
 
 const APPS: Record<AppId, AppDefinition> = {
@@ -18,6 +19,7 @@ const APPS: Record<AppId, AppDefinition> = {
   about: { title: "About.doc", icon: "👤", component: AboutApp, color: "bg-cat-web" },
   contact: { title: "Contact.txt", icon: "✏️", component: ContactApp, color: "bg-tape" },
   browser: { title: "Netscape.exe", icon: "🌎", component: BrowserApp, color: "bg-blue-100" },
+  admin: { title: "Admin.exe", icon: "⚙️", component: AdminApp, color: "bg-red-100" },
 };
 
 const DesktopIcon = ({ label, icon, onClick, delay = 0, color = "bg-white", tooltip }: any) => (

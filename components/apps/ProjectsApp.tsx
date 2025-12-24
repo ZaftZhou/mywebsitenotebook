@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, ArrowLeft, ArrowUpRight, Play, Image as ImageIcon } from 'lucide-react';
-import { PROJECTS } from '../../constants';
 import { Project, MediaItem, AppId } from '../../types';
+import { useProjects } from '../../src/hooks/useContent';
 
 interface ProjectsAppProps {
   initialProjectId?: string;
@@ -28,6 +28,14 @@ const Tape = ({ className, rotation = -2 }: { className?: string; rotation?: num
   </div>
 );
 
+const getAspectStyle = (aspectClass: string) => {
+  if (aspectClass?.startsWith('aspect-[')) {
+    const ratio = aspectClass.replace('aspect-[', '').replace(']', '');
+    return { aspectRatio: ratio };
+  }
+  return {};
+};
+
 const MediaGalleryItem: React.FC<{ item: MediaItem; index: number }> = ({ item, index }) => {
   const rotation = index % 2 === 0 ? 'rotate-1' : '-rotate-1';
 
@@ -37,22 +45,34 @@ const MediaGalleryItem: React.FC<{ item: MediaItem; index: number }> = ({ item, 
       <Tape className="-top-2 left-1/2 -translate-x-1/2" rotation={index % 3 === 0 ? 2 : -2} />
 
       <div className="bg-white p-2 pb-8 border-2 border-ink shadow-paper group-hover:shadow-paper-hover transition-shadow duration-300">
-        <div className={`w-full ${item.aspect} ${item.color || 'bg-gray-200'} relative overflow-hidden border border-ink/10 flex items-center justify-center`}>
-          {/* Pattern Overlay */}
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px]"></div>
+        <div
+          className={`w-full ${!item.aspect.startsWith('aspect-[') ? item.aspect : ''} ${item.color || 'bg-gray-200'} relative overflow-hidden border border-ink/10 flex items-center justify-center bg-cover bg-center`}
+          style={{
+            backgroundImage: item.url && item.type === 'image' ? `url("${item.url}")` : undefined,
+            ...getAspectStyle(item.aspect)
+          }}
+        >
+          {/* Pattern Overlay only if no image */}
+          {!item.url && <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px]"></div>}
 
           {item.type === 'video' ? (
-            <div className="flex flex-col items-center justify-center text-ink/50">
-              <div className="w-12 h-12 rounded-full border-2 border-ink/50 flex items-center justify-center mb-2 bg-white/30 backdrop-blur-sm">
-                <Play fill="currentColor" className="w-5 h-5 ml-1" />
+            item.url ? (
+              <video src={item.url} controls className="w-full h-full object-cover" />
+            ) : (
+              <div className="flex flex-col items-center justify-center text-ink/50">
+                <div className="w-12 h-12 rounded-full border-2 border-ink/50 flex items-center justify-center mb-2 bg-white/30 backdrop-blur-sm">
+                  <Play fill="currentColor" className="w-5 h-5 ml-1" />
+                </div>
+                <span className="font-mono text-[10px] uppercase">Video Preview</span>
               </div>
-              <span className="font-mono text-[10px] uppercase">Video Preview</span>
-            </div>
+            )
           ) : (
-            <div className="flex flex-col items-center justify-center text-ink/30">
-              <ImageIcon className="w-8 h-8 mb-2" />
-              <span className="font-mono text-[10px] uppercase">Image Asset</span>
-            </div>
+            !item.url && (
+              <div className="flex flex-col items-center justify-center text-ink/30">
+                <ImageIcon className="w-8 h-8 mb-2" />
+                <span className="font-mono text-[10px] uppercase">Image Asset</span>
+              </div>
+            )
           )}
         </div>
 
@@ -67,18 +87,19 @@ const MediaGalleryItem: React.FC<{ item: MediaItem; index: number }> = ({ item, 
 };
 
 export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialProjectId, openApp }) => {
+  const { projects } = useProjects();
   const [filter, setFilter] = useState('All');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
   useEffect(() => {
     if (initialProjectId) {
-      const p = PROJECTS.find(proj => proj.id === initialProjectId);
+      const p = projects.find(proj => proj.id === initialProjectId);
       if (p) setSelectedProject(p);
     }
-  }, [initialProjectId]);
+  }, [initialProjectId, projects]);
 
   const categories = ['All', 'Unity', 'Web', 'App', '3D'];
-  const filtered = filter === 'All' ? PROJECTS : PROJECTS.filter(p => p.category === filter);
+  const filtered = filter === 'All' ? projects : projects.filter(p => p.category === filter);
 
   return (
     <div className="flex flex-col h-full bg-white/50">
@@ -234,10 +255,15 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialProjectId, open
                       onClick={() => setSelectedProject(p)}
                       className="group bg-white border-2 border-ink rounded-lg overflow-hidden shadow-paper cursor-pointer relative flex flex-col h-full hover:shadow-paper-hover transition-all duration-200"
                     >
-                      <div className="aspect-video bg-paperDark border-b-2 border-ink/10 relative overflow-hidden flex items-center justify-center">
-                        <span className="text-3xl opacity-20 transition-transform duration-500 group-hover:scale-105 grayscale">
-                          🖼️
-                        </span>
+                      <div
+                        className="aspect-video bg-paperDark border-b-2 border-ink/10 relative overflow-hidden flex items-center justify-center bg-contain bg-center bg-no-repeat transition-all duration-500"
+                        style={{ backgroundImage: (p.coverImage || p.media?.[0]?.url) ? `url('${p.coverImage || p.media?.[0]?.url}')` : undefined }}
+                      >
+                        {!(p.coverImage || p.media?.[0]?.url) && (
+                          <span className="text-3xl opacity-20 transition-transform duration-500 group-hover:scale-105 grayscale">
+                            🖼️
+                          </span>
+                        )}
                         <div className="absolute inset-0 opacity-5 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:8px_8px] group-hover:scale-[1.02] transition-transform duration-500"></div>
                         <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                           <span className="bg-white/90 backdrop-blur border border-ink/10 px-2 py-1 rounded text-[10px] font-bold text-ink flex items-center gap-1 shadow-sm">

@@ -27,6 +27,7 @@ export interface Project {
     solutions: string;
   };
   media: MediaItem[];
+  coverImage?: string; // Dedicated cover image URL
 }
 
 export interface Skill {
@@ -57,4 +58,4 @@ export interface AppDefinition {
   color: string;
 }
 
-export type AppId = 'welcome' | 'projects' | 'about' | 'contact' | 'browser';
+export type AppId = 'welcome' | 'projects' | 'about' | 'contact' | 'browser' | 'admin';
