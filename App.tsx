@@ -103,7 +103,17 @@ const App: React.FC = () => {
   };
 
   return (
-    <div ref={containerRef} className="h-screen w-full relative overflow-hidden bg-paper bg-grid-paper bg-[length:24px_24px]">
+    <div ref={containerRef} className="h-screen w-full relative overflow-hidden bg-paper">
+
+      {/* Background Layers */}
+      {/* Dot Grid Pattern */}
+      <div
+        className="absolute inset-0 z-0 pointer-events-none opacity-40 bg-repeat"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1' fill='%23a1a1aa' /%3E%3C/svg%3E")`,
+          backgroundSize: '24px 24px'
+        }}
+      ></div>
 
       {/* Pro Tip */}
       <AnimatePresence>
