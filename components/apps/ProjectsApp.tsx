@@ -8,17 +8,10 @@ interface ProjectsAppProps {
   initialProjectId?: string;
 }
 
-const colors: Record<string, string> = {
-  catUnity: 'bg-cat-unity',
-  catWeb: 'bg-cat-web',
-  catApp: 'bg-cat-app',
-  cat3D: 'bg-cat-3d'
-};
-
-const TechChip: React.FC<{ label: string; colorKey: string }> = ({ label, colorKey }) => {
+const TechChip: React.FC<{ label: string; colorClass: string }> = ({ label, colorClass }) => {
   return (
     <span className="flex items-center gap-1.5 px-2 py-1 bg-white border-[1px] border-ink rounded-md text-[10px] font-mono text-ink whitespace-nowrap shadow-sm">
-      <div className={`w-1.5 h-1.5 rounded-full ${colors[colorKey] || 'bg-gray-400'}`}></div>
+      <div className={`w-1.5 h-1.5 rounded-full ${colorClass || 'bg-gray-400'}`}></div>
       {label}
     </span>
   );
@@ -110,7 +103,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialProjectId }) =>
 
               <div className="flex gap-2">
                 <span className="px-2 py-1 border border-ink/20 rounded-md text-[10px] uppercase font-bold tracking-wider bg-paper">{selectedProject.year}</span>
-                <span className={`px-2 py-1 border border-ink/20 rounded-md text-[10px] uppercase font-bold tracking-wider text-white ${colors[selectedProject.color]}`}>{selectedProject.category}</span>
+                <span className={`px-2 py-1 border border-ink/20 rounded-md text-[10px] uppercase font-bold tracking-wider text-white ${selectedProject.color}`}>{selectedProject.category}</span>
               </div>
             </div>
 
@@ -253,7 +246,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialProjectId }) =>
                         </p>
                         <div className="flex flex-wrap gap-2 mt-auto">
                           {p.tags.slice(0, 3).map(t => (
-                            <TechChip key={t} label={t} colorKey={p.color} />
+                            <TechChip key={t} label={t} colorClass={p.color} />
                           ))}
                           {p.tags.length > 3 && (
                             <span className="text-[10px] text-gray-400 py-1 px-1 font-mono">+{p.tags.length - 3}</span>

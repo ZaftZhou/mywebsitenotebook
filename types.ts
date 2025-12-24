@@ -11,12 +11,12 @@ export interface MediaItem {
 export interface Project {
   id: string;
   title: string;
-  category: 'Unity' | 'Web' | 'App' | '3D';
+  category: string;
   year: string;
   role: string;
   tags: string[];
   outcome: string;
-  color: 'catUnity' | 'catWeb' | 'catApp' | 'cat3D';
+  color: string; // Tailwind class
   featured: boolean;
   oneLiner: string;
   content: {

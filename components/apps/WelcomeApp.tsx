@@ -66,9 +66,9 @@ export const WelcomeApp: React.FC<WelcomeAppProps> = ({ openApp }) => {
       <div className="w-20 h-20 bg-paperDark border-2 border-ink rounded-full mb-4 flex items-center justify-center text-3xl shadow-sm rotate-2">
         👋
       </div>
-      <h1 className="font-hand font-bold text-4xl md:text-5xl mb-2">Hello, I'm Alex.</h1>
+      <h1 className="font-hand font-bold text-4xl md:text-5xl mb-2">Hello, I'm Zhou Bowen.</h1>
       <p className="font-mono text-xs uppercase tracking-widest text-gray-500 mb-6 bg-white px-2 py-1 border border-ink/10 rounded">
-        Unity Developer • Web Builder • Turku, Finland 🇫🇮
+        Unity Dev • Tech Artist • Turku, Finland 🇫🇮
       </p>
 
       {/* D3 System Monitor */}

@@ -2,70 +2,89 @@ import { Project, Skill } from './types';
 
 export const PROJECTS: Project[] = [
   {
-    id: "p1", title: "Neon Drifter", category: "Unity", year: "2024", role: "Dev", tags: ["C#", "URP", "WebGL"], outcome: "50k+ Plays", color: "catUnity", featured: true, oneLiner: "A retro-wave arcade racer with procedural tracks.",
-    content: { overview: "High-speed arcade game built to test WebGL performance limits. The goal was to create a sense of speed using vertex shaders and post-processing while keeping the draw calls low.", stack: ["Unity 2022", "C#", "Blender", "HLSL"], results: ["Featured on Itch.io", "60fps on mobile web"], challenges: "Generating infinite track segments without GC spikes.", solutions: "Implemented heavy object pooling and mesh combiners." },
+    id: "p1", title: "Finnish Learning", category: "App", year: "2024", role: "Solo Dev", tags: ["React Native", "Expo", "TypeScript"], outcome: "Productivity", color: "bg-blue-200", featured: true, oneLiner: "Vocabulary learning app with custom categorization flows.",
+    content: {
+      overview: "A mobile productivity app designed for effective language acquisition. It features a custom vocabulary database, categorized learning flows, and interactive quizzes.",
+      stack: ["React Native", "Expo", "TypeScript", "AsyncStorage"],
+      results: ["Rapid iteration cycle", "Highly usable UI"],
+      challenges: "Designing an intuitive information architecture for complex word relations.",
+      solutions: "Implemented a flexible tagging system and spaced repetition logic."
+    },
     media: [
-      { type: 'video', aspect: 'aspect-video', caption: 'Gameplay Trailer', color: 'bg-purple-900' },
-      { type: 'image', aspect: 'aspect-video', caption: 'Main Menu UI', color: 'bg-purple-700' },
-      { type: 'image', aspect: 'aspect-[4/5]', caption: 'Mobile Controls Layout', color: 'bg-indigo-600' },
-      { type: 'image', aspect: 'aspect-video', caption: 'Procedural Generation Debug', color: 'bg-pink-800' }
+      { type: 'image', aspect: 'aspect-[9/19]', caption: 'Vocabulary List', color: 'bg-blue-100' },
+      { type: 'image', aspect: 'aspect-[9/19]', caption: 'Quiz Interface', color: 'bg-blue-50' }
     ]
   },
   {
-    id: "p2", title: "Folio OS", category: "Web", year: "2023", role: "Full Stack", tags: ["React", "Tailwind"], outcome: "Awwwards Nominee", color: "catWeb", featured: true, oneLiner: "An operating system themed portfolio.",
-    content: { overview: "A portfolio breaking standard scrolling patterns. It features a window manager, a file system abstraction, and drag-and-drop mechanics.", stack: ["React", "Framer Motion", "Tailwind", "Vite"], results: ["100/100 Lighthouse", "High engagement time"], challenges: "Managing window z-index and focus state efficiently.", solutions: "Centralized window manager hook with a reduction state machine." },
+    id: "p2", title: "VINCE Avatar Sys", category: "Unity", year: "2025", role: "Unity Dev", tags: ["C#", "Avatar", "System Design"], outcome: "TUAS Project", color: "bg-cat-unity", featured: true, oneLiner: "Customizable avatar system for Virtual Integration Home.",
+    content: {
+      overview: "Developed the Avatar Customization System for the VINCE project at TUAS. Focused on a data-driven, decoupled architecture that allows for persistent character states and easy expansion.",
+      stack: ["Unity", "C#", "ScriptableObjects", "JSON"],
+      results: ["Modular system architecture", "Persistent user data"],
+      challenges: "Decoupling logic from UI for maximum flexibility.",
+      solutions: "Used an event-driven approach with strictly typed data containers."
+    },
     media: [
-      { type: 'image', aspect: 'aspect-video', caption: 'Desktop Overview', color: 'bg-orange-100' },
-      { type: 'video', aspect: 'aspect-video', caption: 'Window Dragging Demo', color: 'bg-orange-200' },
-      { type: 'image', aspect: 'aspect-[3/4]', caption: 'Mobile Response View', color: 'bg-stone-200' },
-      { type: 'image', aspect: 'aspect-square', caption: 'Icon Design System', color: 'bg-orange-300' }
+      { type: 'image', aspect: 'aspect-video', caption: 'Avatar Editor', color: 'bg-slate-200' },
+      { type: 'image', aspect: 'aspect-video', caption: 'System Architecture', color: 'bg-slate-300' }
     ]
   },
   {
-    id: "p3", title: "Zen Focus", category: "App", year: "2024", role: "UI Design", tags: ["SwiftUI", "iOS"], outcome: "Top 10 Productivity", color: "catApp", featured: false, oneLiner: "Minimalist meditation timer.",
-    content: { overview: "Productivity tool focused on flow state. The interface is entirely gesture-based with no visible buttons during sessions.", stack: ["SwiftUI", "CoreData", "Figma"], results: ["4.9 Star Rating", "2k DAU"], challenges: "Designing an intuitive gesture-based interface without tutorials.", solutions: "Prototyped extensively in Origami Studio to fine-tune haptics." },
+    id: "p3", title: "Commercial 3D", category: "3D", year: "2017-2022", role: "Tech Artist", tags: ["Three.js", "Photogrammetry", "Unity"], outcome: "Commercial", color: "bg-orange-200", featured: true, oneLiner: "End-to-end 3D interactive content pipeline.",
+    content: {
+      overview: "A collection of commercial and cultural projects involving the full 3D pipeline: Photogrammetry scanning, reconstruction/optimization in Blender/ZBrush, and final interactive delivery in Web (Three.js) or VR (Unity). Clients included Philips and local museums.",
+      stack: ["Three.js", "Blender", "Substance", "Unity"],
+      results: ["Philips Medical Showcase", "Museum Artifact Digitization", "Minhang VR Archive"],
+      challenges: "Optimizing high-fidelity scans for real-time web rendering.",
+      solutions: "Advanced retopology workflows and texture baking."
+    },
     media: [
-      { type: 'image', aspect: 'aspect-[9/19]', caption: 'Timer Screen', color: 'bg-green-100' },
-      { type: 'image', aspect: 'aspect-[9/19]', caption: 'Settings Panel', color: 'bg-green-200' },
-      { type: 'video', aspect: 'aspect-[9/19]', caption: 'Haptic Feedback Flow', color: 'bg-emerald-100' },
-      { type: 'image', aspect: 'aspect-square', caption: 'App Icon Grid', color: 'bg-green-300' }
+      { type: 'image', aspect: 'aspect-video', caption: 'Museum Artifact Scan', color: 'bg-amber-100' },
+      { type: 'image', aspect: 'aspect-video', caption: 'Philips Interactive', color: 'bg-blue-100' }
     ]
   },
   {
-    id: "p4", title: "Poly World", category: "3D", year: "2023", role: "Artist", tags: ["Blender"], outcome: "Best Seller", color: "cat3D", featured: true, oneLiner: "Low poly asset pack for prototyping.",
-    content: { overview: "Modular 3D assets for cyberpunk environments. Includes over 200 prefabs sharing a single texture atlas.", stack: ["Blender", "Unity"], results: ["Used in 5 commercial games", "Top rated"], challenges: "Keeping polygon count low while maintaining a distinct style.", solutions: "Used custom normals and trim sheets for detailing." },
+    id: "p4", title: "News Summary", category: "App", year: "2024", role: "Dev", tags: ["React Native", "API"], outcome: "MVP", color: "bg-green-200", featured: false, oneLiner: "Clean, fast news aggregarot with summary features.",
+    content: {
+      overview: "An information app focusing on reading experience. It aggregates news from multiple sources and provides concise summaries.",
+      stack: ["React Native", "Expo", "News API"],
+      results: ["Fast loading times", "Clean typography"],
+      challenges: "Handling diverse data formats from different sources.",
+      solutions: "Created a unified data adapter pattern."
+    },
     media: [
-      { type: 'image', aspect: 'aspect-video', caption: 'City Scene Render', color: 'bg-indigo-300' },
-      { type: 'image', aspect: 'aspect-square', caption: 'Texture Atlas', color: 'bg-indigo-200' },
-      { type: 'image', aspect: 'aspect-video', caption: 'Wireframe View', color: 'bg-slate-300' },
-      { type: 'image', aspect: 'aspect-square', caption: 'Character Models', color: 'bg-violet-300' }
+      { type: 'image', aspect: 'aspect-[9/19]', caption: 'Feed View', color: 'bg-emerald-50' }
     ]
   },
   {
-    id: "p5", title: "Shader Lab", category: "Unity", year: "2022", role: "Tech Art", tags: ["HLSL", "VFX"], outcome: "1k Stars", color: "catUnity", featured: false, oneLiner: "High-performance URP shaders.",
-    content: { overview: "Open source shader library. Focuses on non-photorealistic rendering techniques for stylized games.", stack: ["HLSL", "ShaderGraph"], results: ["Community favorite"], challenges: "Mobile optimization for complex effects.", solutions: "Implemented LOD systems for shaders and baked lighting support." },
-    media: [
-      { type: 'video', aspect: 'aspect-video', caption: 'Water Shader Demo', color: 'bg-cyan-200' },
-      { type: 'image', aspect: 'aspect-video', caption: 'Toon Shading', color: 'bg-blue-200' },
-      { type: 'image', aspect: 'aspect-video', caption: 'Dissolve Effect', color: 'bg-red-200' }
-    ]
+    id: "p5", title: "Personal Site", category: "Web", year: "2024", role: "Full Stack", tags: ["Vite", "Node.js"], outcome: "Portfolio", color: "bg-cat-web", featured: false, oneLiner: "Component-based OS portfolio.",
+    content: {
+      overview: "This website! A structured display of my personal brand, featuring a 'Notebook OS' theme, Node.js backend scripts, and a highly polished React frontend.",
+      stack: ["React", "Vite", "Tailwind", "Node.js"],
+      results: ["Highly performant", "Unique aesthetic"],
+      challenges: "Balancing 'OS' interaction with web usability.",
+      solutions: "Command Palette and responsive layouts."
+    },
+    media: []
   },
   {
-    id: "p6", title: "Grid Sys", category: "Web", year: "2023", role: "Frontend", tags: ["CSS", "Design"], outcome: "Open Source", color: "catWeb", featured: false, oneLiner: "Brutalist CSS grid framework.",
-    content: { overview: "Lightweight CSS Framework. Designed for brutalist and neo-brutalist layouts with heavy borders and hard shadows.", stack: ["SCSS", "Gulp"], results: ["Trending on GitHub"], challenges: "Cross-browser compatibility for subgrid.", solutions: "PostCSS automation and flexbox fallbacks." },
-    media: [
-      { type: 'image', aspect: 'aspect-video', caption: 'Documentation Site', color: 'bg-yellow-100' },
-      { type: 'image', aspect: 'aspect-[4/3]', caption: 'Grid Inspector', color: 'bg-gray-200' },
-      { type: 'image', aspect: 'aspect-square', caption: 'Logo', color: 'bg-yellow-400' }
-    ]
+    id: "p6", title: "Vibe Coding", category: "Dev", year: "2024", role: "Indie", tags: ["AI", "Prototype"], outcome: "Experiments", color: "bg-purple-200", featured: false, oneLiner: "Rapid prototypes validating fun ideas.",
+    content: {
+      overview: "A series of rapid experiments focusing on 'Vibe-coding'—prioritizing speed, fun, and immediate usability. Includes various small tools and visual demos.",
+      stack: ["Unity", "Web", "AI Tools"],
+      results: ["Multiple working demos"],
+      challenges: "Stopping before over-engineering.",
+      solutions: "Strict time-boxing for each prototype."
+    },
+    media: []
   }
 ];
 
 export const SKILLS: Skill[] = [
-  { name: "Unity", desc: "Game Dev", bg: "bg-cat-unity", value: 90, category: "Dev" },
-  { name: "React", desc: "Frontend", bg: "bg-cat-web", value: 85, category: "Dev" },
-  { name: "TypeScript", desc: "Logic", bg: "bg-blue-200", value: 80, category: "Dev" },
-  { name: "Blender", desc: "3D Art", bg: "bg-cat-3d", value: 70, category: "Art" },
-  { name: "SwiftUI", desc: "Mobile", bg: "bg-cat-app", value: 65, category: "Dev" },
-  { name: "Node.js", desc: "Backend", bg: "bg-green-200", value: 60, category: "Dev" },
+  { name: "Unity/C#", desc: "Core Dev", bg: "bg-cat-unity", value: 95, category: "Core" },
+  { name: "3D Pipeline", desc: "Scan-to-Engine", bg: "bg-cat-3d", value: 90, category: "Core" },
+  { name: "React/Web", desc: "Full Stack", bg: "bg-cat-web", value: 85, category: "Web" },
+  { name: "React Native", desc: "Mobile App", bg: "bg-cat-app", value: 80, category: "Web" },
+  { name: "Tech Art", desc: "VFX/Shaders", bg: "bg-purple-200", value: 80, category: "Core" },
+  { name: "Game AI", desc: "Logic/Behavior", bg: "bg-red-200", value: 75, category: "Core" },
 ];
