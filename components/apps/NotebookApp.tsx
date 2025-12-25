@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { usePosts, useProjects } from '../../src/hooks/useContent';
 import { BlogPost, ContentBlock } from '../../types';
-import { BookOpen, Calendar, Database, ChevronLeft, ChevronRight, Hash, Play, Image as ImageIcon } from 'lucide-react';
+import { BookOpen, Calendar, Database, ChevronLeft, ChevronRight, Hash, Play, Image as ImageIcon, Code } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { AppId } from '../../types';
 
 interface NotebookAppProps {
@@ -40,6 +42,28 @@ export const NotebookApp: React.FC<NotebookAppProps> = ({ openApp }) => {
                     <div className="my-6">
                         <div className="bg-black rounded-lg overflow-hidden border border-ink/10 shadow-sm aspect-video">
                             <video src={block.content} controls className="w-full h-full" />
+                        </div>
+                        {block.caption && <p className="text-center text-xs text-gray-500 font-mono mt-2 italic">{block.caption}</p>}
+                    </div>
+                );
+            case 'code':
+                return (
+                    <div className="my-6">
+                        <div className="rounded-lg overflow-hidden border border-ink/10 shadow-sm">
+                            <div className="bg-gray-800 px-3 py-1 flex items-center gap-2 border-b border-gray-700">
+                                <Code size={12} className="text-green-400" />
+                                <span className="text-[10px] text-green-400 font-mono uppercase">
+                                    {block.language || 'javascript'}
+                                </span>
+                            </div>
+                            <SyntaxHighlighter
+                                language={block.language || 'javascript'}
+                                style={atomDark}
+                                customStyle={{ margin: 0, borderRadius: 0, fontSize: '13px' }}
+                                showLineNumbers
+                            >
+                                {block.content}
+                            </SyntaxHighlighter>
                         </div>
                         {block.caption && <p className="text-center text-xs text-gray-500 font-mono mt-2 italic">{block.caption}</p>}
                     </div>

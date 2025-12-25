@@ -36,9 +36,17 @@ const getAspectStyle = (aspectClass: string) => {
   return {};
 };
 
-const MediaGalleryItem: React.FC<{ item: MediaItem; index: number }> = ({ item, index }) => {
+const MediaGalleryItem: React.FC<{ item: MediaItem; index: number; openApp?: (id: AppId, props?: any) => void }> = ({ item, index, openApp }) => {
   const [isOpen, setIsOpen] = useState(false);
   const rotation = index % 2 === 0 ? 'rotate-1' : '-rotate-1';
+
+  // Handle click with linkUrl support
+  const handleItemClick = (mediaItem: MediaItem) => {
+    if (mediaItem.linkUrl && openApp) {
+      // Open in internal browser for local paths, external for https
+      openApp('browser', { initialUrl: mediaItem.linkUrl });
+    }
+  };
 
   // FOLDER STYLE GALLERY
   if (item.type === 'gallery' && item.items && item.items.length > 0) {
@@ -70,7 +78,10 @@ const MediaGalleryItem: React.FC<{ item: MediaItem; index: number }> = ({ item, 
                 return (
                   <div key={idx} className={`relative group ${subRotation}`}>
                     <Tape className="-top-3 left-1/2 -translate-x-1/2" rotation={idx % 3 === 0 ? 2 : -2} />
-                    <div className="bg-white p-2 pb-8 border-2 border-ink shadow-paper group-hover:shadow-paper-hover transition-shadow duration-300">
+                    <div
+                      className={`bg-white p-2 pb-8 border-2 border-ink shadow-paper group-hover:shadow-paper-hover transition-shadow duration-300 ${subItem.linkUrl ? 'cursor-pointer' : ''}`}
+                      onClick={() => handleItemClick(subItem)}
+                    >
                       <div
                         className={`w-full ${!subItem.aspect.startsWith('aspect-[') ? subItem.aspect : ''} bg-gray-200 relative overflow-hidden border border-ink/10 flex items-center justify-center bg-cover bg-center`}
                         style={{
@@ -81,6 +92,11 @@ const MediaGalleryItem: React.FC<{ item: MediaItem; index: number }> = ({ item, 
                         {!subItem.url && (subItem.type === 'video' ? <Play className="text-ink/20" size={48} /> : <ImageIcon className="text-ink/20" size={48} />)}
                         {subItem.type === 'video' && subItem.url && (
                           <video src={subItem.url} controls className="w-full h-full object-cover" />
+                        )}
+                        {subItem.linkUrl && (
+                          <div className="absolute bottom-2 right-2 bg-ink/80 text-white text-[10px] px-2 py-1 rounded font-bold flex items-center gap-1">
+                            <ArrowUpRight size={10} /> Open
+                          </div>
                         )}
                       </div>
                       {subItem.caption && <p className="text-center font-hand font-bold text-lg mt-4 text-ink rotate-1 leading-tight">{subItem.caption}</p>}
@@ -157,7 +173,10 @@ const MediaGalleryItem: React.FC<{ item: MediaItem; index: number }> = ({ item, 
 
   // STANDARD ITEM (OLD logic preserved but cleaned up)
   return (
-    <div className={`break-inside-avoid mb-6 relative group ${rotation}`}>
+    <div
+      className={`break-inside-avoid mb-6 relative group ${rotation} ${item.linkUrl ? 'cursor-pointer' : ''}`}
+      onClick={() => handleItemClick(item)}
+    >
       {/* Tape Effect */}
       <Tape className="-top-2 left-1/2 -translate-x-1/2" rotation={index % 3 === 0 ? 2 : -2} />
 
@@ -172,6 +191,11 @@ const MediaGalleryItem: React.FC<{ item: MediaItem; index: number }> = ({ item, 
           {!item.url && (item.type === 'video' ? <Play className="text-ink/20" size={48} /> : <ImageIcon className="text-ink/20" size={48} />)}
           {item.type === 'video' && item.url && (
             <video src={item.url} controls className="w-full h-full object-cover" />
+          )}
+          {item.linkUrl && (
+            <div className="absolute bottom-2 right-2 bg-ink/80 text-white text-[10px] px-2 py-1 rounded font-bold flex items-center gap-1">
+              <ArrowUpRight size={10} /> Open
+            </div>
           )}
         </div>
         {item.caption && <p className="text-center font-hand font-bold text-lg mt-4 text-ink rotate-1 leading-tight">{item.caption}</p>}
@@ -288,7 +312,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialProjectId, open
                   {/* Masonry Layout */}
                   <div className="columns-1 sm:columns-2 gap-6 space-y-6">
                     {selectedProject.media?.map((mediaItem, index) => (
-                      <MediaGalleryItem key={index} item={mediaItem} index={index} />
+                      <MediaGalleryItem key={index} item={mediaItem} index={index} openApp={openApp} />
                     ))}
                     {!selectedProject.media && (
                       <div className="p-8 text-center text-gray-400 border-2 border-dashed border-gray-300 rounded-lg">

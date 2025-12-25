@@ -5,7 +5,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { doc, setDoc, deleteDoc, collection, addDoc, query, orderBy, onSnapshot, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
 import { Project, MediaItem, Skill, SiteSettings, BlogPost, PostType, ContentBlock, PostSection } from '../../types';
-import { Lock, LogOut, Upload, Database, Plus, Trash2, Edit2, Save, Image as ImageIcon, Film, X, Loader, ArrowUp, ArrowDown, Star, Globe, Copy, Wrench, Music, User, Pin, Download, BookOpen, GripVertical, FileText, Video } from 'lucide-react';
+import { Lock, LogOut, Upload, Database, Plus, Trash2, Edit2, Save, Image as ImageIcon, Film, X, Loader, ArrowUp, ArrowDown, Star, Globe, Copy, Wrench, Music, User, Pin, Download, BookOpen, GripVertical, FileText, Video, Code } from 'lucide-react';
 import { useProjects, useSkills, useSettings, usePosts } from '../../src/hooks/useContent';
 import { PROJECTS, SKILLS, DEFAULT_TEMPLATES } from '../../constants';
 // Add doc/addDoc/etc imports needed for SkillsEditor if not present
@@ -396,6 +396,47 @@ const BlockEditor: React.FC<{
                         />
                     </div>
                 )}
+                {block.type === 'code' && (
+                    <div className="flex flex-col gap-2">
+                        <div className="flex gap-2 items-center">
+                            <select
+                                className="text-xs border border-ink/20 rounded px-2 py-1 bg-gray-900 text-green-400 font-mono"
+                                value={block.language || 'javascript'}
+                                onChange={e => onChange({ ...block, language: e.target.value })}
+                            >
+                                <option value="javascript">JavaScript</option>
+                                <option value="typescript">TypeScript</option>
+                                <option value="python">Python</option>
+                                <option value="csharp">C#</option>
+                                <option value="cpp">C++</option>
+                                <option value="java">Java</option>
+                                <option value="go">Go</option>
+                                <option value="rust">Rust</option>
+                                <option value="html">HTML</option>
+                                <option value="css">CSS</option>
+                                <option value="json">JSON</option>
+                                <option value="bash">Bash</option>
+                                <option value="sql">SQL</option>
+                                <option value="glsl">GLSL</option>
+                                <option value="hlsl">HLSL</option>
+                            </select>
+                            <span className="text-[10px] text-gray-400">Language</span>
+                        </div>
+                        <textarea
+                            className="w-full bg-gray-900 text-green-400 font-mono text-sm p-3 rounded border border-ink/20 outline-none resize-none h-40 overflow-auto"
+                            placeholder="// Paste your code here..."
+                            value={block.content}
+                            onChange={e => onChange({ ...block, content: e.target.value })}
+                            spellCheck={false}
+                        />
+                        <input
+                            className="text-xs bg-gray-50 p-1 w-full outline-none text-center italic text-gray-500"
+                            placeholder="Caption (optional) - e.g. 'Offscreen canvas rendering'"
+                            value={block.caption || ''}
+                            onChange={e => onChange({ ...block, caption: e.target.value })}
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Actions */}
@@ -428,11 +469,12 @@ const SectionEditor: React.FC<{
 }> = ({ section, onChange }) => {
     const [libraryOpenIdx, setLibraryOpenIdx] = useState<number | null>(null);
 
-    const addBlock = (type: 'text' | 'image' | 'video') => {
+    const addBlock = (type: 'text' | 'image' | 'video' | 'code') => {
         const newBlock: ContentBlock = {
             id: Math.random().toString(36).substr(2, 9),
             type,
-            content: ''
+            content: '',
+            ...(type === 'code' ? { language: 'javascript' } : {})
         };
         onChange({ ...section, blocks: [...section.blocks, newBlock] });
     };
@@ -496,7 +538,7 @@ const SectionEditor: React.FC<{
             />
 
             {/* Add Block Controls */}
-            <div className="flex gap-2 mt-3 opacity-50 hover:opacity-100 transition-opacity">
+            <div className="flex gap-2 mt-3 opacity-50 hover:opacity-100 transition-opacity flex-wrap">
                 <button type="button" onClick={() => addBlock('text')} className="px-2 py-1 bg-gray-100 hover:bg-white border border-transparent hover:border-ink/20 rounded text-[10px] font-bold flex items-center gap-1">
                     <FileText size={10} /> Add Text
                 </button>
@@ -505,6 +547,9 @@ const SectionEditor: React.FC<{
                 </button>
                 <button type="button" onClick={() => addBlock('video')} className="px-2 py-1 bg-gray-100 hover:bg-white border border-transparent hover:border-ink/20 rounded text-[10px] font-bold flex items-center gap-1">
                     <Video size={10} /> Add Video
+                </button>
+                <button type="button" onClick={() => addBlock('code')} className="px-2 py-1 bg-gray-900 hover:bg-gray-800 text-green-400 border border-transparent hover:border-green-400/30 rounded text-[10px] font-bold flex items-center gap-1">
+                    <Code size={10} /> Add Code
                 </button>
             </div>
         </div>
@@ -551,7 +596,7 @@ const DevDiaryEditor: React.FC = () => {
             // Map legacy fields to template sections
             // This is a "Best Effort" migration
             sections = template.map(sec => {
-                // Find key from title? 
+                // Find key from title?
                 // In constants.ts we used IDs like 'sec_problem'. 
                 // Let's map IDs back to legacy keys.
                 const keyMap: any = {
@@ -1567,6 +1612,15 @@ const MediaListEditor: React.FC<{ media: MediaItem[]; onChange: (m: MediaItem[])
                                         placeholder="Description..."
                                         value={item.caption || ''}
                                         onChange={e => handleUpdate(idx, 'caption', e.target.value)}
+                                    />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-[10px] uppercase font-bold text-gray-400">Link URL (optional)</label>
+                                    <input
+                                        className="w-full bg-white border border-ink/20 rounded px-2 py-1 text-xs font-mono"
+                                        placeholder="/projects/demo/ or https://..."
+                                        value={item.linkUrl || ''}
+                                        onChange={e => handleUpdate(idx, 'linkUrl', e.target.value)}
                                     />
                                 </div>
                             </div>

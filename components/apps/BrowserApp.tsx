@@ -6,9 +6,11 @@ interface BrowserAppProps {
 }
 
 export const BrowserApp: React.FC<BrowserAppProps> = ({ initialUrl = 'https://scene.zeacon.com/' }) => {
-    // Robust URL handling: ensure protocol is present
+    // Robust URL handling: ensure protocol is present for external URLs, preserve relative paths
     const formatUrl = (raw: string) => {
         if (!raw) return '';
+        // Keep relative paths (starting with /) as-is for local projects
+        if (raw.startsWith('/')) return raw;
         if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
         return `https://${raw}`;
     };
@@ -53,7 +55,7 @@ export const BrowserApp: React.FC<BrowserAppProps> = ({ initialUrl = 'https://sc
 
                 {/* Address Bar */}
                 <div className="flex-1 bg-white border-2 border-ink/20 rounded-md px-3 py-1.5 flex items-center gap-2 shadow-inner">
-                    {url.startsWith('https') ? <Lock size={10} className="text-green-500" /> : <Globe size={10} className="text-gray-400" />}
+                    {(url.startsWith('https') || url.startsWith('/')) ? <Lock size={10} className="text-green-500" /> : <Globe size={10} className="text-gray-400" />}
                     <input
                         type="text"
                         value={url}
