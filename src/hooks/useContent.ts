@@ -95,3 +95,35 @@ export const useSettings = () => {
 
     return { settings, loading };
 };
+
+export const usePosts = () => {
+    const [posts, setPosts] = useState<import('../../types').BlogPost[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        try {
+            const q = query(collection(db, 'posts'), orderBy('date', 'desc'));
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+                if (!snapshot.empty) {
+                    const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as import('../../types').BlogPost));
+                    setPosts(docs);
+                } else {
+                    setPosts([]);
+                }
+                setLoading(false);
+            }, (err) => {
+                console.error("Firestore posts read error:", err);
+                setError(err.message);
+                setLoading(false);
+            });
+
+            return () => unsubscribe();
+        } catch (err: any) {
+            console.error("Firebase init error (posts):", err);
+            setLoading(false);
+        }
+    }, []);
+
+    return { posts, loading, error };
+};

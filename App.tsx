@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Folder, User, Mail, Gamepad2, Globe, Smartphone, Box, Hand, Search, Monitor } from 'lucide-react';
+import { Folder, User, Mail, Gamepad2, Globe, Smartphone, Box, Hand, Search, Monitor, BookOpen } from 'lucide-react';
 
 import { WindowFrame } from './components/WindowFrame';
 import { WelcomeApp } from './components/apps/WelcomeApp';
@@ -11,6 +11,7 @@ import { BrowserApp } from './components/apps/BrowserApp';
 import { DesktopWidgets } from './components/DesktopWidgets';
 import { CommandPalette } from './components/CommandPalette';
 import AdminApp from './components/apps/AdminApp';
+import { NotebookApp } from './components/apps/NotebookApp';
 import { WindowData, AppId, AppDefinition } from './types';
 
 const APPS: Record<AppId, AppDefinition> = {
@@ -20,6 +21,7 @@ const APPS: Record<AppId, AppDefinition> = {
   contact: { title: "Contact.txt", icon: "✏️", component: ContactApp, color: "bg-tape" },
   browser: { title: "Netscape.exe", icon: "🌎", component: BrowserApp, color: "bg-blue-100" },
   admin: { title: "Admin.exe", icon: "⚙️", component: AdminApp, color: "bg-red-100" },
+  notebook: { title: "Notebook", icon: "📔", component: NotebookApp, color: "bg-green-100" },
 };
 
 const DesktopIcon = ({ label, icon, onClick, delay = 0, color = "bg-white", tooltip }: any) => (
@@ -172,6 +174,15 @@ const App: React.FC = () => {
           />
         </div>
         <div>
+          <DesktopIcon
+            label="Notebook"
+            icon={<Box size={24} />} // Using Box temporarily, will ensure BookOpen is imported
+            tooltip="Dev Diary"
+            onClick={() => openApp('notebook')}
+            color="bg-green-100"
+          />
+        </div>
+        <div>
           <div className="font-hand font-bold text-gray-400 text-xs mb-3 ml-2 border-b-2 border-ink/10 inline-block pr-4">Categories</div>
           <div className="flex flex-col gap-6 pl-2 border-l-2 border-ink/10">
             <DesktopIcon label="Unity" icon={<Gamepad2 size={24} />} tooltip="Game Dev" onClick={() => openApp('projects')} />
@@ -248,6 +259,7 @@ const App: React.FC = () => {
                     {key === 'contact' && <Mail className="text-tape" fill="#F4E04D" size={24} />}
                     {key === 'browser' && <Globe className="text-blue-500" size={24} />}
                     {key === 'admin' && <Monitor className="text-red-500" size={24} />}
+                    {key === 'notebook' && <BookOpen className="text-green-600" size={24} />}
                   </div>
                 </button>
                 {/* Active Dot */}

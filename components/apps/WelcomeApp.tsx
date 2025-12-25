@@ -68,8 +68,12 @@ export const WelcomeApp: React.FC<WelcomeAppProps> = ({ openApp }) => {
 
   return (
     <div className="flex flex-col items-center justify-center h-full text-center relative p-4 bg-paper">
-      <div className="w-20 h-20 bg-paperDark border-2 border-ink rounded-full mb-4 flex items-center justify-center text-3xl shadow-sm rotate-2">
-        👋
+      <div className="w-20 h-20 bg-paperDark border-2 border-ink rounded-full mb-4 flex items-center justify-center text-3xl shadow-sm rotate-2 overflow-hidden">
+        {settings?.welcome?.avatarUrl ? (
+          <img src={settings.welcome.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+        ) : (
+          '👋'
+        )}
       </div>
       <h1 className="font-hand font-bold text-4xl md:text-5xl mb-2">{greeting}</h1>
       <p className="font-mono text-xs uppercase tracking-widest text-gray-500 mb-6 bg-white px-2 py-1 border border-ink/10 rounded">

@@ -77,7 +77,13 @@ export const AboutApp: React.FC = () => {
             </div>
 
             <button
-              onClick={() => alert("CV Downloaded!")}
+              onClick={() => {
+                if (settings?.profile.resumeUrl) {
+                  window.open(settings.profile.resumeUrl, '_blank');
+                } else {
+                  alert("No CV uploaded yet. Configure it in Admin Panel.");
+                }
+              }}
               className="group w-full py-3 flex items-center justify-center gap-2 border-2 border-ink rounded bg-white hover:bg-tape transition-colors shadow-paper hover:shadow-paper-hover hover:-translate-y-0.5 active:translate-y-0 active:shadow-paper"
             >
               <Download className="w-4 h-4" />

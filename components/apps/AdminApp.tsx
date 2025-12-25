@@ -4,10 +4,10 @@ import { auth, db, storage } from '../../src/firebase';
 import { useAuth } from '../../src/context/AuthContext';
 import { doc, setDoc, deleteDoc, collection, addDoc, query, orderBy, onSnapshot, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
-import { Project, MediaItem, Skill, SiteSettings } from '../../types';
-import { Lock, LogOut, Upload, Database, Plus, Trash2, Edit2, Save, Image as ImageIcon, Film, X, Loader, ArrowUp, ArrowDown, Star, Globe, Copy, Wrench, Music, User, Pin } from 'lucide-react';
-import { useProjects, useSkills, useSettings } from '../../src/hooks/useContent';
-import { PROJECTS, SKILLS } from '../../constants';
+import { Project, MediaItem, Skill, SiteSettings, BlogPost, PostType, ContentBlock, PostSection } from '../../types';
+import { Lock, LogOut, Upload, Database, Plus, Trash2, Edit2, Save, Image as ImageIcon, Film, X, Loader, ArrowUp, ArrowDown, Star, Globe, Copy, Wrench, Music, User, Pin, Download, BookOpen, GripVertical, FileText, Video } from 'lucide-react';
+import { useProjects, useSkills, useSettings, usePosts } from '../../src/hooks/useContent';
+import { PROJECTS, SKILLS, DEFAULT_TEMPLATES } from '../../constants';
 // Add doc/addDoc/etc imports needed for SkillsEditor if not present
 // Actually I see doc/setDoc/deleteDoc/collection/ref/uploadBytes/getDownloadURL/listAll are imported.
 // I need addDoc, query, orderBy, onSnapshot which might be missing.
@@ -44,6 +44,593 @@ const PinnedProjectManager: React.FC = () => {
                     </button>
                 </div>
             ))}
+        </div>
+    );
+};
+
+const DevDiaryMediaHelper: React.FC = () => {
+    const [uploading, setUploading] = useState(false);
+    const [lastUrl, setLastUrl] = useState('');
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploading(true);
+        try {
+            const storageRef = ref(storage, `blog_images/${Date.now()}_${file.name}`);
+            await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(storageRef);
+            setLastUrl(url);
+        } catch (err: any) {
+            alert("Upload failed: " + err.message);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    return (
+        <div className="bg-gray-50 p-4 rounded border-2 border-dashed border-ink/10 mb-6">
+            <h4 className="font-bold text-xs uppercase text-gray-400 mb-2 flex items-center gap-2">
+                <ImageIcon size={12} /> Quick Media Upload
+            </h4>
+            <div className="flex gap-2 items-center">
+                <label className="cursor-pointer bg-white border border-ink/20 px-3 py-1.5 rounded text-xs font-bold hover:bg-gray-100 flex items-center gap-2 shadow-sm transition-all hover:-translate-y-0.5">
+                    {uploading ? <Loader size={12} className="animate-spin" /> : <Upload size={12} />}
+                    Upload Image
+                    <input type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+                </label>
+                {lastUrl && (
+                    <div className="flex-1 flex gap-2 items-center bg-white border border-ink/10 px-2 py-1 rounded overflow-hidden">
+                        <code className="text-[10px] text-gray-500 truncate flex-1 font-mono">![Image]({lastUrl})</code>
+                        <button
+                            onClick={() => navigator.clipboard.writeText(`![Image](${lastUrl})`)}
+                            className="p-1 hover:bg-gray-100 rounded text-ink hover:text-blue-600 transition-colors"
+                            title="Copy Markdown"
+                        >
+                            <Copy size={12} />
+                        </button>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+const BlogMediaLibraryModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    onSelect: (url: string) => void;
+}> = ({ isOpen, onClose, onSelect }) => {
+    const [images, setImages] = useState<string[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            loadImages();
+        }
+    }, [isOpen]);
+
+    const loadImages = async () => {
+        setLoading(true);
+        try {
+            const listRef = ref(storage, 'blog_images');
+            const res = await listAll(listRef);
+            const urls = await Promise.all(res.items.map(item => getDownloadURL(item)));
+            setImages(urls);
+        } catch (e: any) {
+            console.error("Error loading images", e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-8 backdrop-blur-sm" onClick={onClose}>
+            <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[80vh] flex flex-col shadow-window" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-bold text-xl flex items-center gap-2"><ImageIcon size={20} /> Media Library</h3>
+                    <button onClick={onClose}><X size={20} className="hover:text-red-500 transition-colors" /></button>
+                </div>
+
+                {loading ? (
+                    <div className="flex-1 flex items-center justify-center"><Loader className="animate-spin text-ink" /></div>
+                ) : (
+                    <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 p-2 custom-scrollbar">
+                        {images.map(url => (
+                            <button
+                                key={url}
+                                onClick={() => { onSelect(url); onClose(); }}
+                                className="group relative aspect-square bg-gray-100 rounded overflow-hidden border-2 border-transparent hover:border-ink focus:border-ink transition-all"
+                            >
+                                <img src={url} className="w-full h-full object-cover" loading="lazy" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+const BlockEditor: React.FC<{
+    block: ContentBlock;
+    onChange: (b: ContentBlock) => void;
+    onDelete: () => void;
+    onMoveUp: () => void;
+    onMoveDown: () => void;
+    isFirst: boolean;
+    isLast: boolean;
+    onOpenLibrary: () => void;
+}> = ({ block, onChange, onDelete, onMoveUp, onMoveDown, isFirst, isLast, onOpenLibrary }) => {
+
+    // Simple Drag & Drop for Image Upload
+    const handleDrop = async (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            try {
+                // Simulating upload (reusing the logic from helper would be better, but implementing inline for speed)
+                // Ideally this should call a prop function 'onUpload'
+                // For now, I'll assume we can't easily access storage here without props.
+                // Actually, I can allow the parent to handle upload, or just import logic.
+                // Let's keep it simple: Drag & Drop just for now is a visual placeholder or I need to implement upload logic here.
+                // I will add 'onUpload' prop to BlockEditor later. For now, let's stick to Library.
+                alert("Please use the 'Media Library' or 'Quick Upload' for now! Drag & Drop coming in V2.");
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    };
+
+    return (
+        <div className="bg-white border-2 border-ink/10 rounded p-2 flex gap-2 group relative hover:border-ink/30 transition-colors">
+            {/* Controls */}
+            <div className="flex flex-col gap-1 text-gray-300">
+                <button type="button" disabled={isFirst} onClick={onMoveUp} className={`hover:text-ink ${isFirst ? 'opacity-0' : ''}`}><ArrowUp size={12} /></button>
+                <div className="cursor-grab active:cursor-grabbing text-ink/20"><GripVertical size={12} /></div>
+                <button type="button" disabled={isLast} onClick={onMoveDown} className={`hover:text-ink ${isLast ? 'opacity-0' : ''}`}><ArrowDown size={12} /></button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1">
+                {block.type === 'text' && (
+                    <textarea
+                        className="w-full border-none outline-none resize-none text-sm font-mono h-24 bg-transparent"
+                        placeholder="Write something... (Markdown supported)"
+                        value={block.content}
+                        onChange={e => onChange({ ...block, content: e.target.value })}
+                    />
+                )}
+                {block.type === 'image' && (
+                    <div className="flex flex-col gap-2" onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
+                        <div className="flex gap-2">
+                            <input
+                                className="flex-1 text-xs border-b border-ink/10 outline-none py-1 font-mono"
+                                placeholder="Image URL..."
+                                value={block.content}
+                                onChange={e => onChange({ ...block, content: e.target.value })}
+                            />
+                            <button
+                                type="button"
+                                onClick={onOpenLibrary}
+                                className="px-2 py-0.5 bg-gray-100 hover:bg-gray-200 text-[10px] font-bold rounded flex items-center gap-1"
+                            >
+                                <Database size={10} /> Library
+                            </button>
+                        </div>
+                        {block.content ? (
+                            <div className="relative w-full aspect-video bg-gray-100 rounded overflow-hidden border border-ink/10 group-hover:border-ink/20 transition-colors">
+                                <img src={block.content} className="w-full h-full object-cover" />
+                            </div>
+                        ) : (
+                            <div className="w-full aspect-video bg-gray-50 border-2 border-dashed border-ink/10 rounded flex flex-col items-center justify-center text-gray-300 gap-2">
+                                <ImageIcon size={24} />
+                                <span className="text-[10px]">Enter URL or Select from Library</span>
+                            </div>
+                        )}
+                        <input
+                            className="text-xs bg-gray-50 p-1 w-full outline-none text-center italic text-gray-500"
+                            placeholder="Caption (optional)"
+                            value={block.caption || ''}
+                            onChange={e => onChange({ ...block, caption: e.target.value })}
+                        />
+                    </div>
+                )}
+                {block.type === 'video' && (
+                    <div className="flex flex-col gap-2">
+                        <input
+                            className="text-xs border-b border-ink/10 w-full outline-none py-1 font-mono"
+                            placeholder="Video URL..."
+                            value={block.content}
+                            onChange={e => onChange({ ...block, content: e.target.value })}
+                        />
+                        {block.content && (
+                            <video src={block.content} controls className="w-full aspect-video bg-black rounded" />
+                        )}
+                        <input
+                            className="text-xs bg-gray-50 p-1 w-full outline-none text-center italic text-gray-500"
+                            placeholder="Caption (optional)"
+                            value={block.caption || ''}
+                            onChange={e => onChange({ ...block, caption: e.target.value })}
+                        />
+                    </div>
+                )}
+            </div>
+
+            {/* Actions */}
+            <div>
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        console.log('[BlockEditor] Delete clicked for block:', block.id);
+                        onDelete();
+                    }}
+                    className="text-red-300 hover:text-red-500 p-1 rounded hover:bg-red-50 transition-colors"
+                    title="Remove Block"
+                >
+                    <X size={14} />
+                </button>
+            </div>
+
+            <div className="absolute -top-2 -right-2 bg-white border border-ink/20 px-1 rounded text-[9px] uppercase font-bold text-gray-400">
+                {block.type}
+            </div>
+        </div>
+    );
+};
+
+const SectionEditor: React.FC<{
+    section: PostSection;
+    onChange: (s: PostSection) => void;
+}> = ({ section, onChange }) => {
+    const [libraryOpenIdx, setLibraryOpenIdx] = useState<number | null>(null);
+
+    const addBlock = (type: 'text' | 'image' | 'video') => {
+        const newBlock: ContentBlock = {
+            id: Math.random().toString(36).substr(2, 9),
+            type,
+            content: ''
+        };
+        onChange({ ...section, blocks: [...section.blocks, newBlock] });
+    };
+
+    const updateBlock = (index: number, newBlock: ContentBlock) => {
+        const newBlocks = [...section.blocks];
+        newBlocks[index] = newBlock;
+        onChange({ ...section, blocks: newBlocks });
+    };
+
+    const deleteBlock = (index: number) => {
+        console.log('[SectionEditor] deleteBlock called, index:', index, 'section.blocks before:', section.blocks.length);
+        const newBlocks = [...section.blocks];
+        newBlocks.splice(index, 1);
+        console.log('[SectionEditor] newBlocks after splice:', newBlocks.length);
+        onChange({ ...section, blocks: newBlocks });
+    };
+
+    const moveBlock = (index: number, direction: 'up' | 'down') => {
+        if (direction === 'up' && index === 0) return;
+        if (direction === 'down' && index === section.blocks.length - 1) return;
+        const newBlocks = [...section.blocks];
+        const swapIndex = direction === 'up' ? index - 1 : index + 1;
+        [newBlocks[index], newBlocks[swapIndex]] = [newBlocks[swapIndex], newBlocks[index]];
+        onChange({ ...section, blocks: newBlocks });
+    };
+
+    return (
+        <div className="mb-8 border-l-4 border-ink/10 pl-4 py-2 relative">
+            <h4 className="font-bold text-sm uppercase text-ink/40 mb-3 flex items-center justify-between">
+                <span>{section.title}</span>
+                <span className="text-[10px] font-mono">{section.blocks.length} Blocks</span>
+            </h4>
+
+            <div className="space-y-3">
+                {section.blocks.map((block, idx) => (
+                    <BlockEditor
+                        key={block.id}
+                        block={block}
+                        onChange={(b) => updateBlock(idx, b)}
+                        onDelete={() => deleteBlock(idx)}
+                        onMoveUp={() => moveBlock(idx, 'up')}
+                        onMoveDown={() => moveBlock(idx, 'down')}
+                        isFirst={idx === 0}
+                        isLast={idx === section.blocks.length - 1}
+                        onOpenLibrary={() => setLibraryOpenIdx(idx)}
+                    />
+                ))}
+            </div>
+
+            <BlogMediaLibraryModal
+                isOpen={libraryOpenIdx !== null}
+                onClose={() => setLibraryOpenIdx(null)}
+                onSelect={(url) => {
+                    if (libraryOpenIdx !== null) {
+                        const block = section.blocks[libraryOpenIdx];
+                        updateBlock(libraryOpenIdx, { ...block, content: url });
+                        setLibraryOpenIdx(null);
+                    }
+                }}
+            />
+
+            {/* Add Block Controls */}
+            <div className="flex gap-2 mt-3 opacity-50 hover:opacity-100 transition-opacity">
+                <button type="button" onClick={() => addBlock('text')} className="px-2 py-1 bg-gray-100 hover:bg-white border border-transparent hover:border-ink/20 rounded text-[10px] font-bold flex items-center gap-1">
+                    <FileText size={10} /> Add Text
+                </button>
+                <button type="button" onClick={() => addBlock('image')} className="px-2 py-1 bg-gray-100 hover:bg-white border border-transparent hover:border-ink/20 rounded text-[10px] font-bold flex items-center gap-1">
+                    <ImageIcon size={10} /> Add Image
+                </button>
+                <button type="button" onClick={() => addBlock('video')} className="px-2 py-1 bg-gray-100 hover:bg-white border border-transparent hover:border-ink/20 rounded text-[10px] font-bold flex items-center gap-1">
+                    <Video size={10} /> Add Video
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const DevDiaryEditor: React.FC = () => {
+    const { posts } = usePosts();
+    const { projects } = useProjects();
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [formData, setFormData] = useState<Partial<BlogPost>>({
+        type: 'tech_note',
+        tags: [],
+        sections: []
+    });
+
+    const handleCreate = () => {
+        setEditingId('new');
+        setFormData({
+            title: '',
+            date: new Date().toISOString(),
+            type: 'tech_note',
+            tags: [],
+            sections: JSON.parse(JSON.stringify(DEFAULT_TEMPLATES['tech_note'])) // Deep copy template
+        });
+    };
+
+    const handleEdit = (post: BlogPost) => {
+        setEditingId(post.id);
+        // Migration: If post has old content, we might need to convert?
+        // Assuming we rely on the type. But wait, if we changed the DB schema, old posts might break if we don't handle them.
+        // For now, let's just load it. If it doesn't have sections, we might fallback.
+        // But the user asked to "preserve existing entries".
+        // The existing entries in DB will have 'content' field, not 'sections'.
+        // We should detect that.
+
+        let sections = post.sections;
+        if (!sections && (post as any).content) {
+            // Convert legacy content to sections on the fly for editing
+            const type = post.type || 'tech_note';
+            const template = DEFAULT_TEMPLATES[type] || DEFAULT_TEMPLATES['tech_note'];
+            const legacyContent = (post as any).content;
+
+            // Map legacy fields to template sections
+            // This is a "Best Effort" migration
+            sections = template.map(sec => {
+                // Find key from title? 
+                // In constants.ts we used IDs like 'sec_problem'. 
+                // Let's map IDs back to legacy keys.
+                const keyMap: any = {
+                    'sec_problem': 'problem', 'sec_approach': 'approach', 'sec_impl': 'implementation',
+                    'sec_tradeoffs': 'tradeoffs', 'sec_result': 'result', 'sec_takeaway': 'takeaway',
+                    'sec_updates': 'updates', 'sec_why': 'why', 'sec_before_after': 'beforeAfter',
+                    'sec_challenges': 'challenges', 'sec_next': 'nextSteps',
+                    'sec_goal': 'goal', 'sec_good': 'good', 'sec_bad': 'bad',
+                    'sec_root': 'rootCause', 'sec_action': 'actionItems'
+                };
+
+                const legacyKey = keyMap[sec.id];
+                if (legacyKey && legacyContent[legacyKey]) {
+                    return {
+                        ...sec,
+                        blocks: [{ id: Math.random().toString(), type: 'text', content: legacyContent[legacyKey] }]
+                    };
+                }
+                return sec;
+            });
+        }
+
+        setFormData({ ...post, sections });
+    };
+
+    const handleSave = async () => {
+        if (!formData.title) return alert("Title is required");
+
+        try {
+            const dataToSave = {
+                ...formData,
+                date: formData.date || new Date().toISOString(),
+                // Ensure we eliminate any legacy content field if it lingers
+                content: undefined
+            };
+            // Clean undefined
+            delete (dataToSave as any).content;
+
+            if (editingId === 'new') {
+                await addDoc(collection(db, 'posts'), dataToSave);
+            } else if (editingId) {
+                await setDoc(doc(db, 'posts', editingId), dataToSave, { merge: true });
+            }
+            setEditingId(null);
+        } catch (e: any) {
+            alert("Error saving post: " + e.message);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        console.log('[DevDiaryEditor] handleDelete called, id:', id);
+
+        if (id === 'new') {
+            console.log('[DevDiaryEditor] Cancelling new entry');
+            setEditingId(null);
+            return;
+        }
+
+        try {
+            console.log('[DevDiaryEditor] Deleting from Firestore...');
+            await deleteDoc(doc(db, 'posts', id));
+            console.log('[DevDiaryEditor] Deleted successfully');
+            if (editingId === id) setEditingId(null);
+        } catch (e: any) {
+            console.error('[DevDiaryEditor] Delete error:', e);
+            alert("Error deleting: " + e.message);
+        }
+    };
+
+    const updateSection = (index: number, newSection: PostSection) => {
+        console.log('[DevDiaryEditor] updateSection called, index:', index, 'newSection blocks:', newSection.blocks.length);
+        const newSections = [...(formData.sections || [])];
+        newSections[index] = newSection;
+        console.log('[DevDiaryEditor] Setting new formData.sections, total sections:', newSections.length);
+        setFormData({ ...formData, sections: newSections });
+    };
+
+    const changeType = (newType: PostType) => {
+        console.log('[DevDiaryEditor] changeType called, switching to:', newType);
+        setFormData({
+            ...formData,
+            type: newType,
+            sections: JSON.parse(JSON.stringify(DEFAULT_TEMPLATES[newType]))
+        });
+    };
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* List */}
+            <div className="md:col-span-1 space-y-4">
+                <div className="flex justify-between items-center">
+                    <h3 className="font-hand font-bold text-xl">Entries</h3>
+                    <button onClick={handleCreate} className="p-2 bg-ink text-white rounded hover:bg-gray-800 transition-colors shadow-sm">
+                        <Plus size={16} />
+                    </button>
+                </div>
+                <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                    {posts.map(post => (
+                        <div
+                            key={post.id}
+                            onClick={() => handleEdit(post)}
+                            className={`p-4 rounded border-2 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-md ${editingId === post.id ? 'border-ink bg-paper' : 'border-ink/10 bg-white hover:border-ink/30'}`}
+                        >
+                            <div className="flex justify-between items-start mb-1">
+                                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${post.type === 'tech_note' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                                    post.type === 'devlog' ? 'bg-green-50 text-green-600 border-green-200' :
+                                        'bg-red-50 text-red-600 border-red-200'
+                                    }`}>
+                                    {post.type.replace('_', ' ')}
+                                </span>
+                                <span className="text-[10px] text-gray-400 font-mono">{new Date(post.date).toLocaleDateString()}</span>
+                            </div>
+                            <h4 className="font-bold text-sm line-clamp-2">{post.title}</h4>
+                            {post.projectId && (
+                                <div className="mt-2 text-[10px] text-gray-500 flex items-center gap-1">
+                                    <Database size={10} />
+                                    {projects.find(p => p.id === post.projectId)?.title || 'Unknown Project'}
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Editor */}
+            <div className="md:col-span-2">
+                {editingId ? (
+                    <div className="bg-white border-2 border-ink rounded-lg p-6 shadow-sm relative">
+                        <div className="flex justify-between items-start mb-6">
+                            <h3 className="font-hand font-bold text-xl flex items-center gap-2">
+                                <Edit2 size={20} />
+                                {editingId === 'new' ? 'New Entry' : 'Edit Entry'}
+                            </h3>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDelete(editingId);
+                                }}
+                                className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded transition-colors"
+                                title="Delete"
+                            >
+                                <Trash2 size={18} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Title</label>
+                                    <input
+                                        className="w-full border-2 border-ink/20 focus:border-ink p-2 rounded outline-none transition-colors font-medium bg-white"
+                                        value={formData.title || ''}
+                                        onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                        placeholder="Entry Title..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Type</label>
+                                    <select
+                                        className="w-full border-2 border-ink/20 focus:border-ink p-2 rounded outline-none transition-colors font-medium bg-white"
+                                        value={formData.type}
+                                        onChange={e => changeType(e.target.value as PostType)}
+                                    >
+                                        <option value="tech_note">Tech Note</option>
+                                        <option value="devlog">Devlog</option>
+                                        <option value="postmortem">Postmortem</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Related Project (Optional)</label>
+                                <select
+                                    className="w-full border-2 border-ink/20 focus:border-ink p-2 rounded outline-none transition-colors font-medium bg-white"
+                                    value={formData.projectId || ''}
+                                    onChange={e => setFormData({ ...formData, projectId: e.target.value })}
+                                >
+                                    <option value="">-- None --</option>
+                                    {projects.map(p => (
+                                        <option key={p.id} value={p.id}>{p.title}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <DevDiaryMediaHelper />
+
+                            <div className="border-t-2 border-dashed border-ink/10 pt-4">
+                                {(formData.sections || []).map((section, idx) => (
+                                    <SectionEditor
+                                        key={section.id}
+                                        section={section}
+                                        onChange={(newSec) => updateSection(idx, newSec)}
+                                    />
+                                ))}
+                            </div>
+
+                            <div className="flex justify-end pt-4 border-t border-ink/10">
+                                <button
+                                    onClick={handleSave}
+                                    className="bg-ink text-white px-6 py-2 rounded font-bold shadow-md hover:translate-y-[-1px] hover:shadow-lg transition-all flex items-center gap-2"
+                                >
+                                    <Save size={16} /> Save Entry
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-ink/10 rounded-lg bg-gray-50 min-h-[400px]">
+                        <BookOpen size={48} className="mb-4 opacity-20" />
+                        <p className="font-mono text-sm">Select an entry or create a new one.</p>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
@@ -131,6 +718,45 @@ const SettingsEditor: React.FC = () => {
                             <input className="w-full border-2 border-ink/20 focus:border-ink p-3 rounded outline-none transition-colors font-medium bg-white" placeholder="https://linkedin.com/in/..." value={formData.profile.linkedin} onChange={e => setFormData({ ...formData, profile: { ...formData.profile, linkedin: e.target.value } })} />
                         </div>
                     </div>
+
+                    <div className="mt-4 border-t border-ink/10 pt-4">
+                        <label className="block text-xs font-bold uppercase mb-2 text-gray-500 flex items-center gap-2">
+                            <Download size={14} /> Resume / CV Upload
+                        </label>
+                        <div className="flex gap-4 items-center">
+                            <input
+                                type="file"
+                                accept=".pdf,.doc,.docx"
+                                className="hidden"
+                                id="resume-upload"
+                                onChange={async (e) => {
+                                    if (e.target.files?.[0]) {
+                                        const file = e.target.files[0];
+                                        const storageRef = ref(storage, `resumes/resume_${Date.now()}_${file.name}`);
+                                        await uploadBytes(storageRef, file);
+                                        const url = await getDownloadURL(storageRef);
+                                        setFormData({ ...formData, profile: { ...formData.profile, resumeUrl: url } });
+                                    }
+                                }}
+                            />
+                            <label htmlFor="resume-upload" className="bg-ink text-white px-4 py-2 rounded text-xs font-bold cursor-pointer hover:bg-gray-800 transition-colors flex items-center gap-2 shadow-sm">
+                                <Upload size={14} /> Upload New CV
+                            </label>
+                            {formData.profile.resumeUrl && (
+                                <div className="flex items-center gap-2 text-xs font-mono bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200">
+                                    <span>✓ CV Uploaded</span>
+                                    <a href={formData.profile.resumeUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-green-900">View</a>
+                                    <button
+                                        onClick={() => setFormData({ ...formData, profile: { ...formData.profile, resumeUrl: '' } })}
+                                        className="ml-2 text-red-500 hover:text-red-700"
+                                        title="Remove CV"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -165,13 +791,57 @@ const SettingsEditor: React.FC = () => {
                     <Star size={24} className="text-tape" /> Welcome Screen
                 </h3>
                 <div className="grid gap-6 relative z-10">
-                    <div>
-                        <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Greeting / Headline</label>
-                        <input className="w-full border-2 border-ink/20 focus:border-ink p-3 rounded outline-none transition-colors font-medium bg-white" value={formData.welcome?.greeting || ''} onChange={e => setFormData({ ...formData, welcome: { ...formData.welcome, greeting: e.target.value } })} />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Tagline / Subtext</label>
-                        <input className="w-full border-2 border-ink/20 focus:border-ink p-3 rounded outline-none transition-colors font-medium bg-white" value={formData.welcome?.tagline || ''} onChange={e => setFormData({ ...formData, welcome: { ...formData.welcome, tagline: e.target.value } })} />
+                    <div className="flex gap-6 items-start">
+                        <div className="flex-1 space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Greeting / Headline</label>
+                                <input className="w-full border-2 border-ink/20 focus:border-ink p-3 rounded outline-none transition-colors font-medium bg-white" value={formData.welcome?.greeting || ''} onChange={e => setFormData({ ...formData, welcome: { ...formData.welcome, greeting: e.target.value } })} />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Tagline / Subtext</label>
+                                <input className="w-full border-2 border-ink/20 focus:border-ink p-3 rounded outline-none transition-colors font-medium bg-white" value={formData.welcome?.tagline || ''} onChange={e => setFormData({ ...formData, welcome: { ...formData.welcome, tagline: e.target.value } })} />
+                            </div>
+                        </div>
+
+                        <div className="w-24">
+                            <label className="block text-xs font-bold uppercase mb-2 text-gray-500 text-center">Avatar</label>
+                            <div
+                                className="w-24 h-24 rounded-full border-2 border-dashed border-ink/20 flex items-center justify-center cursor-pointer hover:bg-gray-50 relative overflow-hidden group bg-white mx-auto shadow-sm"
+                                onClick={() => document.getElementById('avatar-upload')?.click()}
+                            >
+                                {formData.welcome?.avatarUrl ? (
+                                    <img src={formData.welcome.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="text-2xl">👋</span>
+                                )}
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold">
+                                    Change
+                                </div>
+                            </div>
+                            <input
+                                type="file"
+                                id="avatar-upload"
+                                className="hidden"
+                                accept="image/*"
+                                onChange={async (e) => {
+                                    if (e.target.files?.[0]) {
+                                        const file = e.target.files[0];
+                                        const storageRef = ref(storage, `avatars/avatar_${Date.now()}_${file.name}`);
+                                        await uploadBytes(storageRef, file);
+                                        const url = await getDownloadURL(storageRef);
+                                        setFormData({ ...formData, welcome: { ...formData.welcome, avatarUrl: url } });
+                                    }
+                                }}
+                            />
+                            {formData.welcome?.avatarUrl && (
+                                <button
+                                    onClick={() => setFormData({ ...formData, welcome: { ...formData.welcome, avatarUrl: '' } })}
+                                    className="text-[10px] text-red-500 hover:text-red-700 underline text-center w-full mt-1 block"
+                                >
+                                    Remove
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -782,6 +1452,24 @@ const MediaListEditor: React.FC<{ media: MediaItem[]; onChange: (m: MediaItem[])
                 <button onClick={() => setShowLibrary(true)} type="button" className="py-3 px-4 bg-white border-2 border-ink text-ink rounded font-bold hover:bg-gray-50 text-xs flex items-center justify-center gap-2 shadow-sm">
                     <Database size={14} /> Library
                 </button>
+                {showLibrary && (
+                    <BlogMediaLibraryModal
+                        isOpen={showLibrary}
+                        onClose={() => setShowLibrary(false)}
+                        onSelect={(url) => {
+                            // Inline logic to add new item
+                            const newItem: MediaItem = {
+                                type: 'image',
+                                url,
+                                aspect: 'aspect-video',
+                                caption: '',
+                                items: []
+                            };
+                            onChange([...media, newItem]);
+                            setShowLibrary(false);
+                        }}
+                    />
+                )}
                 <button onClick={triggerBatchUpload} type="button" className="flex-1 py-3 bg-white border-2 border-ink text-ink rounded font-bold hover:bg-gray-50 text-xs flex items-center justify-center gap-2 shadow-sm">
                     <Upload size={14} /> Batch Upload
                 </button>
@@ -1153,7 +1841,7 @@ const AdminApp: React.FC = () => {
     const [error, setError] = useState('');
     const [msg, setMsg] = useState('');
 
-    const [activeTab, setActiveTab] = useState<'projects' | 'skills' | 'settings'>('projects');
+    const [activeTab, setActiveTab] = useState<'projects' | 'skills' | 'settings' | 'dev_diary'>('projects');
     const [isEditing, setIsEditing] = useState(false);
     const [currentProject, setCurrentProject] = useState<Project | null>(null);
 
@@ -1318,6 +2006,12 @@ const AdminApp: React.FC = () => {
                         >
                             <Wrench size={12} /> Settings
                         </button>
+                        <button
+                            onClick={() => setActiveTab('dev_diary')}
+                            className={`px-3 py-1 rounded font-bold text-xs flex items-center gap-1 ${activeTab === 'dev_diary' ? 'bg-white text-ink' : 'text-gray-400 hover:text-white'}`}
+                        >
+                            <BookOpen size={12} /> Dev Diary
+                        </button>
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -1437,6 +2131,18 @@ const AdminApp: React.FC = () => {
                             </h2>
                         </div>
                         <SettingsEditor />
+                    </div>
+                )}
+
+                {/* DEV DIARY TAB */}
+                {activeTab === 'dev_diary' && (
+                    <div className="max-w-7xl mx-auto animate-fade-in">
+                        <div className="flex items-center justify-between mb-8 border-b-2 border-ink pb-4">
+                            <h2 className="text-3xl font-hand font-bold flex items-center gap-2">
+                                <BookOpen size={32} /> Dev Diary / Notebook
+                            </h2>
+                        </div>
+                        <DevDiaryEditor />
                     </div>
                 )}
 

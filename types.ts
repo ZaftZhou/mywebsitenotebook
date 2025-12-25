@@ -60,7 +60,7 @@ export interface AppDefinition {
   color: string;
 }
 
-export type AppId = 'welcome' | 'projects' | 'about' | 'contact' | 'browser' | 'admin';
+export type AppId = 'welcome' | 'projects' | 'about' | 'contact' | 'browser' | 'admin' | 'notebook';
 export interface SiteSettings {
   id?: string;
   profile: {
@@ -70,6 +70,7 @@ export interface SiteSettings {
     location: string;
     email: string;
     linkedin: string;
+    resumeUrl?: string; // New field for CV download link
   };
   music: {
     title: string;
@@ -79,9 +80,37 @@ export interface SiteSettings {
   welcome: {
     greeting: string;
     tagline: string;
+    avatarUrl?: string; // New field for custom welcome image
   };
   widgets: {
     toolboxTitle: string;
     toolboxColor: string; // fallback color if needed
   };
+}
+
+export type PostType = 'tech_note' | 'devlog' | 'postmortem';
+
+export type BlockType = 'text' | 'image' | 'video';
+
+export interface ContentBlock {
+  id: string;
+  type: BlockType;
+  content: string; // Markdown text or URL
+  caption?: string;
+}
+
+export interface PostSection {
+  id: string;
+  title: string;
+  blocks: ContentBlock[];
+}
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  date: string; // ISO timestamp
+  type: PostType;
+  projectId?: string; // Optional linkage
+  tags: string[];
+  sections: PostSection[]; // Replaces old 'content' object
 }

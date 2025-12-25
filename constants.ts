@@ -1,4 +1,32 @@
-import { Project, Skill } from './types';
+import { Project, Skill, PostType, PostSection } from './types';
+
+// Helper to generate IDs
+const generateId = () => Math.random().toString(36).substr(2, 9);
+
+export const DEFAULT_TEMPLATES: Record<PostType, PostSection[]> = {
+  tech_note: [
+    { id: 'sec_problem', title: 'Problem', blocks: [{ id: generateId(), type: 'text', content: '' }] },
+    { id: 'sec_approach', title: 'Approach', blocks: [{ id: generateId(), type: 'text', content: '' }] },
+    { id: 'sec_impl', title: 'Implementation', blocks: [{ id: generateId(), type: 'text', content: '' }] },
+    { id: 'sec_tradeoffs', title: 'Trade-offs', blocks: [{ id: generateId(), type: 'text', content: '' }] },
+    { id: 'sec_result', title: 'Result', blocks: [{ id: generateId(), type: 'text', content: '' }] },
+    { id: 'sec_takeaway', title: 'Takeaway', blocks: [{ id: generateId(), type: 'text', content: '' }] },
+  ],
+  devlog: [
+    { id: 'sec_updates', title: 'What Changed', blocks: [{ id: generateId(), type: 'text', content: '' }] },
+    { id: 'sec_why', title: 'Why', blocks: [{ id: generateId(), type: 'text', content: '' }] },
+    { id: 'sec_before_after', title: 'Before / After', blocks: [{ id: generateId(), type: 'text', content: '' }] },
+    { id: 'sec_challenges', title: 'Challenges & Fixes', blocks: [{ id: generateId(), type: 'text', content: '' }] },
+    { id: 'sec_next', title: 'Next Steps', blocks: [{ id: generateId(), type: 'text', content: '' }] },
+  ],
+  postmortem: [
+    { id: 'sec_goal', title: 'Goal', blocks: [{ id: generateId(), type: 'text', content: '' }] },
+    { id: 'sec_good', title: 'What Went Well', blocks: [{ id: generateId(), type: 'text', content: '' }] },
+    { id: 'sec_bad', title: 'What Went Wrong', blocks: [{ id: generateId(), type: 'text', content: '' }] },
+    { id: 'sec_root', title: 'Root Cause', blocks: [{ id: generateId(), type: 'text', content: '' }] },
+    { id: 'sec_action', title: 'Action Items', blocks: [{ id: generateId(), type: 'text', content: '' }] },
+  ]
+};
 
 export const PROJECTS: Project[] = [
   {
