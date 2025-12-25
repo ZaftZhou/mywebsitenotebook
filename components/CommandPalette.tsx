@@ -29,6 +29,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
     { id: 'app-projects', title: 'Projects Explorer', type: 'app', icon: <Search size={16} />, desc: 'Browse all works', action: () => openApp('projects') },
     { id: 'app-about', title: 'About Me', type: 'app', icon: <FileText size={16} />, desc: 'Skills & Experience', action: () => openApp('about') },
     { id: 'app-contact', title: 'Contact', type: 'app', icon: <AppWindow size={16} />, desc: 'Send a message', action: () => openApp('contact') },
+    { id: 'app-admin', title: 'Admin', type: 'app', icon: <Monitor size={16} />, desc: 'Manage Content', action: () => openApp('admin') },
     { id: 'action-cv', title: 'Download Resume', type: 'action', icon: <Download size={16} />, desc: 'PDF Format', action: () => alert("CV Downloaded!") },
   ];
 
@@ -45,8 +46,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
   const allItems = [...baseItems, ...projectItems];
 
   // Filter logic
-  const filteredItems = allItems.filter(item => 
-    item.title.toLowerCase().includes(query.toLowerCase()) || 
+  const filteredItems = allItems.filter(item =>
+    item.title.toLowerCase().includes(query.toLowerCase()) ||
     item.desc?.toLowerCase().includes(query.toLowerCase())
   );
 
@@ -87,7 +88,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
     <AnimatePresence>
       <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh] px-4">
         {/* Backdrop */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           className="absolute inset-0 bg-ink/20 backdrop-blur-sm"
           onClick={onClose}
@@ -125,9 +126,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
                     key={item.id}
                     onClick={() => { item.action(); onClose(); }}
                     onMouseEnter={() => setSelectedIndex(index)}
-                    className={`flex items-center justify-between px-3 py-3 rounded cursor-pointer transition-colors ${
-                      index === selectedIndex ? 'bg-ink text-paper' : 'hover:bg-paperDark text-ink'
-                    }`}
+                    className={`flex items-center justify-between px-3 py-3 rounded cursor-pointer transition-colors ${index === selectedIndex ? 'bg-ink text-paper' : 'hover:bg-paperDark text-ink'
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <div className={`p-1.5 rounded ${index === selectedIndex ? 'bg-paper/20' : 'bg-gray-200'}`}>
@@ -146,7 +146,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
               </ul>
             )}
           </div>
-          
+
           {/* Footer */}
           <div className="bg-paperDark border-t border-ink/10 px-4 py-2 text-[10px] text-gray-500 flex justify-between">
             <span>ProTip: Use arrows to navigate</span>

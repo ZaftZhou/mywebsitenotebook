@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Folder, User, Mail, Gamepad2, Globe, Smartphone, Box, Hand, Search } from 'lucide-react';
+import { Folder, User, Mail, Gamepad2, Globe, Smartphone, Box, Hand, Search, Monitor } from 'lucide-react';
 
 import { WindowFrame } from './components/WindowFrame';
 import { WelcomeApp } from './components/apps/WelcomeApp';
@@ -229,8 +229,8 @@ const App: React.FC = () => {
             const app = APPS[key];
             const isOpen = windows.find(w => w.id === key);
 
-            // Only show browser in dock if it's currently running
-            if (key === 'browser' && !isOpen) return null;
+            // Only show browser/admin in dock if it's currently running
+            if ((key === 'browser' || key === 'admin') && !isOpen) return null;
 
             return (
               <div key={key} className="relative group">
@@ -247,6 +247,7 @@ const App: React.FC = () => {
                     {key === 'about' && <User className="text-cat-web" size={24} />}
                     {key === 'contact' && <Mail className="text-tape" fill="#F4E04D" size={24} />}
                     {key === 'browser' && <Globe className="text-blue-500" size={24} />}
+                    {key === 'admin' && <Monitor className="text-red-500" size={24} />}
                   </div>
                 </button>
                 {/* Active Dot */}

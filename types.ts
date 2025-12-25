@@ -1,11 +1,12 @@
 import { ComponentType } from 'react';
 
 export interface MediaItem {
-  type: 'image' | 'video';
-  url?: string;
+  type: 'image' | 'video' | 'gallery';
+  url?: string; // For gallery, this could be the cover image
   caption?: string;
-  aspect: string; // Tailwind aspect class (e.g. 'aspect-video', 'aspect-[3/4]')
-  color?: string; // For placeholder background
+  aspect: string;
+  color?: string;
+  items?: MediaItem[]; // For gallery type
 }
 
 export interface Project {
@@ -28,6 +29,7 @@ export interface Project {
   };
   media: MediaItem[];
   coverImage?: string; // Dedicated cover image URL
+  demoUrl?: string; // Optional URL for project demo
 }
 
 export interface Skill {

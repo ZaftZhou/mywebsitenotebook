@@ -5,7 +5,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { doc, setDoc, deleteDoc, collection } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
 import { Project, MediaItem, Skill } from '../../types';
-import { Lock, LogOut, Upload, Database, Plus, Trash2, Edit2, Save, Image as ImageIcon, Film, X, Loader, ArrowUp, ArrowDown, Star } from 'lucide-react';
+import { Lock, LogOut, Upload, Database, Plus, Trash2, Edit2, Save, Image as ImageIcon, Film, X, Loader, ArrowUp, ArrowDown, Star, Globe, Copy } from 'lucide-react';
 import { useProjects, useSkills } from '../../src/hooks/useContent';
 import { PROJECTS, SKILLS } from '../../constants';
 // Add doc/addDoc/etc imports needed for SkillsEditor if not present
@@ -204,6 +204,18 @@ const MediaListEditor: React.FC<{ media: MediaItem[]; onChange: (m: MediaItem[])
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [activeIndex, setActiveIndex] = useState<number | null>(null); // For replacing specific item
 
+    // Grouping / Selection State
+    const [manageMode, setManageMode] = useState(false);
+    const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+
+    const toggleSelection = (index: number) => {
+        const newSet = new Set(selectedItems);
+        const key = index.toString();
+        if (newSet.has(key)) newSet.delete(key);
+        else newSet.add(key);
+        setSelectedItems(newSet);
+    };
+
     // Handlers
     const handleAdd = () => {
         onChange([...media, { type: 'image', aspect: 'aspect-video', caption: '', color: 'bg-gray-200', url: '' }]);
@@ -370,6 +382,34 @@ const MediaListEditor: React.FC<{ media: MediaItem[]; onChange: (m: MediaItem[])
         setShowLibrary(false);
     };
 
+    const handleGroupItems = () => {
+        const itemsToGroup = media.filter((_, i) => selectedItems.has(i.toString()));
+        if (itemsToGroup.length < 2) return;
+
+        const newGroup: MediaItem = {
+            type: 'gallery',
+            url: itemsToGroup[0].url, // Use first item as cover
+            aspect: itemsToGroup[0].aspect,
+            color: itemsToGroup[0].color,
+            items: itemsToGroup
+        };
+
+        const newMedia = media.filter((_, i) => !selectedItems.has(i.toString()));
+        newMedia.push(newGroup);
+        onChange(newMedia);
+        setSelectedItems(new Set());
+        setManageMode(false);
+    };
+
+    const handleUngroup = (index: number) => {
+        const group = media[index];
+        if (!group.items) return;
+
+        const newMedia = [...media];
+        newMedia.splice(index, 1, ...group.items);
+        onChange(newMedia);
+    };
+
     return (
         <div
             className={`space-y-4 relative rounded-lg transition-all ${uploading && !activeIndex ? 'ring-2 ring-ink ring-opacity-50 bg-gray-50' : ''}`}
@@ -392,33 +432,66 @@ const MediaListEditor: React.FC<{ media: MediaItem[]; onChange: (m: MediaItem[])
 
             <h4 className="font-bold border-b border-ink/10 pb-1 flex justify-between items-center text-xs text-gray-500 uppercase tracking-wider">
                 <span>Gallery Media ({media.length})</span>
+                <button
+                    onClick={() => setManageMode(!manageMode)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${manageMode ? 'bg-ink text-white border-ink' : 'bg-transparent text-gray-400 border-gray-200 hover:border-ink/50 hover:text-ink'}`}
+                >
+                    {manageMode ? 'Done' : 'Select / Grp'}
+                </button>
             </h4>
+
+            {manageMode && (
+                <div className="flex gap-2 mb-2 bg-yellow-50 p-2 border border-yellow-200 rounded items-center justify-between animate-in slide-in-from-top-2">
+                    <span className="text-xs font-bold text-yellow-800 ml-1">{selectedItems.size} selected</span>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleGroupItems}
+                            disabled={selectedItems.size < 2}
+                            className="px-3 py-1 bg-ink text-white rounded text-xs font-bold hover:shadow-md disabled:opacity-50 flex items-center gap-1"
+                        >
+                            <Database size={12} /> Group
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <div className="space-y-4 min-h-[100px]">
                 {media.map((item, idx) => (
-                    <div key={idx} className="bg-paper p-3 border border-ink/20 rounded relative group transition-all duration-300">
+                    <div
+                        key={idx}
+                        className={`bg-paper p-3 border rounded relative group transition-all duration-300 ${selectedItems.has(idx.toString()) ? 'border-ink ring-1 ring-ink' : 'border-ink/20'}`}
+                        onClick={() => manageMode && toggleSelection(idx)}
+                    >
                         {/* Header Actions */}
                         <div className="absolute top-2 right-2 z-10 flex gap-1">
-                            <button
-                                onClick={() => handleMove(idx, 'up')}
-                                disabled={idx === 0}
-                                className="p-1 text-gray-400 hover:text-ink disabled:opacity-30 hover:bg-white rounded transition-colors"
-                                title="Move Up"
-                            >
-                                <ArrowUp size={14} />
-                            </button>
-                            <button
-                                onClick={() => handleMove(idx, 'down')}
-                                disabled={idx === media.length - 1}
-                                className="p-1 text-gray-400 hover:text-ink disabled:opacity-30 hover:bg-white rounded transition-colors"
-                                title="Move Down"
-                            >
-                                <ArrowDown size={14} />
-                            </button>
-                            <div className="w-px h-4 bg-gray-300 mx-1 self-center" />
-                            <button onClick={() => handleRemove(idx)} className="p-1 text-red-400 hover:text-red-600 hover:bg-white rounded transition-colors">
-                                <X size={14} />
-                            </button>
+                            {manageMode ? (
+                                <div className={`w-4 h-4 border-2 rounded flex items-center justify-center ${selectedItems.has(idx.toString()) ? 'bg-ink border-ink text-white' : 'border-gray-300 bg-white'}`}>
+                                    {selectedItems.has(idx.toString()) && <div className="w-2 h-2 bg-white rounded-sm" />}
+                                </div>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleMove(idx, 'up'); }}
+                                        disabled={idx === 0}
+                                        className="p-1 text-gray-400 hover:text-ink disabled:opacity-30 hover:bg-white rounded transition-colors"
+                                        title="Move Up"
+                                    >
+                                        <ArrowUp size={14} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleMove(idx, 'down')}
+                                        disabled={idx === media.length - 1}
+                                        className="p-1 text-gray-400 hover:text-ink disabled:opacity-30 hover:bg-white rounded transition-colors"
+                                        title="Move Down"
+                                    >
+                                        <ArrowDown size={14} />
+                                    </button>
+                                    <div className="w-px h-4 bg-gray-300 mx-1 self-center" />
+                                    <button onClick={() => handleRemove(idx)} className="p-1 text-red-400 hover:text-red-600 hover:bg-white rounded transition-colors">
+                                        <X size={14} />
+                                    </button>
+                                </>
+                            )}
                         </div>
 
 
@@ -438,6 +511,19 @@ const MediaListEditor: React.FC<{ media: MediaItem[]; onChange: (m: MediaItem[])
                                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold z-20">
                                         <Loader className="animate-spin w-4 h-4 mr-1" />
                                     </div>
+                                )}
+                                {item.type === 'gallery' && (
+                                    <>
+                                        <div className="absolute top-2 left-2 bg-ink text-white text-[10px] font-bold px-1.5 rounded flex items-center gap-1 z-20">
+                                            <Database size={10} /> {item.items?.length}
+                                        </div>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleUngroup(idx); }}
+                                            className="absolute bottom-2 right-2 bg-white text-ink text-[10px] font-bold px-2 py-1 rounded shadow-sm border border-ink/10 hover:bg-gray-50 z-20"
+                                        >
+                                            Ungroup
+                                        </button>
+                                    </>
                                 )}
                                 {!item.url && (item.type === 'video' ? <Film className="text-gray-400 mb-1" size={20} /> : <ImageIcon className="text-gray-400 mb-1" size={20} />)}
                             </div>
@@ -737,14 +823,35 @@ const ProjectEditor: React.FC<{ project?: Project | null; onSave: (p: Project) =
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-xs font-bold uppercase mb-1">One Liner</label>
-                        <input className="w-full border-2 border-ink/20 p-2 rounded" value={formData.oneLiner} onChange={e => handleChange('oneLiner', e.target.value)} />
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold uppercase mb-1">Overview</label>
-                        <textarea className="w-full border-2 border-ink/20 p-2 rounded h-24" value={formData.content.overview} onChange={e => handleContentChange('overview', e.target.value)} />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold uppercase mb-1">Overview</label>
+                            <textarea className="w-full border-2 border-ink/20 p-2 rounded h-24" value={formData.content.overview} onChange={e => handleContentChange('overview', e.target.value)} />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold uppercase mb-1">Challenge</label>
+                            <textarea className="w-full border-2 border-ink/20 p-2 rounded h-24" value={formData.content.challenges} onChange={e => handleContentChange('challenges', e.target.value)} />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold uppercase mb-1">Solution</label>
+                            <textarea className="w-full border-2 border-ink/20 p-2 rounded h-24" value={formData.content.solutions} onChange={e => handleContentChange('solutions', e.target.value)} />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold uppercase mb-1">One Liner</label>
+                            <input className="w-full border-2 border-ink/20 p-2 rounded" value={formData.oneLiner} onChange={e => handleChange('oneLiner', e.target.value)} />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold uppercase mb-1">Key Outcome</label>
+                            <input className="w-full border-2 border-ink/20 p-2 rounded" value={formData.outcome} onChange={e => handleChange('outcome', e.target.value)} />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold uppercase mb-1">Tech Stack (comma sep)</label>
+                            <input className="w-full border-2 border-ink/20 p-2 rounded" value={formData.content.stack.join(', ')} onChange={e => handleContentChange('stack', e.target.value.split(',').map((s: string) => s.trim()))} />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="block text-xs font-bold uppercase mb-1 flex items-center gap-2"><Globe size={12} /> Demo URL (Optional)</label>
+                            <input placeholder="https://..." className="w-full border-2 border-ink/20 p-2 rounded" value={formData.demoUrl || ''} onChange={e => handleChange('demoUrl', e.target.value)} />
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -754,7 +861,20 @@ const ProjectEditor: React.FC<{ project?: Project | null; onSave: (p: Project) =
                         </div>
                         <div>
                             <label className="block text-xs font-bold uppercase mb-1">Color Class</label>
-                            <input className="w-full border-2 border-ink/20 p-2 rounded" value={formData.color} onChange={e => handleChange('color', e.target.value)} />
+                            <div className="flex flex-wrap gap-2 p-2 border-2 border-ink/20 rounded bg-gray-50 max-h-32 overflow-y-auto">
+                                {[
+                                    'bg-cat-unity', 'bg-cat-web', 'bg-cat-app', 'bg-cat-3d', 'bg-tape',
+                                    'bg-blue-200', 'bg-green-200', 'bg-red-200', 'bg-yellow-200',
+                                    'bg-orange-200', 'bg-purple-200', 'bg-pink-200', 'bg-gray-200', 'bg-slate-200'
+                                ].map(c => (
+                                    <button
+                                        key={c}
+                                        onClick={() => handleChange('color', c)}
+                                        className={`w-6 h-6 rounded-full border border-ink/20 shadow-sm hover:scale-110 transition-transform ${c} ${formData.color === c ? 'ring-2 ring-offset-1 ring-ink' : ''}`}
+                                        title={c}
+                                    />
+                                ))}
+                            </div>
                         </div>
                     </div>
 

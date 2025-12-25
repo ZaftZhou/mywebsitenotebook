@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, ArrowLeft, ArrowUpRight, Play, Image as ImageIcon } from 'lucide-react';
+import { Search, Filter, ArrowLeft, ArrowUpRight, Play, Image as ImageIcon, Database, X, Folder } from 'lucide-react';
 import { Project, MediaItem, AppId } from '../../types';
 import { useProjects } from '../../src/hooks/useContent';
 
@@ -37,8 +37,125 @@ const getAspectStyle = (aspectClass: string) => {
 };
 
 const MediaGalleryItem: React.FC<{ item: MediaItem; index: number }> = ({ item, index }) => {
+  const [isOpen, setIsOpen] = useState(false);
   const rotation = index % 2 === 0 ? 'rotate-1' : '-rotate-1';
 
+  // FOLDER STYLE GALLERY
+  if (item.type === 'gallery' && item.items && item.items.length > 0) {
+    // EXPANDED FOLDER VIEW
+    if (isOpen) {
+      return (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          className="relative break-inside-avoid mb-6"
+        >
+          <div className="relative z-10 w-full mb-8 pt-4 border-t-2 border-dashed border-ink/10">
+            <div className="flex justify-between items-center mb-4 px-2">
+              <span className="text-[10px] font-bold text-ink/40 uppercase tracking-widest">
+                Folder Content ({item.items.length})
+              </span>
+              <button
+                onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
+                className="flex items-center gap-1 text-xs font-bold text-ink hover:text-red-500 transition-colors"
+              >
+                <X size={14} /> Close
+              </button>
+            </div>
+
+            <div className="space-y-8 px-2 pb-4">
+              {item.items.map((subItem, idx) => {
+                const subRotation = idx % 2 === 0 ? 'rotate-1' : '-rotate-1';
+                return (
+                  <div key={idx} className={`relative group ${subRotation}`}>
+                    <Tape className="-top-3 left-1/2 -translate-x-1/2" rotation={idx % 3 === 0 ? 2 : -2} />
+                    <div className="bg-white p-2 pb-8 border-2 border-ink shadow-paper group-hover:shadow-paper-hover transition-shadow duration-300">
+                      <div
+                        className={`w-full ${!subItem.aspect.startsWith('aspect-[') ? subItem.aspect : ''} bg-gray-200 relative overflow-hidden border border-ink/10 flex items-center justify-center bg-cover bg-center`}
+                        style={{
+                          backgroundImage: subItem.url ? `url("${subItem.url}")` : undefined,
+                          ...getAspectStyle(subItem.aspect)
+                        }}
+                      >
+                        {!subItem.url && (subItem.type === 'video' ? <Play className="text-ink/20" size={48} /> : <ImageIcon className="text-ink/20" size={48} />)}
+                        {subItem.type === 'video' && subItem.url && (
+                          <video src={subItem.url} controls className="w-full h-full object-cover" />
+                        )}
+                      </div>
+                      {subItem.caption && <p className="text-center font-hand font-bold text-lg mt-4 text-ink rotate-1 leading-tight">{subItem.caption}</p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="text-center mt-2">
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-xs font-bold text-ink/30 hover:text-ink hover:underline uppercase tracking-widest"
+              >
+                Close Group
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      );
+    }
+
+    // CLOSED FOLDER VIEW
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.1 }}
+        onClick={() => setIsOpen(true)}
+        className="relative cursor-pointer group break-inside-avoid mb-6 pt-6" // pt-6 for peeking content
+      >
+        {/* Peeking Content (Behind Folder) */}
+        <div className="absolute top-0 left-4 w-3/4 aspect-video bg-white border border-ink/20 shadow-sm rotate-[-3deg] z-0 opacity-80"
+          style={{
+            backgroundImage: item.items[0]?.url ? `url("${item.items[0].url}")` : undefined,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+        {item.items[1] && (
+          <div className="absolute top-1 right-8 w-2/3 aspect-square bg-white border border-ink/20 shadow-sm rotate-[4deg] z-0 opacity-70"
+            style={{
+              backgroundImage: item.items[1]?.url ? `url("${item.items[1].url}")` : undefined,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}
+          />
+        )}
+
+        {/* Folder Tab */}
+        <div className="absolute top-[1.3rem] left-0 bg-[#e6dcc3] w-1/3 h-8 rounded-t-lg border-t-2 border-l-2 border-r-2 border-ink/20 z-10 flex items-center px-3">
+          <span className="text-[10px] font-bold text-ink/60 uppercase">{item.items.length} FILES</span>
+        </div>
+
+        {/* Folder Body */}
+        <div className="relative bg-[#f0e68c] w-full aspect-[4/3] rounded-b-lg rounded-tr-lg border-2 border-ink/20 shadow-md group-hover:shadow-lg transition-all z-20 flex flex-col items-center justify-center p-4">
+          {/* Folder Texture/Decor */}
+          <div className="w-full h-full border border-dashed border-ink/10 rounded flex flex-col items-center justify-center relative px-2 text-center">
+            <Folder size={48} className="text-ink/20 mb-2" strokeWidth={1.5} />
+            <h4 className="font-hand font-bold text-xl text-ink/80 rotate-[-1deg] leading-tight">
+              {item.caption || 'Project Gallery'}
+            </h4>
+            <p className="text-xs text-ink/40 font-mono mt-2 uppercase tracking-widest">Click to Open</p>
+
+            {/* Paper Clip or Tape visual could go here */}
+            <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/5 flex items-center justify-center">
+              <Database size={14} className="text-black/20" />
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // STANDARD ITEM (OLD logic preserved but cleaned up)
   return (
     <div className={`break-inside-avoid mb-6 relative group ${rotation}`}>
       {/* Tape Effect */}
@@ -48,43 +165,21 @@ const MediaGalleryItem: React.FC<{ item: MediaItem; index: number }> = ({ item, 
         <div
           className={`w-full ${!item.aspect.startsWith('aspect-[') ? item.aspect : ''} ${item.color || 'bg-gray-200'} relative overflow-hidden border border-ink/10 flex items-center justify-center bg-cover bg-center`}
           style={{
-            backgroundImage: item.url && item.type === 'image' ? `url("${item.url}")` : undefined,
+            backgroundImage: item.url ? `url("${item.url}")` : undefined,
             ...getAspectStyle(item.aspect)
           }}
         >
-          {/* Pattern Overlay only if no image */}
-          {!item.url && <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px]"></div>}
-
-          {item.type === 'video' ? (
-            item.url ? (
-              <video src={item.url} controls className="w-full h-full object-cover" />
-            ) : (
-              <div className="flex flex-col items-center justify-center text-ink/50">
-                <div className="w-12 h-12 rounded-full border-2 border-ink/50 flex items-center justify-center mb-2 bg-white/30 backdrop-blur-sm">
-                  <Play fill="currentColor" className="w-5 h-5 ml-1" />
-                </div>
-                <span className="font-mono text-[10px] uppercase">Video Preview</span>
-              </div>
-            )
-          ) : (
-            !item.url && (
-              <div className="flex flex-col items-center justify-center text-ink/30">
-                <ImageIcon className="w-8 h-8 mb-2" />
-                <span className="font-mono text-[10px] uppercase">Image Asset</span>
-              </div>
-            )
+          {!item.url && (item.type === 'video' ? <Play className="text-ink/20" size={48} /> : <ImageIcon className="text-ink/20" size={48} />)}
+          {item.type === 'video' && item.url && (
+            <video src={item.url} controls className="w-full h-full object-cover" />
           )}
         </div>
-
-        {item.caption && (
-          <div className="mt-3 px-2">
-            <p className="font-hand font-bold text-center text-gray-700 leading-tight">{item.caption}</p>
-          </div>
-        )}
+        {item.caption && <p className="text-center font-hand font-bold text-lg mt-4 text-ink rotate-1 leading-tight">{item.caption}</p>}
       </div>
     </div>
   );
 };
+
 
 export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialProjectId, openApp }) => {
   const { projects } = useProjects();
@@ -125,7 +220,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialProjectId, open
 
               <div className="flex gap-2">
                 <span className="px-2 py-1 border border-ink/20 rounded-md text-[10px] uppercase font-bold tracking-wider bg-paper">{selectedProject.year}</span>
-                <span className={`px-2 py-1 border border-ink/20 rounded-md text-[10px] uppercase font-bold tracking-wider text-white ${selectedProject.color}`}>{selectedProject.category}</span>
+                <span className={`px-2 py-1 border border-ink/20 rounded-md text-[10px] uppercase font-bold tracking-wider text-ink ${selectedProject.color}`}>{selectedProject.category}</span>
               </div>
             </div>
 
@@ -160,13 +255,16 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialProjectId, open
                   </div>
 
                   {/* Demo Button */}
-                  <button
-                    onClick={() => openApp && openApp('browser', { initialUrl: 'https://scene.zeacon.com/' })}
-                    className="w-full py-3 bg-ink text-white font-bold rounded shadow-paper hover:shadow-paper-hover hover:-translate-y-1 transition-all flex items-center justify-center gap-2 group"
-                  >
-                    <span>View Project Demo</span>
-                    <ArrowUpRight className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                  </button>
+                  {/* Demo Button */}
+                  {selectedProject.demoUrl && (
+                    <button
+                      onClick={() => openApp && openApp('browser', { initialUrl: selectedProject.demoUrl })}
+                      className="w-full py-3 bg-ink text-white font-bold rounded shadow-paper hover:shadow-paper-hover hover:-translate-y-1 transition-all flex items-center justify-center gap-2 group"
+                    >
+                      <span>View Project Demo</span>
+                      <ArrowUpRight className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                    </button>
+                  )}
 
                   <div className="space-y-4 pt-4 border-t-2 border-dashed border-ink/10">
                     <div>
