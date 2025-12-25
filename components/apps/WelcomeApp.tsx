@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { AppId } from '../../types';
 import { FileText, Folder } from 'lucide-react';
+import { useSettings } from '../../src/hooks/useContent';
 
 interface WelcomeAppProps {
   openApp: (id: AppId, props?: any) => void;
@@ -9,6 +10,7 @@ interface WelcomeAppProps {
 
 export const WelcomeApp: React.FC<WelcomeAppProps> = ({ openApp }) => {
   const d3Container = useRef<SVGSVGElement>(null);
+  const { settings } = useSettings();
 
   useEffect(() => {
     if (!d3Container.current) return;
@@ -61,14 +63,17 @@ export const WelcomeApp: React.FC<WelcomeAppProps> = ({ openApp }) => {
 
   }, []);
 
+  const greeting = settings?.welcome?.greeting || "Hello, I'm Zhou Bowen.";
+  const tagline = settings?.welcome?.tagline || "Unity Dev • Tech Artist • Turku, Finland 🇫🇮";
+
   return (
     <div className="flex flex-col items-center justify-center h-full text-center relative p-4 bg-paper">
       <div className="w-20 h-20 bg-paperDark border-2 border-ink rounded-full mb-4 flex items-center justify-center text-3xl shadow-sm rotate-2">
         👋
       </div>
-      <h1 className="font-hand font-bold text-4xl md:text-5xl mb-2">Hello, I'm Zhou Bowen.</h1>
+      <h1 className="font-hand font-bold text-4xl md:text-5xl mb-2">{greeting}</h1>
       <p className="font-mono text-xs uppercase tracking-widest text-gray-500 mb-6 bg-white px-2 py-1 border border-ink/10 rounded">
-        Unity Dev • Tech Artist • Turku, Finland 🇫🇮
+        {tagline}
       </p>
 
       {/* D3 System Monitor */}

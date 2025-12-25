@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Project, Skill } from '../../types';
+import { Project, Skill, SiteSettings } from '../../types';
 import { PROJECTS as STATIC_PROJECTS, SKILLS as STATIC_SKILLS } from '../../constants';
 
 // Hook to get projects (real-time or static fallback)
@@ -66,4 +66,32 @@ export const useSkills = () => {
     }, []);
 
     return { skills, loading, error };
+};
+
+export const useSettings = () => {
+    const [settings, setSettings] = useState<SiteSettings | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        try {
+            const unsubscribe = onSnapshot(doc(db, 'settings', 'general'), (docSnap) => {
+                if (docSnap.exists()) {
+                    setSettings({ id: docSnap.id, ...docSnap.data() } as SiteSettings);
+                } else {
+                    setSettings(null);
+                }
+                setLoading(false);
+            }, (error) => {
+                console.error("Error fetching settings:", error);
+                setLoading(false);
+            });
+
+            return () => unsubscribe();
+        } catch (err) {
+            console.error("Firebase init error (settings):", err);
+            setLoading(false);
+        }
+    }, []);
+
+    return { settings, loading };
 };

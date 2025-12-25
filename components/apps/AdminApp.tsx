@@ -2,16 +2,212 @@ import React, { useState, useEffect, useRef } from 'react';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth, db, storage } from '../../src/firebase';
 import { useAuth } from '../../src/context/AuthContext';
-import { doc, setDoc, deleteDoc, collection } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, collection, addDoc, query, orderBy, onSnapshot, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
-import { Project, MediaItem, Skill } from '../../types';
-import { Lock, LogOut, Upload, Database, Plus, Trash2, Edit2, Save, Image as ImageIcon, Film, X, Loader, ArrowUp, ArrowDown, Star, Globe, Copy } from 'lucide-react';
-import { useProjects, useSkills } from '../../src/hooks/useContent';
+import { Project, MediaItem, Skill, SiteSettings } from '../../types';
+import { Lock, LogOut, Upload, Database, Plus, Trash2, Edit2, Save, Image as ImageIcon, Film, X, Loader, ArrowUp, ArrowDown, Star, Globe, Copy, Wrench, Music, User, Pin } from 'lucide-react';
+import { useProjects, useSkills, useSettings } from '../../src/hooks/useContent';
 import { PROJECTS, SKILLS } from '../../constants';
 // Add doc/addDoc/etc imports needed for SkillsEditor if not present
 // Actually I see doc/setDoc/deleteDoc/collection/ref/uploadBytes/getDownloadURL/listAll are imported.
 // I need addDoc, query, orderBy, onSnapshot which might be missing.
-import { addDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
+
+const PinnedProjectManager: React.FC = () => {
+    const { projects } = useProjects();
+
+    const toggleFeatured = async (id: string, currentStatus: boolean) => {
+        try {
+            await setDoc(doc(db, 'projects', id), { featured: !currentStatus }, { merge: true });
+        } catch (e: any) {
+            alert("Error updating pin: " + e.message);
+        }
+    };
+
+    return (
+        <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+            {projects.map(p => (
+                <div key={p.id} className="flex items-center justify-between p-2 rounded hover:bg-paperDark group transition-colors border border-transparent hover:border-ink/5">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                        <div className={`w-6 h-6 rounded border border-ink/20 ${p.color || 'bg-gray-100'} flex-shrink-0 flex items-center justify-center text-[8px] font-bold`}>
+                            {p.category[0]}
+                        </div>
+                        <span className="text-xs font-bold truncate text-gray-700">{p.title}</span>
+                    </div>
+                    <button
+                        onClick={() => toggleFeatured(p.id, !!p.featured)}
+                        className={`p-1.5 rounded transition-all border-2 ${p.featured
+                            ? 'bg-ink text-tape border-ink shadow-sm'
+                            : 'bg-white text-gray-300 border-gray-100 hover:border-gray-200'}`}
+                        title={p.featured ? 'Unpin from dashboard' : 'Pin to dashboard'}
+                    >
+                        <Pin size={12} fill={p.featured ? "currentColor" : "none"} />
+                    </button>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+const SettingsEditor: React.FC = () => {
+    const { settings, loading } = useSettings();
+    const [formData, setFormData] = useState<SiteSettings>({
+        profile: {
+            status: 'Open to Work',
+            isHiring: true,
+            role: 'Unity Systems & VFX',
+            location: 'Turku, Finland',
+            email: 'hello@example.com',
+            linkedin: 'LinkedIn Profile'
+        },
+        music: {
+            title: 'Lo-fi Study Beats',
+            artist: 'Chillhop Radio 24/7',
+            streamUrl: ''
+        },
+        welcome: {
+            greeting: "Hello, I'm Zhou Bowen.",
+            tagline: "Unity Dev • Tech Artist • Turku, Finland 🇫🇮"
+        },
+        widgets: {
+            toolboxTitle: "Toolbox",
+            toolboxColor: ""
+        }
+    });
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        if (settings) {
+            setFormData(settings);
+        }
+    }, [settings]);
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await setDoc(doc(db, 'settings', 'general'), formData);
+            alert("Settings saved!");
+        } catch (e: any) {
+            alert("Error saving: " + e.message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    if (loading) return <div className="p-8"><Loader className="animate-spin" /></div>;
+
+    return (
+        <div className="space-y-8 max-w-3xl mx-auto">
+            <div className="bg-white p-8 rounded-lg border-2 border-ink shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                    <User size={120} />
+                </div>
+                <h3 className="text-xl font-bold mb-6 flex items-center gap-2 border-b-2 border-ink/10 pb-3 relative z-10">
+                    <User size={24} className="text-tape" /> Profile Card
+                </h3>
+                <div className="grid gap-6 relative z-10">
+                    <div>
+                        <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Status Text</label>
+                        <input className="w-full border-2 border-ink/20 focus:border-ink p-3 rounded outline-none transition-colors font-medium bg-white" value={formData.profile.status} onChange={e => setFormData({ ...formData, profile: { ...formData.profile, status: e.target.value } })} />
+                    </div>
+                    <div className="flex items-center gap-2 p-2 rounded bg-gray-50 border border-ink/10">
+                        <input type="checkbox" id="isHiring" checked={formData.profile.isHiring} onChange={e => setFormData({ ...formData, profile: { ...formData.profile, isHiring: e.target.checked } })} className="w-4 h-4 text-ink rounded border-gray-300 focus:ring-ink" />
+                        <label htmlFor="isHiring" className="text-sm font-bold cursor-pointer select-none">Show Green Dot (Hiring/Active)</label>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Role / Headline</label>
+                        <input className="w-full border-2 border-ink/20 focus:border-ink p-3 rounded outline-none transition-colors font-medium bg-white" value={formData.profile.role} onChange={e => setFormData({ ...formData, profile: { ...formData.profile, role: e.target.value } })} />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Location</label>
+                        <input className="w-full border-2 border-ink/20 focus:border-ink p-3 rounded outline-none transition-colors font-medium bg-white" value={formData.profile.location} onChange={e => setFormData({ ...formData, profile: { ...formData.profile, location: e.target.value } })} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Email (mailto: or link)</label>
+                            <input className="w-full border-2 border-ink/20 focus:border-ink p-3 rounded outline-none transition-colors font-medium bg-white" placeholder="mailto:your@email.com" value={formData.profile.email} onChange={e => setFormData({ ...formData, profile: { ...formData.profile, email: e.target.value } })} />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold uppercase mb-1 text-gray-500">LinkedIn Profile URL</label>
+                            <input className="w-full border-2 border-ink/20 focus:border-ink p-3 rounded outline-none transition-colors font-medium bg-white" placeholder="https://linkedin.com/in/..." value={formData.profile.linkedin} onChange={e => setFormData({ ...formData, profile: { ...formData.profile, linkedin: e.target.value } })} />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-white p-8 rounded-lg border-2 border-ink shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                    <Music size={120} />
+                </div>
+                <h3 className="text-xl font-bold mb-6 flex items-center gap-2 border-b-2 border-ink/10 pb-3 relative z-10">
+                    <Music size={24} className="text-tape" /> Music Player
+                </h3>
+                <div className="grid gap-6 relative z-10">
+                    <div>
+                        <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Track Title</label>
+                        <input className="w-full border-2 border-ink/20 focus:border-ink p-3 rounded outline-none transition-colors font-medium bg-white" value={formData.music.title} onChange={e => setFormData({ ...formData, music: { ...formData.music, title: e.target.value } })} />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Artist / Subtitle</label>
+                        <input className="w-full border-2 border-ink/20 focus:border-ink p-3 rounded outline-none transition-colors font-medium bg-white" value={formData.music.artist} onChange={e => setFormData({ ...formData, music: { ...formData.music, artist: e.target.value } })} />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Stream URL (Optional)</label>
+                        <input className="w-full border-2 border-ink/20 focus:border-ink p-3 rounded outline-none transition-colors font-medium bg-white text-xs font-mono" placeholder="https://..." value={formData.music.streamUrl || ''} onChange={e => setFormData({ ...formData, music: { ...formData.music, streamUrl: e.target.value } })} />
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-white p-8 rounded-lg border-2 border-ink shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                    <Star size={120} />
+                </div>
+                <h3 className="text-xl font-bold mb-6 flex items-center gap-2 border-b-2 border-ink/10 pb-3 relative z-10">
+                    <Star size={24} className="text-tape" /> Welcome Screen
+                </h3>
+                <div className="grid gap-6 relative z-10">
+                    <div>
+                        <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Greeting / Headline</label>
+                        <input className="w-full border-2 border-ink/20 focus:border-ink p-3 rounded outline-none transition-colors font-medium bg-white" value={formData.welcome?.greeting || ''} onChange={e => setFormData({ ...formData, welcome: { ...formData.welcome, greeting: e.target.value } })} />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Tagline / Subtext</label>
+                        <input className="w-full border-2 border-ink/20 focus:border-ink p-3 rounded outline-none transition-colors font-medium bg-white" value={formData.welcome?.tagline || ''} onChange={e => setFormData({ ...formData, welcome: { ...formData.welcome, tagline: e.target.value } })} />
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-white p-8 rounded-lg border-2 border-ink shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                    <Wrench size={120} />
+                </div>
+                <h3 className="text-xl font-bold mb-6 flex items-center gap-2 border-b-2 border-ink/10 pb-3 relative z-10">
+                    <Wrench size={24} className="text-tape" /> Desktop Widgets
+                </h3>
+                <div className="grid gap-6 relative z-10">
+                    <div>
+                        <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Toolbox Title</label>
+                        <input className="w-full border-2 border-ink/20 focus:border-ink p-3 rounded outline-none transition-colors font-medium bg-white" value={formData.widgets?.toolboxTitle || ''} onChange={e => setFormData({ ...formData, widgets: { ...formData.widgets, toolboxTitle: e.target.value } })} />
+                    </div>
+
+                    <div className="pt-4 border-t border-ink/10">
+                        <label className="block text-xs font-bold uppercase mb-3 text-gray-500 flex items-center gap-2">
+                            <Pin size={14} /> Pinned Projects (Max 3 Recommended)
+                        </label>
+                        <PinnedProjectManager />
+                    </div>
+                </div>
+            </div>
+
+            <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="bg-ink text-white px-6 py-2 rounded font-bold hover:bg-ink/90 flex items-center gap-2"
+            >
+                {isSaving ? <Loader className="animate-spin" size={16} /> : <Save size={16} />} Save Settings
+            </button>
+        </div>
+    );
+};
 
 // Helper to upload and analyze a single file
 const uploadAndCreateMedia = async (file: File, projectId: string): Promise<MediaItem> => {
@@ -601,11 +797,15 @@ const SkillsEditor: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const [localSkills, setLocalSkills] = useState<{ id: string, data: Skill }[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [formData, setFormData] = useState<Skill | null>(null);
+    const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
     useEffect(() => {
         const q = query(collection(db, 'skills'), orderBy('value', 'desc'));
         const unsub = onSnapshot(q, snap => {
+            console.log("Skills snapshot update, docs:", snap.size);
             setLocalSkills(snap.docs.map(d => ({ id: d.id, data: d.data() as Skill })));
+        }, (error) => {
+            console.error("Skills snapshot error:", error);
         });
         return unsub;
     }, []);
@@ -613,11 +813,13 @@ const SkillsEditor: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const handleEdit = (skill: Skill, id: string) => {
         setEditingId(id);
         setFormData({ ...skill });
+        setDeleteConfirm(null); // Reset confirm state
     };
 
     const handleCreate = () => {
         setEditingId('new');
         setFormData({ name: '', desc: '', value: 80, bg: 'bg-gray-200', category: 'Core' });
+        setDeleteConfirm(null);
     };
 
     const saveSkill = async () => {
@@ -636,22 +838,34 @@ const SkillsEditor: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     };
 
     const deleteSkill = async (id: string) => {
-        if (confirm("Delete skill?")) await deleteDoc(doc(db, 'skills', id));
+        try {
+            await deleteDoc(doc(db, 'skills', id));
+            setEditingId(null);
+            setFormData(null);
+            setDeleteConfirm(null);
+        } catch (e: any) {
+            alert("Error deleting: " + e.message);
+        }
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-4xl h-[80vh] flex overflow-hidden rounded-lg shadow-2xl border-2 border-ink">
-                {/* List */}
-                <div className="w-1/3 border-r-2 border-ink bg-gray-50 flex flex-col">
+        <div className="animate-fade-in">
+            {/* Header matching Projects tab */}
+            <h3 className="font-bold mb-4 flex items-center gap-2">
+                <Star size={16} /> All Skills <span className="text-xs font-normal text-gray-500">({localSkills.length})</span>
+            </h3>
+
+            <div className="flex h-[600px] bg-white border-2 border-ink rounded-lg shadow-sm overflow-hidden">
+                {/* List - styled like Projects table */}
+                <div className="w-1/3 border-r border-ink/10 bg-gray-50 flex flex-col">
                     <div className="p-4 border-b-2 border-ink/10 flex justify-between items-center bg-white">
-                        <h3 className="font-bold">Skills</h3>
-                        <button onClick={handleCreate} className="bg-ink text-white p-1 rounded hover:opacity-80"><Plus size={16} /></button>
+                        <span className="text-xs font-bold uppercase text-gray-500">Skill List</span>
+                        <button onClick={handleCreate} className="bg-ink text-white px-3 py-1 rounded text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1"><Plus size={12} /> New</button>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                    <div className="flex-1 overflow-y-auto divide-y divide-ink/5">
                         {localSkills.length === 0 && (
-                            <div className="flex flex-col items-center justify-center p-8 text-center space-y-4">
-                                <p className="text-xs text-gray-500">No skills found in Database.</p>
+                            <div className="flex flex-col items-center justify-center p-8 text-center space-y-4 opacity-50">
+                                <p className="text-xs text-ink font-bold">Database empty.</p>
                                 <button
                                     onClick={async () => {
                                         if (!confirm("Restore default skills from constants?")) return;
@@ -661,24 +875,21 @@ const SkillsEditor: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                             }
                                         } catch (e: any) { alert(e.message); }
                                     }}
-                                    className="px-4 py-2 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded text-xs font-bold hover:bg-yellow-200"
+                                    className="px-4 py-2 bg-yellow-100 border-2 border-yellow-300 text-yellow-800 rounded font-bold hover:bg-yellow-200 transition-colors text-xs"
                                 >
                                     Restore Defaults
                                 </button>
                             </div>
                         )}
                         {localSkills.map(({ id, data }) => (
-                            <div key={id} onClick={() => handleEdit(data, id)} className={`p-3 rounded border border-ink/10 cursor-pointer hover:bg-white transition-colors ${editingId === id ? 'bg-white ring-2 ring-ink ring-inset' : 'bg-paper'}`}>
+                            <div key={id} onClick={() => handleEdit(data, id)} className={`p-4 cursor-pointer transition-all ${editingId === id ? 'bg-blue-50/50' : 'hover:bg-blue-50/30'}`}>
                                 <div className="flex justify-between items-center mb-1">
                                     <span className="font-bold text-sm">{data.name}</span>
-                                    <span className="text-[10px] font-mono bg-gray-200 px-1 rounded">{data.value}%</span>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border border-ink/10 ${data.bg}`}>{data.value}%</span>
                                 </div>
-                                <div className="text-[10px] text-gray-500 truncate">{data.desc}</div>
+                                <div className="text-xs text-gray-500 truncate">{data.desc}</div>
                             </div>
                         ))}
-                    </div>
-                    <div className="p-4 border-t-2 border-ink/10 bg-white">
-                        <button onClick={onClose} className="w-full py-2 border-2 border-ink text-ink font-bold rounded hover:bg-gray-50">Close Manager</button>
                     </div>
                 </div>
 
@@ -692,40 +903,66 @@ const SkillsEditor: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
                             {formData && (
                                 <>
+
                                     <div>
-                                        <label className="block text-xs font-bold uppercase mb-1">Skill Name</label>
-                                        <input className="w-full border-2 border-ink/20 p-2 rounded" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                                        <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Skill Name</label>
+                                        <input className="w-full border-2 border-ink/20 focus:border-ink p-2 rounded outline-none font-bold transition-colors" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold uppercase mb-1">Description (Role/Context)</label>
-                                        <input className="w-full border-2 border-ink/20 p-2 rounded" value={formData.desc} onChange={e => setFormData({ ...formData, desc: e.target.value })} />
+                                        <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Description (Role/Context)</label>
+                                        <input className="w-full border-2 border-ink/20 focus:border-ink p-2 rounded outline-none transition-colors" value={formData.desc} onChange={e => setFormData({ ...formData, desc: e.target.value })} />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-xs font-bold uppercase mb-1">Value (0-100)</label>
-                                            <input type="number" className="w-full border-2 border-ink/20 p-2 rounded" value={formData.value} onChange={e => setFormData({ ...formData, value: Number(e.target.value) })} />
+                                            <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Value (0-100)</label>
+                                            <input type="number" className="w-full border-2 border-ink/20 focus:border-ink p-2 rounded outline-none transition-colors" value={formData.value} onChange={e => setFormData({ ...formData, value: Number(e.target.value) })} />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-bold uppercase mb-1">Category</label>
-                                            <input className="w-full border-2 border-ink/20 p-2 rounded" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} />
+                                            <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Category</label>
+                                            <input className="w-full border-2 border-ink/20 focus:border-ink p-2 rounded outline-none transition-colors" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} />
                                         </div>
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold uppercase mb-1">Color Class</label>
-                                        <input className="w-full border-2 border-ink/20 p-2 rounded" value={formData.bg} onChange={e => setFormData({ ...formData, bg: e.target.value })} />
+                                        <div className="flex flex-wrap gap-2 p-2 border-2 border-ink/20 rounded bg-gray-50">
+                                            {[
+                                                'bg-blue-200', 'bg-green-200', 'bg-red-200', 'bg-yellow-200',
+                                                'bg-orange-200', 'bg-purple-200', 'bg-pink-200', 'bg-gray-200',
+                                                'bg-cyan-200', 'bg-teal-200', 'bg-indigo-200', 'bg-rose-200'
+                                            ].map(c => (
+                                                <button
+                                                    key={c}
+                                                    onClick={() => setFormData({ ...formData, bg: c })}
+                                                    className={`w-6 h-6 rounded-full border border-ink/20 shadow-sm hover:scale-110 transition-transform ${c} ${formData.bg === c ? 'ring-2 ring-offset-1 ring-ink' : ''}`}
+                                                    title={c}
+                                                />
+                                            ))}
+                                        </div>
+                                        <input className="w-full border-2 border-ink/20 p-2 rounded mt-2 text-xs text-gray-400" placeholder="Custom class..." value={formData.bg} onChange={e => setFormData({ ...formData, bg: e.target.value })} />
                                     </div>
 
                                     <div className="flex gap-2 pt-4">
-                                        <button onClick={saveSkill} className="flex-1 bg-ink text-white py-2 rounded font-bold shadow-sm hover:shadow-md flex items-center justify-center gap-2">
+                                        <button type="button" onClick={saveSkill} className="flex-1 bg-ink text-white py-2 rounded font-bold shadow-sm hover:shadow-md flex items-center justify-center gap-2">
                                             <Save size={14} /> Save
                                         </button>
-                                        {editingId !== 'new' && (
-                                            <button onClick={() => deleteSkill(editingId)} className="px-4 border-2 border-red-200 text-red-500 rounded font-bold hover:bg-red-50">
-                                                Delete
+                                        {editingId && editingId !== 'new' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (deleteConfirm === editingId) {
+                                                        deleteSkill(editingId);
+                                                    } else {
+                                                        setDeleteConfirm(editingId);
+                                                    }
+                                                }}
+                                                className={`px-4 border-2 rounded font-bold transition-all ${deleteConfirm === editingId ? 'bg-red-500 border-red-700 text-white animate-pulse' : 'border-red-200 text-red-500 hover:bg-red-50'}`}
+                                            >
+                                                {deleteConfirm === editingId ? 'Confirm Delete?' : 'Delete'}
                                             </button>
                                         )}
                                     </div>
                                 </>
+
                             )}
                         </div>
                     ) : (
@@ -852,6 +1089,16 @@ const ProjectEditor: React.FC<{ project?: Project | null; onSave: (p: Project) =
                             <label className="block text-xs font-bold uppercase mb-1 flex items-center gap-2"><Globe size={12} /> Demo URL (Optional)</label>
                             <input placeholder="https://..." className="w-full border-2 border-ink/20 p-2 rounded" value={formData.demoUrl || ''} onChange={e => handleChange('demoUrl', e.target.value)} />
                         </div>
+                        <div className="col-span-2 flex items-center gap-2 p-3 bg-paper rounded border border-ink/10">
+                            <input
+                                type="checkbox"
+                                id="featured-toggle"
+                                checked={formData.featured}
+                                onChange={e => handleChange('featured', e.target.checked)}
+                                className="w-5 h-5 text-ink rounded border-gray-300 focus:ring-ink"
+                            />
+                            <label htmlFor="featured-toggle" className="text-sm font-bold cursor-pointer select-none">Featured / Pin to Dashboard</label>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -906,11 +1153,12 @@ const AdminApp: React.FC = () => {
     const [error, setError] = useState('');
     const [msg, setMsg] = useState('');
 
+    const [activeTab, setActiveTab] = useState<'projects' | 'skills' | 'settings'>('projects');
     const [isEditing, setIsEditing] = useState(false);
-    const [isSkillsOpen, setIsSkillsOpen] = useState(false);
     const [currentProject, setCurrentProject] = useState<Project | null>(null);
 
     const handleLogin = async (e: React.FormEvent) => {
+        // ... (login logic)
         e.preventDefault();
         try {
             await signInWithEmailAndPassword(auth, email, password);
@@ -918,6 +1166,10 @@ const AdminApp: React.FC = () => {
             setError(err.message);
         }
     };
+    /* ... existing helpers ... */
+
+
+
 
     const handleSeedSkills = async () => {
         if (!confirm("Overwrite SKILLS in DB with static data?")) return;
@@ -1033,6 +1285,7 @@ const AdminApp: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full bg-paper relative">
+            {/* Project Editor Modal - Remains as overlay for creation/editing projects */}
             {isEditing && (
                 <ProjectEditor
                     project={currentProject}
@@ -1041,107 +1294,152 @@ const AdminApp: React.FC = () => {
                 />
             )}
 
-            {isSkillsOpen && <SkillsEditor onClose={() => setIsSkillsOpen(false)} />}
-
-            <div className="bg-white border-b-2 border-ink/10 p-4 flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-green-200 rounded-md border border-ink flex items-center justify-center font-bold">A</div>
-                    <span className="font-bold">Admin Console</span>
+            <div className="bg-ink text-white p-4 flex flex-col md:flex-row justify-between items-center z-10 shadow-md gap-4">
+                <div className="flex items-center justify-between w-full md:w-auto gap-4">
+                    <h1 className="text-xl font-bold font-hand flex items-center gap-2">
+                        <Database className="text-tape" /> Admin Console
+                    </h1>
+                    <div className="flex gap-2 ml-4">
+                        <button
+                            onClick={() => setActiveTab('projects')}
+                            className={`px-3 py-1 rounded font-bold text-xs ${activeTab === 'projects' ? 'bg-white text-ink' : 'text-gray-400 hover:text-white'}`}
+                        >
+                            Projects
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('skills')}
+                            className={`px-3 py-1 rounded font-bold text-xs flex items-center gap-1 ${activeTab === 'skills' ? 'bg-white text-ink' : 'text-gray-400 hover:text-white'}`}
+                        >
+                            <Star size={12} /> Skills
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('settings')}
+                            className={`px-3 py-1 rounded font-bold text-xs flex items-center gap-1 ${activeTab === 'settings' ? 'bg-white text-ink' : 'text-gray-400 hover:text-white'}`}
+                        >
+                            <Wrench size={12} /> Settings
+                        </button>
+                    </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    <span className="text-xs text-gray-500">{user.email}</span>
-                    <button onClick={() => signOut(auth)} className="text-red-500 hover:underline text-xs font-bold flex items-center gap-1">
-                        <LogOut size={14} /> Logout
+                    <span className="text-xs text-gray-400 font-mono hidden sm:inline-block">Logged in as {user.email}</span>
+                    <button onClick={() => signOut(auth)} className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-xs font-bold flex items-center gap-1">
+                        <LogOut size={12} /> <span className="hidden sm:inline">Logout</span>
                     </button>
                 </div>
             </div>
 
             <div className="p-6 overflow-y-auto flex-1">
-                <h3 className="font-bold border-b border-ink/10 pb-2 mb-4 flex items-center gap-2">
-                    <Plus size={16} /> Quick Actions
-                </h3>
-                <div className="flex gap-4">
-                    <button
-                        onClick={() => { setCurrentProject(null); setIsEditing(true); }}
-                        className="flex-1 py-4 bg-ink text-white rounded font-bold hover:opacity-90 text-sm flex items-center justify-center gap-2"
-                    >
-                        <Plus size={16} /> Create New Project
-                    </button>
-                    <button onClick={() => setIsSkillsOpen(true)} className="flex-1 py-4 bg-white border border-ink text-ink rounded font-bold hover:bg-gray-50 text-sm">
-                        Edit Skills
-                    </button>
-                </div>
 
-                {/* Migration Tools (Collapsed by default or small) */}
-                <div className="mb-8 p-4 border border-ink/10 rounded-lg bg-gray-50">
-                    <h4 className="font-bold text-xs uppercase text-gray-400 mb-2">System Tools</h4>
-                    <div className="flex gap-2">
-                        <button onClick={handleSeed} className="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-bold hover:bg-gray-50">
-                            Re-seed Projects
-                        </button>
-                        <button onClick={handleSeedSkills} className="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-bold hover:bg-gray-50">
-                            Seed Skills (Static)
-                        </button>
-                        <span className="text-xs text-ink ml-2 self-center">{msg}</span>
+                {/* PROJECTS TAB */}
+                {activeTab === 'projects' && (
+                    <div className="animate-fade-in">
+                        <h3 className="font-bold border-b border-ink/10 pb-2 mb-4 flex items-center gap-2">
+                            <Plus size={16} /> Quick Actions
+                        </h3>
+                        <div className="flex gap-4 mb-8">
+                            <button
+                                onClick={() => { setCurrentProject(null); setIsEditing(true); }}
+                                className="flex-1 py-4 bg-ink text-white rounded font-bold hover:opacity-90 text-sm flex items-center justify-center gap-2"
+                            >
+                                <Plus size={16} /> Create New Project
+                            </button>
+                            <button onClick={() => setActiveTab('skills')} className="flex-1 py-4 bg-white border border-ink text-ink rounded font-bold hover:bg-gray-50 text-sm">
+                                Edit Skills
+                            </button>
+                        </div>
+
+                        {/* Migration Tools (Collapsed by default or small) */}
+                        <div className="mb-8 p-4 border border-ink/10 rounded-lg bg-gray-50">
+                            <h4 className="font-bold text-xs uppercase text-gray-400 mb-2">System Tools</h4>
+                            <div className="flex gap-2">
+                                <button onClick={handleSeed} className="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-bold hover:bg-gray-50">
+                                    Re-seed Projects
+                                </button>
+                                <button onClick={handleSeedSkills} className="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-bold hover:bg-gray-50">
+                                    Seed Skills (Static)
+                                </button>
+                                <span className="text-xs text-ink ml-2 self-center">{msg}</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 className="font-bold mb-4 flex items-center gap-2">
+                                Existing Projects <span className="text-xs font-normal text-gray-500">({projects.length})</span>
+                            </h3>
+
+                            <div className="bg-white border-2 border-ink rounded-lg overflow-hidden shadow-sm">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-gray-50 border-b-2 border-ink/10 text-xs uppercase font-bold text-gray-500">
+                                        <tr>
+                                            <th className="p-4">ID</th>
+                                            <th className="p-4">Title</th>
+                                            <th className="p-4">Category</th>
+                                            <th className="p-4">Year</th>
+                                            <th className="p-4 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-ink/5">
+                                        {projects.map(p => (
+                                            <tr key={p.id} className="hover:bg-blue-50/50 transition-colors group">
+                                                <td className="p-4 font-mono text-xs">{p.id}</td>
+                                                <td className="p-4 font-bold">{p.title}</td>
+                                                <td className="p-4">
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border border-ink/10 ${p.color}`}>
+                                                        {p.category}
+                                                    </span>
+                                                </td>
+                                                <td className="p-4 text-gray-500">{p.year}</td>
+                                                <td className="p-4 text-right flex justify-end gap-2">
+                                                    <button
+                                                        onClick={() => { setCurrentProject(p); setIsEditing(true); }}
+                                                        className="p-2 hover:bg-white hover:shadow-sm border border-transparent hover:border-ink/20 rounded text-blue-600"
+                                                        title="Edit"
+                                                    >
+                                                        <Edit2 size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(p.id)}
+                                                        className="p-2 hover:bg-white hover:shadow-sm border border-transparent hover:border-ink/20 rounded text-red-500"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {projects.length === 0 && (
+                                            <tr>
+                                                <td colSpan={5} className="p-8 text-center text-gray-400">
+                                                    No projects found. Use Migration or Create New.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                )}
 
-                <div>
-                    <h3 className="font-bold mb-4 flex items-center gap-2">
-                        Existing Projects <span className="text-xs font-normal text-gray-500">({projects.length})</span>
-                    </h3>
-
-                    <div className="bg-white border-2 border-ink rounded-lg overflow-hidden shadow-sm">
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-gray-50 border-b-2 border-ink/10 text-xs uppercase font-bold text-gray-500">
-                                <tr>
-                                    <th className="p-4">ID</th>
-                                    <th className="p-4">Title</th>
-                                    <th className="p-4">Category</th>
-                                    <th className="p-4">Year</th>
-                                    <th className="p-4 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-ink/5">
-                                {projects.map(p => (
-                                    <tr key={p.id} className="hover:bg-blue-50/50 transition-colors group">
-                                        <td className="p-4 font-mono text-xs">{p.id}</td>
-                                        <td className="p-4 font-bold">{p.title}</td>
-                                        <td className="p-4">
-                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border border-ink/10 ${p.color}`}>
-                                                {p.category}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 text-gray-500">{p.year}</td>
-                                        <td className="p-4 text-right flex justify-end gap-2">
-                                            <button
-                                                onClick={() => { setCurrentProject(p); setIsEditing(true); }}
-                                                className="p-2 hover:bg-white hover:shadow-sm border border-transparent hover:border-ink/20 rounded text-blue-600"
-                                                title="Edit"
-                                            >
-                                                <Edit2 size={16} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(p.id)}
-                                                className="p-2 hover:bg-white hover:shadow-sm border border-transparent hover:border-ink/20 rounded text-red-500"
-                                                title="Delete"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {projects.length === 0 && (
-                                    <tr>
-                                        <td colSpan={5} className="p-8 text-center text-gray-400">
-                                            No projects found. Use Migration or Create New.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                {/* SKILLS TAB */}
+                {activeTab === 'skills' && (
+                    <div className="animate-fade-in">
+                        <SkillsEditor onClose={() => setActiveTab('projects')} />
                     </div>
-                </div>
+                )}
+
+                {/* SETTINGS TAB */}
+                {activeTab === 'settings' && (
+                    <div className="max-w-4xl mx-auto animate-fade-in">
+                        <div className="flex items-center justify-between mb-8 border-b-2 border-ink pb-4">
+                            <h2 className="text-3xl font-hand font-bold flex items-center gap-2">
+                                <Wrench size={32} /> General Settings
+                            </h2>
+                        </div>
+                        <SettingsEditor />
+                    </div>
+                )}
+
             </div >
         </div >
     );

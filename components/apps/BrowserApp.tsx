@@ -6,7 +6,14 @@ interface BrowserAppProps {
 }
 
 export const BrowserApp: React.FC<BrowserAppProps> = ({ initialUrl = 'https://scene.zeacon.com/' }) => {
-    const [url, setUrl] = useState(initialUrl);
+    // Robust URL handling: ensure protocol is present
+    const formatUrl = (raw: string) => {
+        if (!raw) return '';
+        if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+        return `https://${raw}`;
+    };
+
+    const [url, setUrl] = useState(formatUrl(initialUrl));
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
     const iframeRef = React.useRef<HTMLIFrameElement>(null);

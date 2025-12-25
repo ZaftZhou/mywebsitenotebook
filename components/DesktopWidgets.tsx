@@ -3,13 +3,14 @@ import { motion } from 'framer-motion';
 import { PROJECTS, SKILLS } from '../constants';
 import { AppId } from '../types';
 import { Pin, Wrench, Mail, Linkedin, Play, Pause, SkipForward, Music } from 'lucide-react';
+import { useProjects, useSkills, useSettings } from '../src/hooks/useContent';
 
-const widgetHover = {
+const widgetHover: any = {
   scale: 1.05,
   rotate: [0, -1, 1, -1, 0],
   transition: {
     scale: { type: "spring", stiffness: 300, damping: 15 },
-    rotate: { duration: 0.5, ease: "linear", repeat: 0 }
+    rotate: { duration: 0.5, repeat: 0 }
   }
 };
 
@@ -32,9 +33,14 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
+  // Dynamic Content Hooks
+  const { projects } = useProjects();
+  const { skills } = useSkills();
+  const { settings } = useSettings();
+
   const togglePlay = () => {
     if (!audioRef.current) {
-      audioRef.current = new Audio("https://stream.zeno.fm/0r0xa792kwzuv");
+      audioRef.current = new Audio(settings?.music.streamUrl || "https://stream.zeno.fm/0r0xa792kwzuv");
       audioRef.current.volume = 0.6;
     }
     if (isPlaying) {
@@ -43,6 +49,21 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
       audioRef.current.play().catch(e => console.error("Audio error:", e));
     }
     setIsPlaying(!isPlaying);
+  };
+
+  // Use settings or fallback defaults
+  const profile = settings?.profile || {
+    status: 'Open to Work',
+    isHiring: true,
+    role: 'Unity Systems & VFX',
+    location: 'Turku, Finland',
+    email: 'EMAIL',
+    linkedin: 'LINKEDIN'
+  };
+
+  const music = settings?.music || {
+    title: 'Lo-fi Study Beats',
+    artist: 'Chillhop Radio 24/7'
   };
 
   return (
@@ -60,8 +81,8 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
             <Music size={14} />
           </div>
           <div className="overflow-hidden">
-            <div className="text-xs font-bold truncate">Lo-fi Study Beats</div>
-            <div className="text-[10px] text-gray-400 truncate">Chillhop Radio 24/7</div>
+            <div className="text-xs font-bold truncate">{music.title}</div>
+            <div className="text-[10px] text-gray-400 truncate">{music.artist}</div>
           </div>
         </div>
         {/* Fake Audio Visualizer */}
@@ -92,7 +113,7 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
           </h4>
         </div>
         <div className="space-y-3">
-          {PROJECTS.filter(p => p.featured).slice(0, 3).map(p => (
+          {projects.filter(p => p.featured).slice(0, 3).map(p => (
             <div
               key={p.id}
               onClick={() => openProject(p.id)}
@@ -107,6 +128,9 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
               </div>
             </div>
           ))}
+          {projects.filter(p => p.featured).length === 0 && (
+            <div className="text-xs text-gray-400 text-center py-4 italic">No pinned projects</div>
+          )}
         </div>
       </motion.div>
 
@@ -119,15 +143,15 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
         {/* ... (content same) ... */}
         <div className="mb-3 border-b-2 border-ink/10 pb-1">
           <h4 className="font-hand font-bold text-xl flex items-center gap-2">
-            <Wrench className="w-4 h-4" /> Toolbox
+            <Wrench className="w-4 h-4" /> {settings?.widgets?.toolboxTitle || 'Toolbox'}
           </h4>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          {SKILLS.map(skill => (
+          {skills.slice(0, 8).map(skill => (
             <div key={skill.name} className="flip-card w-full h-8 cursor-pointer group perspective-1000">
               <div className="flip-card-inner w-full h-full relative transition-transform duration-500 transform-style-3d group-hover:rotate-y-180">
                 {/* Front */}
-                <div className={`absolute inset-0 backface-hidden ${skill.bg} border border-ink rounded flex items-center justify-center text-[10px] font-bold text-center`}>
+                <div className={`absolute inset-0 backface-hidden ${skill.bg || 'bg-gray-100'} border border-ink rounded flex items-center justify-center text-[10px] font-bold text-center`}>
                   {skill.name}
                 </div>
                 {/* Back */}
@@ -155,21 +179,43 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
         {/* ... (content same) ... */}
         <div className="flex items-center gap-2 mb-2">
           <span className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500 border border-ink"></span>
+            {profile.isHiring && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>}
+            <span className={`relative inline-flex rounded-full h-3 w-3 border border-ink ${profile.isHiring ? 'bg-green-500' : 'bg-gray-400'}`}></span>
           </span>
-          <h4 className="font-black text-sm uppercase tracking-wider">Open to Work</h4>
+          <h4 className="font-black text-sm uppercase tracking-wider">{profile.status}</h4>
         </div>
 
         <ul className="text-xs space-y-2 font-mono border-t border-ink/10 pt-2 mt-2">
-          <li className="flex gap-2"><span>🔨</span> Unity Systems & VFX</li>
-          <li className="flex gap-2"><span>📍</span> Turku, Finland</li>
+          <li className="flex gap-2"><span>🔨</span> {profile.role}</li>
+          <li className="flex gap-2"><span>📍</span> {profile.location}</li>
         </ul>
         <div className="mt-4 flex gap-2">
-          <button onClick={() => openApp('contact')} className="flex-1 bg-white border border-ink text-[10px] py-1.5 font-bold hover:bg-gray-50 shadow-sm flex items-center justify-center gap-1">
+          <button
+            onClick={() => {
+              const raw = profile.email || '';
+              if (!raw) return openApp('contact');
+
+              let finalUrl = raw;
+              if (raw.includes('@') && !raw.startsWith('mailto:') && !raw.startsWith('http')) {
+                finalUrl = `mailto:${raw}`;
+              } else if (!raw.startsWith('http') && !raw.startsWith('mailto:')) {
+                finalUrl = `https://${raw}`;
+              }
+              window.open(finalUrl, '_blank');
+            }}
+            className="flex-1 bg-white border border-ink text-[10px] py-1.5 font-bold hover:bg-gray-50 shadow-sm flex items-center justify-center gap-1"
+          >
             <Mail className="w-3 h-3" /> EMAIL
           </button>
-          <button className="flex-1 bg-[#0077b5] text-white border border-ink text-[10px] py-1.5 font-bold hover:opacity-90 shadow-sm flex items-center justify-center gap-1">
+          <button
+            onClick={() => {
+              const raw = profile.linkedin || '';
+              if (!raw) return;
+              const finalUrl = (raw.startsWith('http') || raw.startsWith('mailto:')) ? raw : `https://${raw}`;
+              window.open(finalUrl, '_blank');
+            }}
+            className="flex-1 bg-[#0077b5] text-white border border-ink text-[10px] py-1.5 font-bold hover:opacity-90 shadow-sm flex items-center justify-center gap-1"
+          >
             <Linkedin className="w-3 h-3" /> LINKEDIN
           </button>
         </div>

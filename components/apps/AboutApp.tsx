@@ -1,10 +1,11 @@
 import React from 'react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { Download, ExternalLink } from 'lucide-react';
-import { useSkills } from '../../src/hooks/useContent';
+import { useSkills, useSettings } from '../../src/hooks/useContent';
 
 export const AboutApp: React.FC = () => {
   const { skills } = useSkills();
+  const { settings } = useSettings();
 
   return (
     <div className="h-full overflow-y-auto p-4 md:p-8 bg-paper">
@@ -83,8 +84,24 @@ export const AboutApp: React.FC = () => {
               <span className="font-bold text-xs uppercase tracking-wider">Download CV</span>
             </button>
             <div className="mt-2 flex gap-2 w-full">
-              <a href="#" className="flex-1 text-center py-2 text-[10px] font-bold border border-ink/20 rounded hover:bg-paperDark">LINKEDIN</a>
-              <a href="#" className="flex-1 text-center py-2 text-[10px] font-bold border border-ink/20 rounded hover:bg-paperDark">GITHUB</a>
+              <button
+                onClick={() => {
+                  const raw = settings?.profile.linkedin || '';
+                  if (raw) {
+                    const finalUrl = (raw.startsWith('http') || raw.startsWith('mailto:')) ? raw : `https://${raw}`;
+                    window.open(finalUrl, '_blank');
+                  }
+                }}
+                className="flex-1 text-center py-2 text-[10px] font-bold border border-ink/20 rounded hover:bg-paperDark"
+              >
+                LINKEDIN
+              </button>
+              <button
+                onClick={() => window.open('https://github.com', '_blank')}
+                className="flex-1 text-center py-2 text-[10px] font-bold border border-ink/20 rounded hover:bg-paperDark"
+              >
+                GITHUB
+              </button>
             </div>
           </div>
         </div>

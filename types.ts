@@ -61,3 +61,27 @@ export interface AppDefinition {
 }
 
 export type AppId = 'welcome' | 'projects' | 'about' | 'contact' | 'browser' | 'admin';
+export interface SiteSettings {
+  id?: string;
+  profile: {
+    status: string;
+    isHiring: boolean;
+    role: string;
+    location: string;
+    email: string;
+    linkedin: string;
+  };
+  music: {
+    title: string;
+    artist: string;
+    streamUrl?: string;
+  };
+  welcome: {
+    greeting: string;
+    tagline: string;
+  };
+  widgets: {
+    toolboxTitle: string;
+    toolboxColor: string; // fallback color if needed
+  };
+}
