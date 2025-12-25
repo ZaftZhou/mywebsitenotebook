@@ -102,24 +102,52 @@ const BlogMediaLibraryModal: React.FC<{
     onClose: () => void;
     onSelect: (url: string) => void;
 }> = ({ isOpen, onClose, onSelect }) => {
-    const [images, setImages] = useState<string[]>([]);
+    const [mediaItems, setMediaItems] = useState<{ url: string, type: 'image' | 'video' }[]>([]);
     const [loading, setLoading] = useState(false);
+    const [filter, setFilter] = useState<'all' | 'image' | 'video'>('all');
 
     useEffect(() => {
         if (isOpen) {
-            loadImages();
+            loadMedia();
         }
     }, [isOpen]);
 
-    const loadImages = async () => {
+    const loadMedia = async () => {
         setLoading(true);
         try {
-            const listRef = ref(storage, 'blog_images');
-            const res = await listAll(listRef);
-            const urls = await Promise.all(res.items.map(item => getDownloadURL(item)));
-            setImages(urls);
+            const items: { url: string, type: 'image' | 'video' }[] = [];
+
+            // Load images
+            try {
+                const imgRef = ref(storage, 'blog_images');
+                const imgRes = await listAll(imgRef);
+                const imgUrls = await Promise.all(imgRes.items.map(item => getDownloadURL(item)));
+                imgUrls.forEach(url => items.push({ url, type: 'image' }));
+            } catch (e) { console.log('No blog_images folder or error:', e); }
+
+            // Load videos
+            try {
+                const vidRef = ref(storage, 'blog_videos');
+                const vidRes = await listAll(vidRef);
+                const vidUrls = await Promise.all(vidRes.items.map(item => getDownloadURL(item)));
+                vidUrls.forEach(url => items.push({ url, type: 'video' }));
+            } catch (e) { console.log('No blog_videos folder or error:', e); }
+
+            // Also check project_media for any shared assets
+            try {
+                const projRef = ref(storage, 'project_media');
+                const projRes = await listAll(projRef);
+                const projUrls = await Promise.all(projRes.items.map(async item => {
+                    const url = await getDownloadURL(item);
+                    const isVideo = item.name.match(/\.(mp4|webm|mov)$/i);
+                    return { url, type: (isVideo ? 'video' : 'image') as 'image' | 'video' };
+                }));
+                items.push(...projUrls);
+            } catch (e) { console.log('No project_media folder or error:', e); }
+
+            setMediaItems(items);
         } catch (e: any) {
-            console.error("Error loading images", e);
+            console.error("Error loading media", e);
         } finally {
             setLoading(false);
         }
@@ -127,26 +155,60 @@ const BlogMediaLibraryModal: React.FC<{
 
     if (!isOpen) return null;
 
+    const filteredItems = filter === 'all' ? mediaItems : mediaItems.filter(m => m.type === filter);
+
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-8 backdrop-blur-sm" onClick={onClose}>
             <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[80vh] flex flex-col shadow-window" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-bold text-xl flex items-center gap-2"><ImageIcon size={20} /> Media Library</h3>
+                    <h3 className="font-bold text-xl flex items-center gap-2"><Database size={20} /> Media Library</h3>
                     <button onClick={onClose}><X size={20} className="hover:text-red-500 transition-colors" /></button>
+                </div>
+
+                {/* Filter Tabs */}
+                <div className="flex gap-2 mb-4 border-b border-ink/10 pb-2">
+                    {(['all', 'image', 'video'] as const).map(f => (
+                        <button
+                            key={f}
+                            onClick={() => setFilter(f)}
+                            className={`px-3 py-1 text-xs font-bold rounded transition-colors ${filter === f ? 'bg-ink text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                        >
+                            {f === 'all' ? 'All' : f === 'image' ? '🖼️ Images' : '🎬 Videos'}
+                        </button>
+                    ))}
+                    <span className="text-xs text-gray-400 ml-auto self-center">{filteredItems.length} items</span>
                 </div>
 
                 {loading ? (
                     <div className="flex-1 flex items-center justify-center"><Loader className="animate-spin text-ink" /></div>
+                ) : filteredItems.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-2">
+                        <Database size={48} className="opacity-20" />
+                        <p className="text-sm">No media found</p>
+                        <p className="text-xs opacity-50">Upload files to blog_images or blog_videos</p>
+                    </div>
                 ) : (
                     <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 p-2 custom-scrollbar">
-                        {images.map(url => (
+                        {filteredItems.map(item => (
                             <button
-                                key={url}
-                                onClick={() => { onSelect(url); onClose(); }}
+                                key={item.url}
+                                onClick={() => { onSelect(item.url); onClose(); }}
                                 className="group relative aspect-square bg-gray-100 rounded overflow-hidden border-2 border-transparent hover:border-ink focus:border-ink transition-all"
                             >
-                                <img src={url} className="w-full h-full object-cover" loading="lazy" />
+                                {item.type === 'image' ? (
+                                    <img src={item.url} className="w-full h-full object-cover" loading="lazy" />
+                                ) : (
+                                    <div className="w-full h-full bg-gray-900 flex items-center justify-center relative">
+                                        <video src={item.url} className="w-full h-full object-cover" muted />
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="bg-black/50 p-2 rounded-full"><Video size={24} className="text-white" /></div>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                                <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] px-1 rounded uppercase font-bold">
+                                    {item.type}
+                                </div>
                             </button>
                         ))}
                     </div>
@@ -167,25 +229,62 @@ const BlockEditor: React.FC<{
     onOpenLibrary: () => void;
 }> = ({ block, onChange, onDelete, onMoveUp, onMoveDown, isFirst, isLast, onOpenLibrary }) => {
 
-    // Simple Drag & Drop for Image Upload
+    const [isUploading, setIsUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+
+    // Real Drag & Drop Upload
     const handleDrop = async (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        setIsDragging(false);
 
         const file = e.dataTransfer.files[0];
-        if (file && file.type.startsWith('image/')) {
-            try {
-                // Simulating upload (reusing the logic from helper would be better, but implementing inline for speed)
-                // Ideally this should call a prop function 'onUpload'
-                // For now, I'll assume we can't easily access storage here without props.
-                // Actually, I can allow the parent to handle upload, or just import logic.
-                // Let's keep it simple: Drag & Drop just for now is a visual placeholder or I need to implement upload logic here.
-                // I will add 'onUpload' prop to BlockEditor later. For now, let's stick to Library.
-                alert("Please use the 'Media Library' or 'Quick Upload' for now! Drag & Drop coming in V2.");
-            } catch (err) {
-                console.error(err);
-            }
+        if (!file) return;
+
+        const isImage = file.type.startsWith('image/');
+        const isVideo = file.type.startsWith('video/');
+
+        if (!isImage && !isVideo) {
+            alert('Please drop an image or video file');
+            return;
         }
+
+        try {
+            setIsUploading(true);
+
+            // Determine folder based on file type
+            const folder = isImage ? 'blog_images' : 'blog_videos';
+            const filename = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+            const storageRef = ref(storage, `${folder}/${filename}`);
+
+            console.log('[BlockEditor] Uploading file to:', `${folder}/${filename}`);
+
+            await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(storageRef);
+
+            console.log('[BlockEditor] Upload complete, URL:', url);
+
+            // Update block with new URL
+            onChange({ ...block, content: url });
+
+        } catch (err: any) {
+            console.error('[BlockEditor] Upload error:', err);
+            alert('Upload failed: ' + err.message);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
     };
 
     return (
@@ -208,7 +307,18 @@ const BlockEditor: React.FC<{
                     />
                 )}
                 {block.type === 'image' && (
-                    <div className="flex flex-col gap-2" onDrop={handleDrop} onDragOver={e => e.preventDefault()}>
+                    <div
+                        className={`flex flex-col gap-2 relative ${isDragging ? 'ring-2 ring-blue-400 ring-offset-2' : ''}`}
+                        onDrop={handleDrop}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                    >
+                        {isUploading && (
+                            <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center rounded">
+                                <Loader className="animate-spin text-ink" size={24} />
+                                <span className="ml-2 text-xs font-bold">Uploading...</span>
+                            </div>
+                        )}
                         <div className="flex gap-2">
                             <input
                                 className="flex-1 text-xs border-b border-ink/10 outline-none py-1 font-mono"
@@ -229,9 +339,9 @@ const BlockEditor: React.FC<{
                                 <img src={block.content} className="w-full h-full object-cover" />
                             </div>
                         ) : (
-                            <div className="w-full aspect-video bg-gray-50 border-2 border-dashed border-ink/10 rounded flex flex-col items-center justify-center text-gray-300 gap-2">
-                                <ImageIcon size={24} />
-                                <span className="text-[10px]">Enter URL or Select from Library</span>
+                            <div className={`w-full aspect-video border-2 border-dashed rounded flex flex-col items-center justify-center gap-2 transition-colors ${isDragging ? 'bg-blue-50 border-blue-400 text-blue-500' : 'bg-gray-50 border-ink/10 text-gray-300'}`}>
+                                <Upload size={24} />
+                                <span className="text-[10px]">{isDragging ? 'Drop to upload!' : 'Drag image here or use Library'}</span>
                             </div>
                         )}
                         <input
@@ -243,15 +353,40 @@ const BlockEditor: React.FC<{
                     </div>
                 )}
                 {block.type === 'video' && (
-                    <div className="flex flex-col gap-2">
-                        <input
-                            className="text-xs border-b border-ink/10 w-full outline-none py-1 font-mono"
-                            placeholder="Video URL..."
-                            value={block.content}
-                            onChange={e => onChange({ ...block, content: e.target.value })}
-                        />
-                        {block.content && (
+                    <div
+                        className={`flex flex-col gap-2 relative ${isDragging ? 'ring-2 ring-purple-400 ring-offset-2' : ''}`}
+                        onDrop={handleDrop}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                    >
+                        {isUploading && (
+                            <div className="absolute inset-0 bg-black/80 z-10 flex items-center justify-center rounded">
+                                <Loader className="animate-spin text-white" size={24} />
+                                <span className="ml-2 text-xs font-bold text-white">Uploading video...</span>
+                            </div>
+                        )}
+                        <div className="flex gap-2">
+                            <input
+                                className="flex-1 text-xs border-b border-ink/10 outline-none py-1 font-mono"
+                                placeholder="Video URL..."
+                                value={block.content}
+                                onChange={e => onChange({ ...block, content: e.target.value })}
+                            />
+                            <button
+                                type="button"
+                                onClick={onOpenLibrary}
+                                className="px-2 py-0.5 bg-gray-100 hover:bg-gray-200 text-[10px] font-bold rounded flex items-center gap-1"
+                            >
+                                <Database size={10} /> Library
+                            </button>
+                        </div>
+                        {block.content ? (
                             <video src={block.content} controls className="w-full aspect-video bg-black rounded" />
+                        ) : (
+                            <div className={`w-full aspect-video border-2 border-dashed rounded flex flex-col items-center justify-center gap-2 transition-colors ${isDragging ? 'bg-purple-900 border-purple-400 text-purple-300' : 'bg-gray-900 border-gray-600 text-gray-500'}`}>
+                                <Upload size={24} />
+                                <span className="text-[10px]">{isDragging ? 'Drop to upload!' : 'Drag video here or use Library'}</span>
+                            </div>
                         )}
                         <input
                             className="text-xs bg-gray-50 p-1 w-full outline-none text-center italic text-gray-500"
