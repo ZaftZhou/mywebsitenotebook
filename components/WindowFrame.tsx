@@ -32,15 +32,15 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
   children
 }) => {
   const dragControls = useDragControls();
-  
+
   const frameStyle = win.isMaximized
     ? { top: 0, left: 0, width: "100%", height: "100%", borderRadius: 0, x: 0, y: 0 }
     : {
-        top: "10%",
-        left: win.isMobile ? "5%" : "20%",
-        width: win.isMobile ? "90vw" : "60vw",
-        height: win.isMobile ? "80vh" : "70vh"
-      };
+      top: "10%",
+      left: win.isMobile ? "5%" : "20%",
+      width: win.isMobile ? "90vw" : "60vw",
+      height: win.isMobile ? "80vh" : "70vh"
+    };
 
   return (
     <motion.div
@@ -62,32 +62,32 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({
           onFocus(win.id);
         }}
         onDoubleClick={() => onMaximize(win.id)}
-        className="bg-paperDark border-b-2 border-ink p-2 flex justify-between items-center cursor-grab active:cursor-grabbing select-none h-10 flex-shrink-0"
+        className="bg-paperDark border-b-2 border-ink p-1.5 md:p-2 flex justify-between items-center cursor-grab active:cursor-grabbing select-none h-10 md:h-11 flex-shrink-0"
       >
-        <div className="flex gap-2 pl-2">
-          <button 
-            onClick={(e) => { e.stopPropagation(); onClose(win.id); }} 
-            className="w-4 h-4 border-2 border-ink rounded-full bg-white hover:bg-red-400 transition-colors flex items-center justify-center group"
+        <div className="flex gap-2 pl-1 md:pl-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); onClose(win.id); }}
+            className="w-5 h-5 md:w-4 md:h-4 border-2 border-ink rounded-full bg-white hover:bg-red-400 transition-colors flex items-center justify-center group"
           >
-            <X className="opacity-0 group-hover:opacity-100 w-2.5 h-2.5" strokeWidth={4} />
+            <X className="opacity-100 md:opacity-0 group-hover:opacity-100 w-3 h-3 md:w-2.5 md:h-2.5" strokeWidth={4} />
           </button>
-          <button 
-            onClick={(e) => { e.stopPropagation(); onMinimize(win.id); }} 
-            className="w-4 h-4 border-2 border-ink rounded-full bg-white hover:bg-yellow-400 transition-colors flex items-center justify-center group"
+          <button
+            onClick={(e) => { e.stopPropagation(); onMinimize(win.id); }}
+            className="w-5 h-5 md:w-4 md:h-4 border-2 border-ink rounded-full bg-white hover:bg-yellow-400 transition-colors flex items-center justify-center group"
           >
-            <Minus className="opacity-0 group-hover:opacity-100 w-2.5 h-2.5" strokeWidth={4} />
+            <Minus className="opacity-100 md:opacity-0 group-hover:opacity-100 w-3 h-3 md:w-2.5 md:h-2.5" strokeWidth={4} />
           </button>
-          <button 
-            onClick={(e) => { e.stopPropagation(); onMaximize(win.id); }} 
+          <button
+            onClick={(e) => { e.stopPropagation(); onMaximize(win.id); }}
             className="w-4 h-4 border-2 border-ink rounded-full bg-white hover:bg-green-400 transition-colors flex items-center justify-center group hidden md:flex"
           >
             <Square className="opacity-0 group-hover:opacity-100 w-2 h-2" strokeWidth={4} />
           </button>
         </div>
-        <div className="font-hand font-bold text-lg text-ink/80 tracking-wide truncate px-4">
+        <div className="font-hand font-bold text-base md:text-lg text-ink/80 tracking-wide truncate px-2 md:px-4">
           {win.title}
         </div>
-        <div className="w-16"></div>
+        <div className="w-12 md:w-16"></div>
       </div>
 
       <div className="flex-1 overflow-hidden relative bg-paper flex flex-col">

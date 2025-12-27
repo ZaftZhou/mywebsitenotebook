@@ -7,6 +7,7 @@ export interface MediaItem {
   aspect: string;
   color?: string;
   items?: MediaItem[]; // For gallery type
+  linkUrl?: string; // Optional URL to navigate to when clicked (supports local paths like /projects/demo/)
 }
 
 export interface Project {
@@ -90,13 +91,14 @@ export interface SiteSettings {
 
 export type PostType = 'tech_note' | 'devlog' | 'postmortem';
 
-export type BlockType = 'text' | 'image' | 'video';
+export type BlockType = 'text' | 'image' | 'video' | 'code';
 
 export interface ContentBlock {
   id: string;
   type: BlockType;
-  content: string; // Markdown text or URL
+  content: string; // Markdown text, URL, or code
   caption?: string;
+  language?: string; // For code blocks: 'javascript', 'python', 'csharp', etc.
 }
 
 export interface PostSection {

@@ -1299,7 +1299,12 @@ const MediaListEditor: React.FC<{ media: MediaItem[]; onChange: (m: MediaItem[])
         try {
             const newItem = await uploadAndCreateMedia(file, projectId);
             const newMedia = [...media];
-            newMedia[index] = newItem;
+            // Preserve existing caption and linkUrl when replacing image
+            newMedia[index] = {
+                ...newItem,
+                caption: media[index]?.caption || newItem.caption,
+                linkUrl: media[index]?.linkUrl || newItem.linkUrl,
+            };
             onChange(newMedia);
         } catch (err: any) {
             alert("Upload failed: " + err.message);

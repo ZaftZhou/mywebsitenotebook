@@ -95,7 +95,13 @@ export const WelcomeApp: React.FC<WelcomeAppProps> = ({ openApp }) => {
           <span>View Projects</span>
         </button>
         <button
-          onClick={() => alert("CV Downloaded!")}
+          onClick={() => {
+            if (settings?.profile.resumeUrl) {
+              window.open(settings.profile.resumeUrl, '_blank');
+            } else {
+              alert("No CV uploaded yet. Configure it in Admin Panel.");
+            }
+          }}
           className="bg-white border-2 border-ink py-3 rounded-lg font-bold shadow-paper hover:translate-y-[-2px] hover:shadow-paper-hover transition-all flex flex-col items-center text-sm md:text-base group"
         >
           <FileText className="mb-1 w-6 h-6 group-hover:scale-110 transition-transform" />
