@@ -431,7 +431,24 @@ ${formData.fullName}
             };
 
             const printDocument = () => {
-                window.print();
+                // When inside an iframe, window.print() may be blocked
+                // Try to print, and if it fails, open in a new window
+                try {
+                    // First try regular print
+                    window.print();
+                } catch (e) {
+                    // Fallback: open in new tab and print from there
+                    const printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                        printWindow.document.write(document.documentElement.outerHTML);
+                        printWindow.document.close();
+                        printWindow.onload = () => {
+                            printWindow.print();
+                        };
+                    } else {
+                        alert('Please allow popups to print, or right-click and select "Print"');
+                    }
+                }
             };
 
             const currentDate = new Date().toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
