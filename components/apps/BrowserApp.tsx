@@ -104,7 +104,7 @@ export const BrowserApp: React.FC<BrowserAppProps> = ({ initialUrl = 'https://sc
                         setLoadError(true);
                     }}
                     // Sandbox permissions for security, but allowing scripts/same-origin
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
                 />
 
                 {/* Overlay to capture clicks specifically during drag operations if needed, 

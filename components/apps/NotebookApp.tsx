@@ -9,12 +9,21 @@ import { AppId } from '../../types';
 
 interface NotebookAppProps {
     openApp: (id: AppId, props?: any) => void;
+    initialPostId?: string;
 }
 
-export const NotebookApp: React.FC<NotebookAppProps> = ({ openApp }) => {
+export const NotebookApp: React.FC<NotebookAppProps> = ({ openApp, initialPostId }) => {
     const { posts, loading } = usePosts();
     const { projects } = useProjects();
-    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [selectedId, setSelectedId] = useState<string | null>(initialPostId || null);
+
+    React.useEffect(() => {
+        if (initialPostId) {
+            setSelectedId(initialPostId);
+        }
+        // If we have posts but no selection yet (and no specific initialId demanded later), 
+        // we could optionaly default to newest, but let's stick to explicit only.
+    }, [initialPostId]);
 
     const selectedPost = selectedId ? posts.find(p => p.id === selectedId) : null;
 

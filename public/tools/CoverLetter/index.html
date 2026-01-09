@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro 求职信生成器</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 React 和 React DOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- 引入 Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- 引入 Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Inter:wght@300;400;600&family=Lato:wght@300;400;700&family=Merriweather:wght@300;400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:wght@400;600;700&family=Roboto:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* 自定义滚动条 */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* 打印样式优化 */
+        @media print {
+            @page {
+                margin: 0;
+                size: auto;
+            }
+
+            body {
+                background: white;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            /* 强制打印背景色 */
+            .print\:hidden {
+                display: none !important;
+            }
+
+            .print\:block {
+                display: block !important;
+            }
+
+            .print\:shadow-none {
+                box-shadow: none !important;
+            }
+
+            .print\:w-full {
+                width: 100% !important;
+            }
+
+            .print\:max-w-none {
+                max-width: none !important;
+            }
+
+            .print\:h-screen {
+                height: 100vh !important;
+            }
+
+            /* 确保侧边栏填满 */
+            ::-webkit-scrollbar {
+                display: none;
+            }
+        }
+
+        .font-handwriting {
+            font-family: 'Brush Script MT', cursive;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 font-sans text-gray-800">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- 图标组件 (SVG) ---
+        const Icon = ({ children, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+
+        const UserIcon = ({ className }) => <Icon className={className}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></Icon>;
+        const BriefcaseIcon = ({ className }) => <Icon className={className}><rect width="20" height="14" x="2" y="7" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></Icon>;
+        const MailIcon = ({ className }) => <Icon className={className}><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></Icon>;
+        const PhoneIcon = ({ className }) => <Icon className={className}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></Icon>;
+        const MapPinIcon = ({ className }) => <Icon className={className}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></Icon>;
+        const LinkedinIcon = ({ className }) => <Icon className={className}><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" /><rect width="4" height="12" x="2" y="9" /><circle cx="4" cy="4" r="2" /></Icon>;
+        const GlobeIcon = ({ className }) => <Icon className={className}><circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" /></Icon>;
+        const PenToolIcon = ({ className }) => <Icon className={className}><path d="m12 19 7-7 3 3-7 7-3-3z" /><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" /><path d="m2 2 7.586 7.586" /><circle cx="11" cy="11" r="2" /></Icon>;
+        const Wand2Icon = ({ className }) => <Icon className={className}><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z" /><path d="m14 7 3 3" /><path d="M5 6v4" /><path d="M19 14v4" /><path d="M10 2v2" /><path d="M7 8H3" /><path d="M21 16h-4" /><path d="M11 3H9" /></Icon>;
+        const RotateCcwIcon = ({ className }) => <Icon className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></Icon>;
+        const CheckCircle2Icon = ({ className }) => <Icon className={className}><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></Icon>;
+        const CopyIcon = ({ className }) => <Icon className={className}><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></Icon>;
+        const PrinterIcon = ({ className }) => <Icon className={className}><path d="M6 9V2h12v7" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><path d="M6 14h12v8H6z" /></Icon>;
+        const TypeIcon = ({ className }) => <Icon className={className}><path d="M4 7V4h16v3" /><path d="M9 20h6" /><path d="M12 4v16" /></Icon>;
+        const PaletteIcon = ({ className }) => <Icon className={className}><circle cx="13.5" cy="6.5" r=".5" /><circle cx="17.5" cy="10.5" r=".5" /><circle cx="8.5" cy="7.5" r=".5" /><circle cx="6.5" cy="12.5" r=".5" /><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" /></Icon>;
+        const LayoutIcon = ({ className }) => <Icon className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><line x1="9" x2="9" y1="3" y2="21" /></Icon>;
+
+        // --- 主程序逻辑 ---
+
+        const { useState } = React;
+
+        const App = () => {
+            const [lang, setLang] = useState('en');
+            const [showCopyToast, setShowCopyToast] = useState(false);
+            const [theme, setTheme] = useState('classic');
+            const [selectedFont, setSelectedFont] = useState("'Georgia', serif");
+
+            // 字体列表
+            const fontOptions = [
+                { name: 'Georgia (Classic)', value: "'Georgia', serif" },
+                { name: 'Garamond (Elegant)', value: "'EB Garamond', serif" },
+                { name: 'Merriweather (Readability)', value: "'Merriweather', serif" },
+                { name: 'Times New Roman (Standard)', value: "'Times New Roman', serif" },
+                { name: 'Arial (Simple)', value: "'Arial', sans-serif" },
+                { name: 'Inter (Modern UI)', value: "'Inter', sans-serif" },
+                { name: 'Roboto (Clean)', value: "'Roboto', sans-serif" },
+                { name: 'Open Sans (Friendly)', value: "'Open Sans', sans-serif" },
+                { name: 'Lato (Professional)', value: "'Lato', sans-serif" },
+            ];
+
+            // --- 激进的主题配置重构 ---
+            // layoutType: 'vertical' (上下结构) | 'split' (左右侧边栏) | 'banner' (顶部大Banner)
+            const themeConfig = {
+                classic: {
+                    name: '经典 Classic',
+                    layoutType: 'vertical',
+                    wrapper: "bg-white text-slate-900",
+                    header: "border-b-2 border-gray-200 pb-6 mb-8 px-12 pt-12",
+                    title: "text-3xl font-bold uppercase tracking-wide text-slate-800 mb-4",
+                    contactGrid: "grid grid-cols-2 gap-y-2 text-sm text-gray-600",
+                    contactItem: "flex items-center gap-2",
+                    icon: "text-gray-400",
+                    main: "px-12 pb-12",
+                    date: "mb-8 text-gray-500 font-medium",
+                    position: "mb-6 font-bold text-slate-800 border-l-4 border-blue-600 pl-3 py-1 bg-blue-50/50",
+                    footer: "mt-12",
+                    showDecor: true
+                },
+                modern: {
+                    name: '侧边栏 Sidebar',
+                    layoutType: 'split', // 左右结构
+                    wrapper: "flex flex-row min-h-[29.7cm] bg-white",
+                    sidebar: "w-1/3 bg-slate-900 text-slate-300 p-8 flex flex-col pt-16 print:bg-slate-900 print:text-white", // 侧边栏样式
+                    main: "w-2/3 p-12 pt-16 bg-white",
+                    title: "text-3xl font-bold text-white mb-8 leading-tight break-words", // 侧边栏里的标题
+                    contactGrid: "flex flex-col gap-4 text-sm", // 垂直排列联系方式
+                    contactItem: "flex items-center gap-3 text-slate-300",
+                    icon: "text-blue-400 shrink-0",
+                    sectionTitle: "text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 mt-8", // 侧边栏小标题
+                    date: "mb-10 text-slate-500 font-medium",
+                    position: "mb-8 text-lg font-bold text-slate-900 border-b-2 border-slate-900 pb-2 inline-block",
+                    footer: "mt-16",
+                    showDecor: false
+                },
+                creative: {
+                    name: '通栏 Banner',
+                    layoutType: 'banner', // 顶部大色块
+                    wrapper: "bg-white",
+                    banner: "bg-blue-600 text-white p-12 mb-10 print:bg-blue-600 print:text-white",
+                    title: "text-5xl font-black tracking-tight mb-6",
+                    contactGrid: "flex flex-wrap gap-x-6 gap-y-2 text-blue-100 text-sm font-medium",
+                    contactItem: "flex items-center gap-2",
+                    icon: "text-blue-300",
+                    main: "px-12 pb-12",
+                    date: "mb-8 pl-4 border-l-2 border-blue-200 text-gray-500",
+                    position: "mb-8 text-xl font-bold text-blue-600",
+                    footer: "mt-12",
+                    showDecor: false
+                },
+                minimal: {
+                    name: '极简 Minimal',
+                    layoutType: 'vertical',
+                    wrapper: "bg-white",
+                    header: "px-16 pt-16 pb-0 mb-12",
+                    title: "text-4xl font-light tracking-[0.15em] uppercase text-slate-900 mb-8",
+                    contactGrid: "flex flex-wrap gap-x-8 gap-y-2 text-xs text-gray-400 font-mono", // 极简风格用等宽字体
+                    contactItem: "flex items-center gap-2", // 不显示图标
+                    hideIcons: true, // 特殊标记：隐藏图标
+                    main: "px-16 pb-16",
+                    date: "mb-12 text-xs font-mono text-gray-400",
+                    position: "mb-8 text-lg font-medium italic text-slate-900",
+                    footer: "mt-16",
+                    showDecor: false
+                }
+            };
+
+            const uiText = {
+                zh: {
+                    title: 'Pro 求职信生成器',
+                    reset: '清空',
+                    example: '示例',
+                    fontLabel: '字体',
+                    themeLabel: '布局风格',
+                    themes: { classic: '经典', modern: '侧边栏', minimal: '极简', creative: '通栏' },
+                    personalInfo: '个人信息',
+                    jobInfo: '职位与收件人',
+                    content: '正文内容',
+                    copy: '复制文本',
+                    copied: '已复制',
+                    export: '导出 / 打印 PDF',
+                    labels: {
+                        fullName: '姓名',
+                        email: '电子邮箱',
+                        phone: '电话号码',
+                        address: '地址/城市',
+                        linkedin: 'LinkedIn',
+                        portfolio: '个人网站',
+                        position: '申请职位',
+                        companyName: '公司名称',
+                        managerName: '招聘经理姓名',
+                        opening: '开场白 (Opening)',
+                        body: '核心优势与经历 (Body)',
+                        closing: '结语 (Closing)',
+                    },
+                    placeholders: {
+                        fullName: '例如：张伟',
+                        email: '例如：name@example.com',
+                        phone: '例如：138-0000-0000',
+                        address: '例如：北京市朝阳区',
+                        linkedin: '用户名或链接 (选填)',
+                        portfolio: '你的作品集链接 (选填)',
+                        position: '例如：产品经理',
+                        companyName: '例如：字节跳动',
+                        managerName: "若不知道可填 '招聘经理'",
+                        opening: '说明你是在哪里看到职位的，表达你的强烈兴趣...',
+                        body: '展示你的主要成就、技能如何匹配该职位。可以分段...',
+                        closing: '感谢阅读，重申面试意愿，附上简历说明...',
+                    },
+                    preview: {
+                        defaultName: '你的名字',
+                        defaultManager: '招聘负责人',
+                        defaultCompany: '目标公司名称',
+                        defaultPosition: '职位名称',
+                        labelPosition: '申请职位：',
+                        to: '致：',
+                        re: '关于：',
+                        sincerely: '诚挚地，',
+                        placeholderOpening: '[此处将显示您的开场白...]',
+                        placeholderBody: '[此处将显示您的核心经历和技能描述...]',
+                        placeholderClosing: '[此处将显示您的结语...]',
+                        contactTitle: '联系方式'
+                    }
+                },
+                en: {
+                    title: 'Pro Cover Letter Generator',
+                    reset: 'Reset',
+                    example: 'Example',
+                    fontLabel: 'Font',
+                    themeLabel: 'Layout',
+                    themes: { classic: 'Classic', modern: 'Sidebar', minimal: 'Minimal', creative: 'Banner' },
+                    personalInfo: 'Personal Info',
+                    jobInfo: 'Target Job & Recipient',
+                    content: 'Letter Content',
+                    copy: 'Copy Text',
+                    copied: 'Copied',
+                    export: 'Export / Print PDF',
+                    labels: {
+                        fullName: 'Full Name',
+                        email: 'Email Address',
+                        phone: 'Phone Number',
+                        address: 'Address / City',
+                        linkedin: 'LinkedIn',
+                        portfolio: 'Portfolio / Website',
+                        position: 'Target Position',
+                        companyName: 'Company Name',
+                        managerName: 'Hiring Manager Name',
+                        opening: 'Opening Paragraph',
+                        body: 'Body Paragraphs (Skills & Exp)',
+                        closing: 'Closing Paragraph',
+                    },
+                    placeholders: {
+                        fullName: 'e.g. Alex Chen',
+                        email: 'e.g. alex@example.com',
+                        phone: 'e.g. +86 138-0000-0000',
+                        address: 'e.g. Chaoyang District, Beijing',
+                        linkedin: 'Username or Link (Optional)',
+                        portfolio: 'Link to your work (Optional)',
+                        position: 'e.g. Product Manager',
+                        companyName: 'e.g. ByteDance',
+                        managerName: "Or leave blank for 'Hiring Manager'",
+                        opening: 'State the position you are applying for and how you found it...',
+                        body: 'Highlight your achievements, skills, and why you are a good fit...',
+                        closing: 'Reiterate your interest and thank the reader...',
+                    },
+                    preview: {
+                        defaultName: 'Your Name',
+                        defaultManager: 'Hiring Manager',
+                        defaultCompany: 'Target Company Name',
+                        defaultPosition: 'Position Name',
+                        labelPosition: 'Re: Application for ',
+                        to: 'To: ',
+                        re: 'Re: ',
+                        sincerely: 'Sincerely,',
+                        placeholderOpening: '[Your opening paragraph will appear here...]',
+                        placeholderBody: '[Your body paragraphs regarding skills and experience...]',
+                        placeholderClosing: '[Your closing remarks...]',
+                        contactTitle: 'CONTACT'
+                    }
+                }
+            };
+
+            const initialData = {
+                fullName: '',
+                email: '',
+                phone: '',
+                address: '',
+                linkedin: '',
+                portfolio: '',
+                managerName: '',
+                companyName: '',
+                position: '',
+                opening: '',
+                body: '',
+                closing: '',
+            };
+
+            const [formData, setFormData] = useState(initialData);
+
+            const exampleDataZh = {
+                fullName: '张伟',
+                email: 'zhang.wei@example.com',
+                phone: '138-0000-0000',
+                address: '北京市朝阳区',
+                linkedin: 'linkedin.com/in/zhangwei',
+                portfolio: 'zhangwei.design',
+                managerName: '李总监',
+                companyName: '未来科技有限公司',
+                position: '高级前端工程师',
+                opening: '获悉贵公司正在招聘高级前端工程师一职，我对此职位非常感兴趣。作为一名拥有5年React开发经验的工程师，我一直关注贵公司在SaaS领域的创新，并渴望能为团队贡献我的技术力量。',
+                body: '在过去的工作中，我主导了多个大型Web应用的重构工作，成功将首屏加载时间降低了40%。我精通React、TypeScript以及Tailwind CSS生态，并具备丰富的性能优化经验。此外，我善于跨部门沟通，曾带领5人小组按时交付了关键的Q4项目。\n\n我相信我的技术背景与解决问题的能力，能够帮助未来科技公司在产品迭代中保持高效与高质量。',
+                closing: '随信附上我的简历，详细介绍了我的工作经历和项目成果。非常感谢您抽出时间阅读我的申请，期待能有面试的机会，进一步交流我对该职位的理解。',
+            };
+
+            const exampleDataEn = {
+                fullName: 'Alex Chen',
+                email: 'alex.chen@example.com',
+                phone: '+86 138-0000-0000',
+                address: 'Beijing, China',
+                linkedin: 'linkedin.com/in/alexc',
+                portfolio: 'alex.dev',
+                managerName: 'Hiring Manager',
+                companyName: 'Future Tech Inc.',
+                position: 'Senior Frontend Engineer',
+                opening: 'I am writing to express my strong interest in the Senior Frontend Engineer position at Future Tech Inc. With over 5 years of experience in building scalable web applications using React and TypeScript, I have long admired your company\'s innovative work in the SaaS sector.',
+                body: 'In my previous role, I led the architectural migration of a legacy system, resulting in a 40% improvement in load times. I possess a deep understanding of the modern frontend ecosystem and have a proven track record of mentoring junior developers.\n\nI am confident that my technical skills and passion for user experience design make me a strong candidate for this role.',
+                closing: 'Enclosed is my resume for your review. Thank you for your time and consideration. I look forward to the possibility of discussing how I can contribute to your team.',
+            };
+
+            const t = uiText[lang];
+            const isEn = lang === 'en';
+            const currentTheme = themeConfig[theme];
+
+            const handleInputChange = (e) => {
+                const { name, value } = e.target;
+                setFormData((prev) => ({ ...prev, [name]: value }));
+            };
+
+            const fillExample = () => {
+                setFormData(lang === 'zh' ? exampleDataZh : exampleDataEn);
+                if (lang === 'en') setSelectedFont("'Georgia', serif");
+            };
+
+            const resetForm = () => {
+                if (window.confirm(lang === 'zh' ? '确定要清空所有内容吗？' : 'Are you sure you want to clear all content?')) {
+                    setFormData(initialData);
+                }
+            };
+
+            const copyToClipboard = () => {
+                const date = new Date().toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                const managerText = formData.managerName || (lang === 'zh' ? '招聘经理' : 'Hiring Manager');
+
+                let salutation = '';
+                if (lang === 'zh') {
+                    salutation = formData.managerName ? `尊敬的 ${formData.managerName}：` : '尊敬的招聘负责人：';
+                } else {
+                    salutation = formData.managerName ? `Dear ${formData.managerName},` : 'Dear Hiring Manager,';
+                }
+
+                const text = `
+${formData.fullName}
+${formData.email} | ${formData.phone}
+${formData.linkedin ? `LinkedIn: ${formData.linkedin}` : ''}
+
+${date}
+
+${t.preview.to}${managerText}
+${formData.companyName}
+
+${t.preview.labelPosition}${formData.position}
+
+${salutation}
+
+${formData.opening}
+
+${formData.body}
+
+${formData.closing}
+
+${t.preview.sincerely}
+
+${formData.fullName}
+                `.trim();
+
+                navigator.clipboard.writeText(text).then(() => {
+                    setShowCopyToast(true);
+                    setTimeout(() => setShowCopyToast(false), 2000);
+                });
+            };
+
+            const printDocument = () => {
+                window.print();
+            };
+
+            const currentDate = new Date().toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+            const getFontFamily = () => {
+                if (lang === 'zh') return "'Noto Sans SC', sans-serif";
+                return selectedFont;
+            };
+
+            // --- 渲染辅助组件 ---
+
+            // 联系方式组件 (根据 theme 配置渲染)
+            const ContactInfo = ({ theme, data, t }) => {
+                const items = [
+                    { icon: MailIcon, value: data.email },
+                    { icon: PhoneIcon, value: data.phone },
+                    { icon: MapPinIcon, value: data.address },
+                    { icon: LinkedinIcon, value: data.linkedin },
+                    { icon: GlobeIcon, value: data.portfolio },
+                ].filter(item => item.value);
+
+                return (
+                    <div className={theme.contactGrid}>
+                        {items.map((item, index) => (
+                            <div key={index} className={theme.contactItem}>
+                                {!theme.hideIcons && <item.icon className={theme.icon} />}
+                                <span>{item.value}</span>
+                            </div>
+                        ))}
+                    </div>
+                );
+            };
+
+            // 侧边栏布局专用
+            const SidebarLayout = ({ theme, data, t, fontStyle }) => (
+                <div className={theme.wrapper} style={{ fontFamily: fontStyle }}>
+                    <aside className={theme.sidebar}>
+                        <h1 className={theme.title}>
+                            {data.fullName || t.preview.defaultName}
+                        </h1>
+
+                        <div className={theme.sectionTitle}>{t.preview.contactTitle}</div>
+                        <ContactInfo theme={theme} data={data} t={t} />
+                    </aside>
+
+                    <main className={theme.main}>
+                        <div className={theme.date}>{currentDate}</div>
+
+                        <div className={theme.position}>
+                            {t.preview.labelPosition} {data.position || t.preview.defaultPosition}
+                        </div>
+
+                        <LetterBody theme={theme} data={data} t={t} isEn={isEn} />
+
+                        <div className={theme.footer}>
+                            <p className="mb-4">{t.preview.sincerely}</p>
+                            <div className="h-16 w-48 border-b border-gray-300 mb-2 flex items-end pb-1 font-handwriting text-2xl text-slate-600 italic">
+                                <span className="opacity-70" style={{ fontFamily: 'cursive' }}>{data.fullName}</span>
+                            </div>
+                            <p className="font-bold text-slate-900">{data.fullName}</p>
+                        </div>
+                    </main>
+                </div>
+            );
+
+            // Banner 布局专用
+            const BannerLayout = ({ theme, data, t, fontStyle }) => (
+                <div className={theme.wrapper} style={{ fontFamily: fontStyle }}>
+                    <div className={theme.banner}>
+                        <h1 className={theme.title}>
+                            {data.fullName || t.preview.defaultName}
+                        </h1>
+                        <ContactInfo theme={theme} data={data} t={t} />
+                    </div>
+
+                    <div className={theme.main}>
+                        <div className={theme.date}>{currentDate}</div>
+
+                        <div className={theme.position}>
+                            {t.preview.labelPosition} {data.position || t.preview.defaultPosition}
+                        </div>
+
+                        <LetterBody theme={theme} data={data} t={t} isEn={isEn} />
+
+                        <div className={theme.footer}>
+                            <p className="mb-4">{t.preview.sincerely}</p>
+                            <div className="h-16 w-48 border-b border-gray-300 mb-2 flex items-end pb-1 font-handwriting text-2xl text-slate-600 italic">
+                                <span className="opacity-70" style={{ fontFamily: 'cursive' }}>{data.fullName}</span>
+                            </div>
+                            <p className="font-bold text-slate-900">{data.fullName}</p>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // 垂直布局 (Classic & Minimal)
+            const VerticalLayout = ({ theme, data, t, fontStyle }) => (
+                <div className={`w-full min-h-[29.7cm] flex flex-col ${theme.wrapper}`} style={{ fontFamily: fontStyle }}>
+                    {theme.showDecor && <div className="h-4 bg-slate-800 w-full print:block"></div>}
+
+                    <header className={theme.header}>
+                        <h1 className={theme.title}>
+                            {data.fullName || t.preview.defaultName}
+                        </h1>
+                        <ContactInfo theme={theme} data={data} t={t} />
+                    </header>
+
+                    <main className={`flex-1 flex flex-col ${theme.main}`}>
+                        <div className={theme.date}>{currentDate}</div>
+
+                        <div className={theme.position}>
+                            {t.preview.labelPosition} {data.position || t.preview.defaultPosition}
+                        </div>
+
+                        <LetterBody theme={theme} data={data} t={t} isEn={isEn} />
+
+                        <div className={theme.footer}>
+                            <p className="mb-4">{t.preview.sincerely}</p>
+                            <div className="h-16 w-48 border-b border-gray-300 mb-2 flex items-end pb-1 font-handwriting text-2xl text-slate-600 italic">
+                                <span className="opacity-70" style={{ fontFamily: 'cursive' }}>{data.fullName}</span>
+                            </div>
+                            <p className="font-bold text-slate-900">{data.fullName}</p>
+                        </div>
+                    </main>
+
+                    {theme.showDecor && <div className="h-2 bg-gray-100 w-full print:hidden"></div>}
+                </div>
+            );
+
+            // 通用正文组件
+            const LetterBody = ({ theme, data, t, isEn }) => (
+                <div className={`flex-1 text-base space-y-4 whitespace-pre-wrap ${isEn ? 'text-left leading-8' : 'text-justify leading-7'}`}>
+                    <p>
+                        {lang === 'zh' ? (data.managerName ? `尊敬的 ${data.managerName}：` : '尊敬的招聘负责人：') : (data.managerName ? `Dear ${data.managerName},` : 'Dear Hiring Manager,')}
+                    </p>
+
+                    {data.opening ? <p>{data.opening}</p> : <p className="text-gray-300 italic">{t.preview.placeholderOpening}</p>}
+                    {data.body ? <p>{data.body}</p> : <p className="text-gray-300 italic">{t.preview.placeholderBody}</p>}
+                    {data.closing ? <p>{data.closing}</p> : <p className="text-gray-300 italic">{t.preview.placeholderClosing}</p>}
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen font-sans flex flex-col bg-gray-50">
+                    <header className="bg-slate-900 text-white p-4 shadow-md print:hidden sticky top-0 z-30">
+                        <div className="max-w-[1920px] mx-auto flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                <div className="bg-blue-500 p-2 rounded-lg">
+                                    <PenToolIcon />
+                                </div>
+                                <h1 className="text-xl font-bold tracking-wide">{t.title}</h1>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <div className="bg-slate-800 rounded-lg p-1 flex">
+                                    <button
+                                        onClick={() => setLang('zh')}
+                                        className={`px-3 py-1 text-sm rounded-md transition-all ${lang === 'zh' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
+                                    >
+                                        中文
+                                    </button>
+                                    <button
+                                        onClick={() => setLang('en')}
+                                        className={`px-3 py-1 text-sm rounded-md transition-all ${lang === 'en' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
+                                    >
+                                        English
+                                    </button>
+                                </div>
+
+                                <button
+                                    onClick={fillExample}
+                                    className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-md text-sm transition-colors text-white"
+                                    title={t.example}
+                                >
+                                    <Wand2Icon /> <span className="hidden sm:inline">{t.example}</span>
+                                </button>
+                                <button
+                                    onClick={resetForm}
+                                    className="flex items-center gap-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 px-3 py-2 rounded-md text-sm transition-colors"
+                                    title={t.reset}
+                                >
+                                    <RotateCcwIcon />
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+
+                    <main className="flex-1 w-full max-w-[1920px] mx-auto p-4 md:p-6 flex flex-col xl:flex-row gap-6 print:block print:p-0">
+
+                        {/* 1. 左侧：输入区域 (Inputs) */}
+                        <div className="w-full xl:w-[400px] shrink-0 space-y-6 print:hidden h-fit xl:sticky xl:top-24 overflow-y-auto max-h-[calc(100vh-8rem)] custom-scrollbar pr-2 order-2 xl:order-1">
+                            <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                                <h2 className="flex items-center gap-2 text-lg font-semibold mb-4 text-slate-800 pb-2 border-b">
+                                    <span className="text-blue-600"><UserIcon /></span> {t.personalInfo}
+                                </h2>
+                                <div className="space-y-4">
+                                    <InputGroup label={t.labels.fullName} name="fullName" value={formData.fullName} onChange={handleInputChange} placeholder={t.placeholders.fullName} />
+                                    <InputGroup label={t.labels.email} name="email" value={formData.email} onChange={handleInputChange} placeholder={t.placeholders.email} />
+                                    <InputGroup label={t.labels.phone} name="phone" value={formData.phone} onChange={handleInputChange} placeholder={t.placeholders.phone} />
+                                    <InputGroup label={t.labels.address} name="address" value={formData.address} onChange={handleInputChange} placeholder={t.placeholders.address} />
+                                    <InputGroup label={t.labels.linkedin} name="linkedin" value={formData.linkedin} onChange={handleInputChange} placeholder={t.placeholders.linkedin} />
+                                    <InputGroup label={t.labels.portfolio} name="portfolio" value={formData.portfolio} onChange={handleInputChange} placeholder={t.placeholders.portfolio} />
+                                </div>
+                            </section>
+
+                            <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                                <h2 className="flex items-center gap-2 text-lg font-semibold mb-4 text-slate-800 pb-2 border-b">
+                                    <span className="text-blue-600"><BriefcaseIcon /></span> {t.jobInfo}
+                                </h2>
+                                <div className="space-y-4">
+                                    <InputGroup label={t.labels.position} name="position" value={formData.position} onChange={handleInputChange} placeholder={t.placeholders.position} />
+                                    <InputGroup label={t.labels.companyName} name="companyName" value={formData.companyName} onChange={handleInputChange} placeholder={t.placeholders.companyName} />
+                                    <InputGroup label={t.labels.managerName} name="managerName" value={formData.managerName} onChange={handleInputChange} placeholder={t.placeholders.managerName} />
+                                </div>
+                            </section>
+
+                            <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                                <h2 className="flex items-center gap-2 text-lg font-semibold mb-4 text-slate-800 pb-2 border-b">
+                                    <span className="text-blue-600"><MailIcon /></span> {t.content}
+                                </h2>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            {t.labels.opening}
+                                        </label>
+                                        <textarea
+                                            name="opening"
+                                            value={formData.opening}
+                                            onChange={handleInputChange}
+                                            rows={3}
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm leading-relaxed"
+                                            placeholder={t.placeholders.opening}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            {t.labels.body}
+                                        </label>
+                                        <textarea
+                                            name="body"
+                                            value={formData.body}
+                                            onChange={handleInputChange}
+                                            rows={6}
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm leading-relaxed"
+                                            placeholder={t.placeholders.body}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            {t.labels.closing}
+                                        </label>
+                                        <textarea
+                                            name="closing"
+                                            value={formData.closing}
+                                            onChange={handleInputChange}
+                                            rows={3}
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm leading-relaxed"
+                                            placeholder={t.placeholders.closing}
+                                        />
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+
+                        {/* 2. 中间：预览区域 (Preview) */}
+                        <div className="flex-1 flex flex-col items-center order-1 xl:order-2">
+                            <div className="w-full max-w-[21cm] mb-4 print:hidden sticky top-0 z-10 py-2 h-4"></div>
+
+                            <div
+                                id="cover-letter-preview"
+                                className="w-full max-w-[21cm] shadow-2xl print:shadow-none print:w-full print:max-w-none print:h-screen text-slate-800 min-h-[29.7cm] flex flex-col bg-white"
+                            >
+                                {/* 动态渲染布局组件 */}
+                                {currentTheme.layoutType === 'split' ? (
+                                    <SidebarLayout theme={currentTheme} data={formData} t={t} fontStyle={getFontFamily()} />
+                                ) : currentTheme.layoutType === 'banner' ? (
+                                    <BannerLayout theme={currentTheme} data={formData} t={t} fontStyle={getFontFamily()} />
+                                ) : (
+                                    <VerticalLayout theme={currentTheme} data={formData} t={t} fontStyle={getFontFamily()} />
+                                )}
+                            </div>
+                        </div>
+
+                        {/* 3. 右侧：配置区域 (Settings Banner) */}
+                        <div className="w-full xl:w-72 shrink-0 space-y-6 print:hidden h-fit xl:sticky xl:top-24 order-3">
+                            <section className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                                <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-2">
+                                    <PrinterIcon className="text-blue-600 w-5 h-5" /> {t.export}
+                                </h3>
+                                <div className="flex flex-col gap-3">
+                                    <button
+                                        onClick={copyToClipboard}
+                                        className="flex items-center justify-center gap-2 w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-3 rounded-lg shadow-sm transition-all font-medium"
+                                    >
+                                        {showCopyToast ? <span className="text-green-600"><CheckCircle2Icon /></span> : <CopyIcon />}
+                                        {showCopyToast ? t.copied : t.copy}
+                                    </button>
+                                    <button
+                                        onClick={printDocument}
+                                        className="flex items-center justify-center gap-2 w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg shadow-md transition-all font-medium"
+                                    >
+                                        <PrinterIcon />
+                                        {t.export}
+                                    </button>
+                                </div>
+                            </section>
+                            <section className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                                <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-2">
+                                    <LayoutIcon className="text-blue-600 w-5 h-5" /> {t.themeLabel}
+                                </h3>
+                                <div className="flex flex-col gap-2">
+                                    {Object.keys(t.themes).map(key => (
+                                        <button
+                                            key={key}
+                                            onClick={() => setTheme(key)}
+                                            className={`w-full text-left px-4 py-3 rounded-lg border transition-all flex items-center justify-between group ${theme === key
+                                                ? 'bg-blue-50 border-blue-500 text-blue-700 ring-1 ring-blue-500'
+                                                : 'bg-white border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-blue-50/50'
+                                                }`}
+                                        >
+                                            <span className="font-medium">{t.themes[key]}</span>
+                                            {theme === key && <CheckCircle2Icon className="w-4 h-4 text-blue-500" />}
+                                        </button>
+                                    ))}
+                                </div>
+                            </section>
+
+                            {isEn && (
+                                <section className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                                    <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-2">
+                                        <TypeIcon className="text-blue-600 w-5 h-5" /> {t.fontLabel}
+                                    </h3>
+                                    <select
+                                        value={selectedFont}
+                                        onChange={(e) => setSelectedFont(e.target.value)}
+                                        className="w-full bg-slate-50 border border-gray-300 text-slate-800 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none font-medium"
+                                    >
+                                        {fontOptions.map((font) => (
+                                            <option key={font.name} value={font.value}>
+                                                {font.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </section>
+                            )}
+                        </div>
+
+                    </main>
+                </div>
+            );
+        };
+
+        const InputGroup = ({ label, name, value, onChange, placeholder, type = "text" }) => (
+            <div className="w-full">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {label}
+                </label>
+                <input
+                    type={type}
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
+                />
+            </div>
+        );
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

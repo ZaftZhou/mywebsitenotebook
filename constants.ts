@@ -108,6 +108,43 @@ export const PROJECTS: Project[] = [
   }
 ];
 
+
+export const TOOLS = [
+  {
+    id: 'html-playground',
+    title: 'HTML 5 Demo',
+    icon: '🌐',
+    desc: 'Simple HTML5 boilerplate demo',
+    url: '/tools/index.html',
+    color: 'bg-blue-100'
+  },
+  // Add more tools here as you go
+  {
+    id: 'cover-letter',
+    title: 'Cover Letter',
+    icon: '📝',
+    desc: 'Cover Letter Tool',
+    url: '/tools/CoverLetter/index.html',
+    color: 'bg-purple-100'
+  },
+  {
+    id: 'image-to-pdf',
+    title: 'Image to PDF',
+    icon: '📑',
+    desc: 'Convert multiple images to a single PDF document.',
+    url: '/tools/ImageToPdf/index.html',
+    color: 'bg-orange-100'
+  },
+  {
+    id: 'ocr-tool',
+    title: 'Image to Text',
+    icon: '🔮',
+    desc: 'Extract text from images using AI (OCR).',
+    url: '/tools/ImageToText/index.html',
+    color: 'bg-blue-100'
+  }
+];
+
 export const SKILLS: Skill[] = [
   { name: "Unity/C#", desc: "Core Dev", bg: "bg-cat-unity", value: 95, category: "Core" },
   { name: "3D Pipeline", desc: "Scan-to-Engine", bg: "bg-cat-3d", value: 90, category: "Core" },

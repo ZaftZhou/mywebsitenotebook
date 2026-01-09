@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Folder, User, Mail, Gamepad2, Globe, Smartphone, Box, Hand, Search, Monitor, BookOpen } from 'lucide-react';
+import { Folder, User, Mail, Gamepad2, Globe, Smartphone, Box, Hand, Search, Monitor, BookOpen, Wrench } from 'lucide-react';
 
 import { WindowFrame } from './components/WindowFrame';
 import { WelcomeApp } from './components/apps/WelcomeApp';
 import { ProjectsApp } from './components/apps/ProjectsApp';
 import { AboutApp } from './components/apps/AboutApp';
-import { ContactApp } from './components/apps/ContactApp';
+
 import { BrowserApp } from './components/apps/BrowserApp';
 import { DesktopWidgets } from './components/DesktopWidgets';
 import { CommandPalette } from './components/CommandPalette';
 import AdminApp from './components/apps/AdminApp';
 import { NotebookApp } from './components/apps/NotebookApp';
+import { ToolsApp } from './components/apps/ToolsApp';
 import { SkyhouseIcon } from './components/SkyhouseIcon';
 import { WindowData, AppId, AppDefinition } from './types';
 
@@ -19,10 +20,11 @@ const APPS: Record<AppId, AppDefinition> = {
   welcome: { title: "Welcome!", icon: "👋", component: WelcomeApp, color: "bg-white" },
   projects: { title: "Projects.app", icon: "📁", component: ProjectsApp, color: "bg-cat-unity" },
   about: { title: "About.doc", icon: "👤", component: AboutApp, color: "bg-cat-web" },
-  contact: { title: "Contact.txt", icon: "✏️", component: ContactApp, color: "bg-tape" },
+
   browser: { title: "Netscape.exe", icon: "🌎", component: BrowserApp, color: "bg-blue-100" },
   admin: { title: "Admin.exe", icon: "⚙️", component: AdminApp, color: "bg-red-100" },
   notebook: { title: "Notebook", icon: "📔", component: NotebookApp, color: "bg-green-100" },
+  tools: { title: "Tools", icon: "🛠️", component: ToolsApp, color: "bg-gray-100" },
 };
 
 const DesktopIcon = ({ label, icon, onClick, delay = 0, color = "bg-white", tooltip }: any) => (
@@ -185,6 +187,13 @@ const App: React.FC = () => {
             onClick={() => openApp('notebook')}
             color="bg-green-100"
           />
+          <DesktopIcon
+            label="Tools"
+            icon={<Wrench size={24} />}
+            tooltip="Experiments"
+            onClick={() => openApp('tools')}
+            color="bg-gray-100"
+          />
         </div>
 
 
@@ -246,8 +255,8 @@ const App: React.FC = () => {
             const app = APPS[key];
             const isOpen = windows.find(w => w.id === key);
 
-            // Only show browser/admin in dock if it's currently running
-            if ((key === 'browser' || key === 'admin') && !isOpen) return null;
+            // Only show browser/admin/tools in dock if it's currently running
+            if ((key === 'browser' || key === 'admin' || key === 'tools') && !isOpen) return null;
 
             return (
               <div key={key} className="relative group flex-shrink-0">
@@ -262,10 +271,11 @@ const App: React.FC = () => {
                     {key === 'welcome' && <Hand className="text-ink" size={window.innerWidth < 768 ? 20 : 24} />}
                     {key === 'projects' && <Folder className="text-cat-unity" size={window.innerWidth < 768 ? 20 : 24} />}
                     {key === 'about' && <User className="text-cat-web" size={window.innerWidth < 768 ? 20 : 24} />}
-                    {key === 'contact' && <Mail className="text-tape" fill="#F4E04D" size={window.innerWidth < 768 ? 20 : 24} />}
+
                     {key === 'browser' && <Globe className="text-blue-500" size={window.innerWidth < 768 ? 20 : 24} />}
                     {key === 'admin' && <Monitor className="text-red-500" size={window.innerWidth < 768 ? 20 : 24} />}
                     {key === 'notebook' && <BookOpen className="text-green-600" size={window.innerWidth < 768 ? 20 : 24} />}
+                    {key === 'tools' && <span className="text-2xl">🛠️</span>}
                   </div>
                 </button>
                 {/* Active Dot */}

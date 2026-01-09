@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { PROJECTS, SKILLS } from '../constants';
 import { AppId } from '../types';
 import { Pin, Wrench, Mail, Linkedin, Play, Pause, SkipForward, Music } from 'lucide-react';
-import { useProjects, useSkills, useSettings } from '../src/hooks/useContent';
+import { useProjects, useSkills, useSettings, usePosts } from '../src/hooks/useContent';
 
 const widgetHover: any = {
   scale: 1.05,
@@ -27,6 +27,64 @@ const Tape = ({ className, rotation = -2, color = "bg-tape/90" }: { className?: 
     <div className="w-full h-full opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIi8+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiMwMDAiIG9wYWNpdHk9IjAuMSIvPgo8L3N2Zz4=')]"></div>
   </div>
 );
+
+const LatestNewsWidget = ({ openApp }: { openApp: (id: AppId, props?: any) => void }) => {
+  const { posts, loading } = usePosts();
+  const recentPosts = posts.slice(0, 3);
+
+  if (loading) return null;
+
+  return (
+    <motion.div
+      whileHover={widgetHover}
+      className="bg-green-100 border-2 border-ink rounded-sm p-4 shadow-widget rotate-1 pointer-events-auto hover:shadow-floating transition-shadow relative flex-shrink-0 origin-center"
+    >
+      <Tape className="-top-3 left-10" rotation={-3} color="bg-yellow-200" />
+      <div className="mb-3 border-b-2 border-ink/10 pb-1 flex items-center justify-between">
+        <h4 className="font-hand font-bold text-xl flex items-center gap-2">
+          <span className="text-xl">📰</span> Latest News
+        </h4>
+        <button
+          onClick={() => openApp('notebook')}
+          className="text-[10px] font-bold uppercase tracking-wider text-ink/60 hover:text-ink hover:underline"
+        >
+          View All
+        </button>
+      </div>
+
+      <div className="space-y-2">
+        {recentPosts.length === 0 ? (
+          <div className="text-xs text-gray-400 text-center py-4 italic">No news yet.</div>
+        ) : (
+          recentPosts.map(post => (
+            <div
+              key={post.id}
+              onClick={() => openApp('notebook', { initialPostId: post.id })}
+              className="group cursor-pointer bg-white/50 hover:bg-white rounded border border-transparent hover:border-ink/20 p-2 transition-all"
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`text-[8px] font-bold uppercase px-1 rounded border ${post.type === 'tech_note' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                  post.type === 'devlog' ? 'bg-green-50 text-green-600 border-green-200' :
+                    'bg-red-50 text-red-600 border-red-200'
+                  }`}>
+                  {post.type === 'tech_note' ? 'TECH' : post.type === 'devlog' ? 'DEV' : 'POST'}
+                </span>
+                <span className="text-[9px] font-mono text-gray-500">
+                  {new Date(post.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                </span>
+              </div>
+              <div className="font-bold text-xs truncate text-ink group-hover:text-blue-600 leading-tight">
+                {post.title}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
+
 
 export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProject }) => {
   // State logic
@@ -69,6 +127,7 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
   return (
     <div className="fixed right-6 top-10 bottom-24 w-72 flex flex-col gap-6 pointer-events-none hidden md:flex z-0 overflow-visible no-scrollbar p-6">
 
+
       {/* 0. Music Player Widget (Motion) */}
       <motion.div
         whileHover={widgetHover}
@@ -99,6 +158,11 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
           <button className="hover:text-tape transition-colors"><SkipForward size={14} /></button>
         </div>
       </motion.div>
+
+      {/* NEW: Latest News Widget */}
+      <LatestNewsWidget openApp={openApp} />
+
+
 
       {/* 1. Featured Projects Widget (Motion) */}
       <motion.div
@@ -193,7 +257,7 @@ export const DesktopWidgets: React.FC<WidgetPanelProps> = ({ openApp, openProjec
           <button
             onClick={() => {
               const raw = profile.email || '';
-              if (!raw) return openApp('contact');
+              if (!raw) return;
 
               let finalUrl = raw;
               if (raw.includes('@') && !raw.startsWith('mailto:') && !raw.startsWith('http')) {

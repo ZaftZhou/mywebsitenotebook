@@ -61,7 +61,7 @@ export interface AppDefinition {
   color: string;
 }
 
-export type AppId = 'welcome' | 'projects' | 'about' | 'contact' | 'browser' | 'admin' | 'notebook';
+export type AppId = 'welcome' | 'projects' | 'about' | 'browser' | 'admin' | 'notebook' | 'tools';
 export interface SiteSettings {
   id?: string;
   profile: {

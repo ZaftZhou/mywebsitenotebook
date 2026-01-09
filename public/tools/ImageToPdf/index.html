@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Tools: Convert & Merge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- pdf-lib for robust PDF creation and merging -->
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <!-- pdf.js for rendering previews -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 20px;
+            border: 2px solid transparent;
+            background-clip: content-box;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: #94a3b8;
+        }
+
+        /* Loading spinner animation */
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+        const { PDFDocument } = PDFLib;
+
+        // --- Icons ---
+        const Icon = ({ children, size = 18, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+
+        const FileImage = (props) => <Icon {...props}><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><circle cx="10" cy="12" r="2" /><path d="m20 17-1.296-1.296a2.41 2.41 0 0 0-3.408 0L9 22" /></Icon>;
+        const Upload = (props) => <Icon {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></Icon>;
+        const Trash2 = (props) => <Icon {...props}><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></Icon>;
+        const ArrowUp = (props) => <Icon {...props}><path d="m5 12 7-7 7 7" /><path d="M12 19V5" /></Icon>;
+        const ArrowDown = (props) => <Icon {...props}><path d="M12 5v14" /><path d="m19 12-7 7-7-7" /></Icon>;
+        const FileDown = (props) => <Icon {...props}><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M12 18v-6" /><path d="m9 15 3 3 3-3" /></Icon>;
+        const FileIcon = (props) => <Icon {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></Icon>;
+        const Plus = (props) => <Icon {...props}><path d="M5 12h14" /><path d="M12 5v14" /></Icon>;
+        const Settings2 = (props) => <Icon {...props}><path d="M20 7h-9" /><path d="M14 17H5" /><circle cx="17" cy="17" r="3" /><circle cx="7" cy="7" r="3" /></Icon>;
+
+        // Simple debounce hook
+        function useDebounce(value, delay) {
+            const [debouncedValue, setDebouncedValue] = useState(value);
+            useEffect(() => {
+                const handler = setTimeout(() => setDebouncedValue(value), delay);
+                return () => clearTimeout(handler);
+            }, [value, delay]);
+            return debouncedValue;
+        }
+
+        // Single Page Component
+        const PdfPage = ({ pdfDoc, pageNum }) => {
+            const canvasRef = useRef(null);
+
+            useEffect(() => {
+                const renderPage = async () => {
+                    if (!pdfDoc || !canvasRef.current) return;
+                    try {
+                        const page = await pdfDoc.getPage(pageNum);
+                        const viewport = page.getViewport({ scale: 1.0 }); // Adjust scale as needed
+                        const canvas = canvasRef.current;
+                        const context = canvas.getContext('2d');
+
+                        // Handle High DPI
+                        const pixelRatio = window.devicePixelRatio || 1;
+                        canvas.width = viewport.width * pixelRatio;
+                        canvas.height = viewport.height * pixelRatio;
+                        canvas.style.width = `${viewport.width}px`;
+                        canvas.style.height = `${viewport.height}px`;
+                        context.scale(pixelRatio, pixelRatio);
+
+                        await page.render({ canvasContext: context, viewport }).promise;
+                    } catch (e) {
+                        console.error(`Error rendering page ${pageNum}`, e);
+                    }
+                };
+                renderPage();
+            }, [pdfDoc, pageNum]);
+
+            return (
+                <div className="mb-6 shadow-md border border-gray-200 bg-white inline-block">
+                    <canvas ref={canvasRef} className="block" />
+                </div>
+            );
+        };
+
+        // Scrollable Preview Component
+        const PdfPreview = ({ pdfBytes }) => {
+            const [pdfDoc, setPdfDoc] = useState(null);
+            const [numPages, setNumPages] = useState(0);
+
+            useEffect(() => {
+                if (pdfBytes) {
+                    const loadPdf = async () => {
+                        try {
+                            const loadingTask = pdfjsLib.getDocument(pdfBytes);
+                            const doc = await loadingTask.promise;
+                            setPdfDoc(doc);
+                            setNumPages(doc.numPages);
+                        } catch (e) {
+                            console.error("Error loading PDF for preview", e);
+                        }
+                    };
+                    loadPdf();
+                } else {
+                    setPdfDoc(null);
+                    setNumPages(0);
+                }
+            }, [pdfBytes]);
+
+            if (!pdfDoc) return null;
+
+            return (
+                <div className="flex flex-col items-center py-8">
+                    {Array.from({ length: numPages }, (_, i) => (
+                        <div key={i} className="relative group">
+                            <PdfPage pdfDoc={pdfDoc} pageNum={i + 1} />
+                            <div className="absolute top-2 left-[-40px] text-xs text-gray-400 font-mono w-8 text-right">
+                                {i + 1}
+                            </div>
+                        </div>
+                    ))}
+                    <div className="text-gray-400 text-sm mt-4 pb-8">End of Document ({numPages} pages)</div>
+                </div>
+            );
+        };
+
+        function App() {
+            const [files, setFiles] = useState([]);
+            const [settings, setSettings] = useState({
+                pageSize: 'a4', // a4, letter
+                orientation: 'p', // p = portrait, l = landscape
+                margin: 10, // mm
+                fit: 'contain', // contain, cover, fill
+                quality: 0.8 // 0.1 to 1.0 compression for images
+            });
+            const [generatedPdfBytes, setGeneratedPdfBytes] = useState(null);
+            const [isProcessing, setIsProcessing] = useState(false);
+
+            const debouncedSettings = useDebounce(settings, 800);
+            const debouncedFiles = useDebounce(files, 800);
+
+            useEffect(() => {
+                if (debouncedFiles.length > 0) {
+                    generatePdfBytes();
+                } else {
+                    setGeneratedPdfBytes(null);
+                }
+            }, [debouncedSettings, debouncedFiles]);
+
+            const renderPdfThumbnail = async (file) => {
+                try {
+                    const fileData = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument(fileData).promise;
+                    const page = await pdf.getPage(1);
+                    const viewport = page.getViewport({ scale: 0.3 });
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    await page.render({ canvasContext: context, viewport }).promise;
+                    return canvas.toDataURL();
+                } catch (e) {
+                    console.error("Thumbnail Error", e);
+                    return null;
+                }
+            };
+
+            const addFiles = async (newFiles) => {
+                const fileObjects = await Promise.all(newFiles.map(async (file) => {
+                    let preview = null;
+                    if (file.type === 'application/pdf') {
+                        preview = await renderPdfThumbnail(file);
+                    } else {
+                        preview = URL.createObjectURL(file);
+                    }
+                    return {
+                        id: Math.random().toString(36).substr(2, 9),
+                        file,
+                        type: file.type === 'application/pdf' ? 'pdf' : 'image',
+                        preview,
+                        name: file.name,
+                        size: file.size
+                    };
+                }));
+                setFiles(prev => [...prev, ...fileObjects]);
+            };
+
+            const removeFile = (id) => setFiles(prev => prev.filter(f => f.id !== id));
+
+            const moveFile = (index, direction) => {
+                const newFiles = [...files];
+                if (direction === 'up' && index > 0) {
+                    [newFiles[index], newFiles[index - 1]] = [newFiles[index - 1], newFiles[index]];
+                } else if (direction === 'down' && index < newFiles.length - 1) {
+                    [newFiles[index], newFiles[index + 1]] = [newFiles[index + 1], newFiles[index]];
+                }
+                setFiles(newFiles);
+            };
+
+            const compressImage = (url, quality) => {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.src = url;
+                    img.crossOrigin = "anonymous";
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                });
+            };
+
+            const createPDF = async () => {
+                const pdfDoc = await PDFDocument.create();
+
+                for (const fileObj of files) {
+                    if (fileObj.type === 'image') {
+                        let imgDataUrl = fileObj.preview;
+                        if (settings.quality < 1) {
+                            imgDataUrl = await compressImage(fileObj.preview, settings.quality);
+                        }
+
+                        let pdfImage;
+                        try {
+                            if (imgDataUrl.startsWith('data:image/png')) {
+                                pdfImage = await pdfDoc.embedPng(imgDataUrl);
+                            } else {
+                                pdfImage = await pdfDoc.embedJpg(imgDataUrl);
+                            }
+                        } catch (e) {
+                            try { pdfImage = await pdfDoc.embedPng(imgDataUrl); } catch (e2) { pdfImage = await pdfDoc.embedJpg(imgDataUrl); }
+                        }
+                        if (!pdfImage) continue;
+
+                        const page = pdfDoc.addPage();
+                        let pageWidth = settings.pageSize === 'letter' ? 612 : 595.28;
+                        let pageHeight = settings.pageSize === 'letter' ? 792 : 841.89;
+                        if (settings.orientation === 'l') { [pageWidth, pageHeight] = [pageHeight, pageWidth]; }
+                        page.setSize(pageWidth, pageHeight);
+
+                        const { width, height } = pdfImage.scale(1);
+                        const marginPts = settings.margin * 2.83465;
+                        const availableWidth = pageWidth - (marginPts * 2);
+                        const availableHeight = pageHeight - (marginPts * 2);
+                        const imgRatio = width / height;
+                        const pageRatio = availableWidth / availableHeight;
+
+                        let finalWidth, finalHeight;
+                        if (settings.fit === 'fill') {
+                            finalWidth = availableWidth; finalHeight = availableHeight;
+                        } else if (settings.fit === 'cover') {
+                            if (imgRatio > pageRatio) { finalWidth = availableWidth; finalHeight = availableWidth / imgRatio; }
+                            else { finalHeight = availableHeight; finalWidth = availableHeight * imgRatio; }
+                        } else {
+                            if (imgRatio > pageRatio) { finalWidth = availableWidth; finalHeight = availableWidth / imgRatio; }
+                            else { finalHeight = availableHeight; finalWidth = availableHeight * imgRatio; }
+                        }
+
+                        const x = marginPts + (availableWidth - finalWidth) / 2;
+                        const y = marginPts + (availableHeight - finalHeight) / 2;
+                        page.drawImage(pdfImage, { x, y, width: finalWidth, height: finalHeight });
+
+                    } else if (fileObj.type === 'pdf') {
+                        const existingPdfBytes = await fileObj.file.arrayBuffer();
+                        const srcDoc = await PDFDocument.load(existingPdfBytes);
+                        const indices = srcDoc.getPageIndices();
+                        const copiedPages = await pdfDoc.copyPages(srcDoc, indices);
+                        copiedPages.forEach((page) => pdfDoc.addPage(page));
+                    }
+                }
+                return pdfDoc;
+            };
+
+            const generatePdfBytes = async () => {
+                if (files.length === 0) return;
+                setIsProcessing(true);
+                try {
+                    const pdfDoc = await createPDF();
+                    const pdfBytes = await pdfDoc.save();
+                    setGeneratedPdfBytes(pdfBytes);
+                } catch (e) {
+                    console.error("Preview generation failed", e);
+                } finally {
+                    setIsProcessing(false);
+                }
+            };
+
+            const downloadPDF = async () => {
+                if (files.length === 0) return;
+                setIsProcessing(true);
+                try {
+                    // Reuse generated bytes if available, else re-generate? 
+                    // To be safe we regenerate or use the state if clean.
+                    // For simplicity and correctness, re-run createPDF is fine as it's client side. 
+                    // But using generatedBytes is faster.
+                    let pdfBytes = generatedPdfBytes;
+                    if (!pdfBytes) {
+                        const pdfDoc = await createPDF();
+                        pdfBytes = await pdfDoc.save();
+                    }
+
+                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `merged-document-${new Date().getTime()}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } catch (e) {
+                    alert('Download failed');
+                    console.error(e);
+                } finally {
+                    setIsProcessing(false);
+                }
+            };
+
+            return (
+                <div className="flex h-screen overflow-hidden bg-slate-100">
+
+                    {/* LEFT COLUMN: FILES */}
+                    <aside className="w-80 bg-white border-r border-gray-200 flex flex-col z-10 shadow-sm shrink-0">
+                        <header className="p-4 border-b border-gray-100 flex items-center justify-between bg-white">
+                            <h2 className="font-bold text-slate-800 flex items-center gap-2">
+                                <span className="bg-orange-100 text-orange-600 p-1.5 rounded-md"><FileIcon size={18} /></span> Files
+                            </h2>
+                            <button
+                                onClick={() => document.getElementById('fileInput').click()}
+                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                                title="Add Files"
+                            >
+                                <Plus size={20} />
+                            </button>
+                            <input type="file" id="fileInput" multiple accept="image/*,application/pdf" className="hidden" onChange={(e) => addFiles(Array.from(e.target.files))} />
+                        </header>
+
+                        <div className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar">
+                            {files.length === 0 && (
+                                <div className="text-center p-8 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-lg m-2">
+                                    Drop files here to start
+                                </div>
+                            )}
+                            {files.map((file, index) => (
+                                <div key={file.id} className="bg-white group p-2 rounded-lg border border-gray-100 shadow-sm flex items-center gap-3 hover:border-blue-400 transition-all">
+                                    <div className="flex flex-col gap-1 text-gray-300">
+                                        <button onClick={() => moveFile(index, 'up')} disabled={index === 0} className="hover:text-blue-500 disabled:opacity-30"><ArrowUp size={14} /></button>
+                                        <button onClick={() => moveFile(index, 'down')} disabled={index === files.length - 1} className="hover:text-blue-500 disabled:opacity-30"><ArrowDown size={14} /></button>
+                                    </div>
+                                    <div className="w-12 h-12 bg-gray-50 rounded border border-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                                        {file.preview ? <img src={file.preview} className="w-full h-full object-cover" /> : <FileIcon className="text-gray-400" />}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-gray-700 truncate">{file.name}</p>
+                                        <p className="text-xs text-gray-400">{(file.size / 1024 / 1024).toFixed(1)}MB • {file.type.toUpperCase()}</p>
+                                    </div>
+                                    <button onClick={() => removeFile(file.id)} className="text-gray-300 hover:text-red-500 p-1"><Trash2 size={16} /></button>
+                                </div>
+                            ))}
+                        </div>
+                    </aside>
+
+                    {/* CENTER COLUMN: PREVIEW */}
+                    <main className="flex-1 flex flex-col bg-slate-100 relative overflow-hidden">
+                        <div className="flex-1 overflow-auto custom-scrollbar relative">
+                            {files.length === 0 ? (
+                                <div className="text-center text-gray-400 h-full flex flex-col items-center justify-center">
+                                    <div className="mb-4 flex justify-center"><FileImage size={48} className="text-slate-300" /></div>
+                                    <h3 className="text-lg font-medium text-slate-500">Live Preview</h3>
+                                    <p className="text-sm">Add files to see how your PDF will look</p>
+                                </div>
+                            ) : (
+                                <div className="min-h-full w-full relative">
+                                    {isProcessing && (
+                                        <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center z-10 sticky top-0 h-screen">
+                                            <div className="px-4 py-2 bg-white rounded-full shadow-lg flex items-center gap-2 border border-gray-100">
+                                                <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-[spin_1s_linear_infinite]"></div>
+                                                <span className="text-sm font-medium text-slate-600">Generating Preview...</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {generatedPdfBytes ? (
+                                        <PdfPreview pdfBytes={generatedPdfBytes} />
+                                    ) : (
+                                        <div className="flex h-full items-center justify-center text-gray-400">Preparing...</div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </main>
+
+                    {/* RIGHT COLUMN: SETTINGS */}
+                    <aside className="w-72 bg-white border-l border-gray-200 flex flex-col shrink-0 z-20 shadow-lg">
+                        <header className="p-4 border-b border-gray-100">
+                            <h2 className="font-bold text-slate-800 flex items-center gap-2">
+                                <Settings2 size={18} className="text-blue-600" /> Settings
+                            </h2>
+                        </header>
+
+                        <div className="flex-1 p-5 space-y-6 overflow-y-auto">
+                            <div className="space-y-3">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Page Size</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {['a4', 'letter'].map(s => (
+                                        <button key={s} onClick={() => setSettings(p => ({ ...p, pageSize: s }))}
+                                            className={`py-2 px-3 text-sm rounded-lg border font-medium capitalize transition-all ${settings.pageSize === s ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-slate-600 hover:border-gray-300'}`}>
+                                            {s}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Orientation</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button onClick={() => setSettings(p => ({ ...p, orientation: 'p' }))} className={`py-2 px-3 text-sm rounded-lg border font-medium transition-all ${settings.orientation === 'p' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-slate-600 hover:border-gray-300'}`}>Portrait</button>
+                                    <button onClick={() => setSettings(p => ({ ...p, orientation: 'l' }))} className={`py-2 px-3 text-sm rounded-lg border font-medium transition-all ${settings.orientation === 'l' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-slate-600 hover:border-gray-300'}`}>Landscape</button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Fit Mode</label>
+                                <div className="grid grid-cols-3 gap-1">
+                                    {['contain', 'cover', 'fill'].map(f => (
+                                        <button key={f} onClick={() => setSettings(p => ({ ...p, fit: f }))}
+                                            className={`py-1.5 px-1 text-xs rounded-md border font-medium capitalize transition-all ${settings.fit === f ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-slate-600 hover:border-gray-300'}`}>
+                                            {f}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex justify-between">
+                                    <span>Margin</span>
+                                    <span>{settings.margin}mm</span>
+                                </label>
+                                <input type="range" min="0" max="50" value={settings.margin} onChange={e => setSettings(p => ({ ...p, margin: Number(e.target.value) }))}
+                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                            </div>
+
+                            <div className="space-y-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex justify-between">
+                                    <span>Compression</span>
+                                    <span>{Math.round((1 - settings.quality) * 100)}%</span>
+                                </label>
+                                <div className="flex justify-between text-[10px] text-gray-400 px-1"><span>None</span><span>Max</span></div>
+                                <input type="range" min="0.1" max="1" step="0.1" value={settings.quality} onChange={e => setSettings(p => ({ ...p, quality: Number(e.target.value) }))}
+                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500" />
+                                <p className="text-[10px] text-slate-400 text-center">Lower quality = Smaller PDF</p>
+                            </div>
+                        </div>
+
+                        <div className="p-5 border-t border-gray-100 bg-slate-50">
+                            <button onClick={downloadPDF} disabled={files.length === 0} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:shadow-none disabled:cursor-not-allowed">
+                                <FileDown size={20} /> Download PDF
+                            </button>
+                        </div>
+                    </aside>
+
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
