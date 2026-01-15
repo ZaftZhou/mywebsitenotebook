@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro 简历生成器</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 React 和 React DOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- 引入 Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- 引入 Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=Lato:wght@300;400;700&family=Merriweather:wght@300;400;700&family=Open+Sans:wght@300;400;600&family=Playfair+Display:wght@400;600;700&family=Roboto:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* 自定义滚动条 */
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600&family=Oswald:wght@300;400;500;600&display=swap');
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* 打印样式优化 */
+        @media print {
+            @page {
+                margin: 0;
+                size: auto;
+            }
+
+            body {
+                background: white;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            /* 强制打印背景色 */
+            .print\:hidden {
+                display: none !important;
+            }
+
+            .print\:block {
+                display: block !important;
+            }
+
+            .print\:shadow-none {
+                box-shadow: none !important;
+            }
+
+            .print\:w-full {
+                width: 100% !important;
+            }
+
+            .print\:max-w-none {
+                max-width: none !important;
+            }
+
+            .print\:h-auto {
+                height: auto !important;
+                min-height: 100vh;
+            }
+
+            /* 确保侧边栏填满 */
+            ::-webkit-scrollbar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 font-sans text-gray-800">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- 图标组件 (SVG) ---
+        const Icon = ({ children, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+
+        const UserIcon = ({ className }) => <Icon className={className}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></Icon>;
+        const MailIcon = ({ className }) => <Icon className={className}><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></Icon>;
+        const PhoneIcon = ({ className }) => <Icon className={className}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></Icon>;
+        const MapPinIcon = ({ className }) => <Icon className={className}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></Icon>;
+        const LinkedinIcon = ({ className }) => <Icon className={className}><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" /><rect width="4" height="12" x="2" y="9" /><circle cx="4" cy="4" r="2" /></Icon>;
+        const GlobeIcon = ({ className }) => <Icon className={className}><circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" /></Icon>;
+        const PlusIcon = ({ className }) => <Icon className={className}><path d="M5 12h14" /><path d="M12 5v14" /></Icon>;
+        const Trash2Icon = ({ className }) => <Icon className={className}><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></Icon>;
+        const Wand2Icon = ({ className }) => <Icon className={className}><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z" /><path d="m14 7 3 3" /><path d="M5 6v4" /><path d="M19 14v4" /><path d="M10 2v2" /><path d="M7 8H3" /><path d="M21 16h-4" /><path d="M11 3H9" /></Icon>;
+        const RotateCcwIcon = ({ className }) => <Icon className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></Icon>;
+        const PrinterIcon = ({ className }) => <Icon className={className}><path d="M6 9V2h12v7" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><path d="M6 14h12v8H6z" /></Icon>;
+        const LayoutIcon = ({ className }) => <Icon className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><line x1="9" x2="9" y1="3" y2="21" /></Icon>;
+        const TypeIcon = ({ className }) => <Icon className={className}><path d="M4 7V4h16v3" /><path d="M9 20h6" /><path d="M12 4v16" /></Icon>;
+        const ChevronDownIcon = ({ className }) => <Icon className={className}><path d="m6 9 6 6 6-6" /></Icon>;
+        const FileTextIcon = ({ className }) => <Icon className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></Icon>;
+        const BriefcaseIcon = ({ className }) => <Icon className={className}><rect width="20" height="14" x="2" y="7" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></Icon>;
+        const GraduationCapIcon = ({ className }) => <Icon className={className}><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></Icon>;
+        const RocketIcon = ({ className }) => <Icon className={className}><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" /><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" /><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" /><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" /></Icon>;
+        const UploadIcon = ({ className }) => <Icon className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></Icon>;
+        const XIcon = ({ className }) => <Icon className={className}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></Icon>;
+
+        // --- 数据结构与初始值 ---
+        const { useState, useEffect } = React;
+
+        const initialData = {
+            personal: {
+                fullName: '',
+                role: '',
+                email: '',
+                phone: '',
+                address: '',
+                linkedin: '',
+                website: '',
+                summary: '',
+                avatar: ''
+            },
+            experience: [],
+            education: [],
+            projects: [],
+            skills: []
+        };
+
+        const exampleDataZh = {
+            personal: {
+                fullName: '张伟',
+                role: '高级前端工程师',
+                email: 'zhang.wei@example.com',
+                phone: '138-0000-0000',
+                address: '北京市朝阳区',
+                linkedin: 'linkedin.com/in/zhangwei',
+                website: 'zhangwei.design',
+                summary: '拥有6年前端开发经验的资深工程师，专注于构建高性能、可扩展的Web应用。精通React生态系统，对用户体验和代码质量有执着追求。具有丰富的团队领导和技术架构设计经验。'
+            },
+            experience: [
+                {
+                    id: 11,
+                    role: '高级前端开发工程师',
+                    company: '未来科技有限公司',
+                    date: '2021.03 - 至今',
+                    location: '北京',
+                    description: '• 负责公司核心SaaS产品的重构，使用React和TypeScript，将首屏加载时间减少40%。\n• 设计并实现通用的UI组件库，被公司内部5个项目复用，提升开发效率30%。\n• 带领5人团队进行技术攻坚，成功解决了复杂的数据可视化性能瓶颈。'
+                },
+                {
+                    id: 12,
+                    role: '前端开发工程师',
+                    company: '知行互联网',
+                    date: '2018.06 - 2021.02',
+                    location: '上海',
+                    description: '• 参与电商后台管理系统的开发，负责订单管理和用户中心模块。\n• 引入Redux进行状态管理，规范了数据流向，降低了Bug率。\n• 与后端团队紧密配合，设计并优化了RESTful API接口。'
+                }
+            ],
+            education: [
+                {
+                    id: 21,
+                    degree: '计算机科学与技术 学士',
+                    school: '上海交通大学',
+                    date: '2014.09 - 2018.06',
+                    location: '上海',
+                    description: '主修课程：数据结构、算法分析、操作系统、计算机网络。在校期间多次获得奖学金。'
+                }
+            ],
+            projects: [
+                {
+                    id: 31,
+                    name: 'E-Shop 电商平台',
+                    role: '核心开发者',
+                    description: '基于Next.js的全栈电商平台，支持服务端渲染(SSR)。实现了购物车、支付集成和用户评价系统。',
+                    link: 'github.com/zhangwei/eshop'
+                }
+            ],
+            skills: [
+                { id: 41, name: '前端技术', items: 'React, Vue, TypeScript, Next.js, TailwindCSS, Webpack' },
+                { id: 42, name: '后端与工具', items: 'Node.js, GraphQL, Docker, Git, Figma' },
+                { id: 43, name: '语言', items: '中文 (母语), 英语 (流利)' }
+            ]
+        };
+
+        const exampleDataEn = {
+            personal: {
+                fullName: 'Alex Chen',
+                role: 'Senior Frontend Engineer',
+                email: 'alex.chen@example.com',
+                phone: '+86 138-0000-0000',
+                address: 'Beijing, China',
+                linkedin: 'linkedin.com/in/alexc',
+                website: 'alex.dev',
+                summary: 'Passionate Senior Frontend Engineer with 6+ years of experience building high-performance web applications. Expert in React ecosystem and UI/UX best practices. Proven track record of technical leadership and architectural design.'
+            },
+            experience: [
+                {
+                    id: 11,
+                    role: 'Senior Frontend Engineer',
+                    company: 'Future Tech Inc.',
+                    date: 'Mar 2021 - Present',
+                    location: 'Beijing',
+                    description: '• Led the architectural migration of the core SaaS platform using React & TypeScript, improving load time by 40%.\n• Developed a shared UI component library used across 5 internal products, boosting development efficiency by 30%.\n• Mentored a team of 5 junior developers and conducted code reviews to ensure high code quality.'
+                },
+                {
+                    id: 12,
+                    role: 'Frontend Developer',
+                    company: 'Zhixing Internet',
+                    date: 'Jun 2018 - Feb 2021',
+                    location: 'Shanghai',
+                    description: '• Developed key features for the e-commerce admin dashboard, focusing on order management and user settings.\n• Implemented Redux for state management, significantly reducing state-related bugs.\n• Collaborated closely with backend engineers to design and optimize RESTful APIs.'
+                }
+            ],
+            education: [
+                {
+                    id: 21,
+                    degree: 'B.S. in Computer Science',
+                    school: 'Shanghai Jiao Tong University',
+                    date: 'Sep 2014 - Jun 2018',
+                    location: 'Shanghai',
+                    description: 'Relevant Coursework: Data Structures, Algorithms, Operating Systems. Awarded University Scholarship 3 consecutive years.'
+                }
+            ],
+            projects: [
+                {
+                    id: 31,
+                    name: 'E-Shop Platform',
+                    role: 'Core Developer',
+                    description: 'A full-stack e-commerce platform built with Next.js, featuring SSR, cart management, and payment gateway integration.',
+                    link: 'github.com/alexchen/eshop'
+                }
+            ],
+            skills: [
+                { id: 41, name: 'Frontend', items: 'React, Vue, TypeScript, Next.js, TailwindCSS, Webpack' },
+                { id: 42, name: 'Backend & Tools', items: 'Node.js, GraphQL, Docker, Git, Figma' },
+                { id: 43, name: 'Languages', items: 'Chinese (Native), English (Fluent)' }
+            ]
+        };
+
+        const uiText = {
+            zh: {
+                title: 'Pro 简历生成器',
+                reset: '重置',
+                example: '示例',
+                fontLabel: '字体',
+                themeLabel: '布局风格',
+                themeLabel: '布局风格',
+                themes: { classic: '经典', modern: '侧边栏', minimal: '极简', professional: '商务 (Professional)', elegant: '雅致 (Elegant)' },
+                fonts: { default: '默认', sans: '无衬线 (Sans)', serif: '衬线 (Serif)', mono: '等宽 (Mono)', oswald: 'Oswald', lato: 'Lato' },
+                colors: { default: '默认蓝', emerald: '翡翠绿', purple: '紫色', rose: '玫瑰红', amber: '琥珀色', slate: '深灰' },
+                personalInfo: '个人信息',
+                appearance: '外观设置',
+                customColor: '自定义颜色',
+                personalInfo: '个人信息',
+                uploadPhoto: '上传照片',
+                removePhoto: '移除照片',
+                experience: '工作经历',
+                education: '教育背景',
+                projects: '项目经历',
+                skills: '技能清单',
+                export: '导出 PDF',
+                add: '添加',
+                labels: {
+                    fullName: '姓名', role: '目标职位/头衔', email: '邮箱', phone: '电话',
+                    address: '地址', linkedin: 'LinkedIn', website: '个人网站', summary: '个人简介',
+                    company: '公司/组织', school: '学校/机构', degree: '学位/专业', date: '时间段',
+                    location: '地点', description: '描述', name: '项目/分类名称', link: '链接', items: '技能项'
+                },
+                placeholders: {
+                    summary: '用一小段话简述你的职业目标和核心优势...',
+                    description: '使用列表形式描述你的主要职责和成就...'
+                }
+            },
+            en: {
+                title: 'Pro Resume Builder',
+                reset: 'Reset',
+                example: 'Example',
+                fontLabel: 'Font',
+                themeLabel: 'Layout',
+                themeLabel: 'Layout',
+                themeLabel: 'Layout',
+                themes: { classic: 'Classic', modern: 'Sidebar', minimal: 'Minimal', professional: 'Professional', elegant: 'Elegant' },
+                fonts: { default: 'Default', sans: 'Sans Serif', serif: 'Serif', mono: 'Monospace', oswald: 'Oswald', lato: 'Lato' },
+                colors: { default: 'Blue (Def)', emerald: 'Emerald', purple: 'Purple', rose: 'Rose', amber: 'Amber', slate: 'Slate' },
+                personalInfo: 'Personal Info',
+                appearance: 'Appearance',
+                customColor: 'Custom Color',
+                personalInfo: 'Personal Info',
+                uploadPhoto: 'Upload Photo',
+                removePhoto: 'Remove Photo',
+                experience: 'Experience',
+                education: 'Education',
+                projects: 'Projects',
+                skills: 'Skills',
+                export: 'Export PDF',
+                add: 'Add',
+                labels: {
+                    fullName: 'Full Name', role: 'Title / Job Target', email: 'Email', phone: 'Phone',
+                    address: 'Location', linkedin: 'LinkedIn', website: 'Website', summary: 'Summary',
+                    company: 'Company', school: 'University', degree: 'Degree', date: 'Date Range',
+                    location: 'Location', description: 'Description', name: 'Name', link: 'Link', items: 'Items'
+                },
+                placeholders: {
+                    summary: 'Briefly describe your career goals and key strengths...',
+                    description: 'Describe your responsibilities and achievements in bullet points...'
+                }
+            }
+        };
+
+        // --- 通用输入组件 ---
+        const InputGroup = ({ label, name, value, onChange, placeholder, type = "text" }) => (
+            <div className="mb-3">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 flex justify-between">
+                    {label}
+                </label>
+                <input
+                    type={type}
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
+                />
+            </div>
+        );
+
+        const TextAreaGroup = ({ label, name, value, onChange, placeholder, rows = 4 }) => (
+            <div className="mb-3">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{label}</label>
+                <textarea
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    rows={rows}
+                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm leading-relaxed"
+                />
+            </div>
+        );
+
+        // --- 动态列表组件 (Exp, Edu, etc.) ---
+        const DynamicList = ({ title, items, icon: IconComp, onAdd, onRemove, onChange, fields, t }) => {
+            const [isExpanded, setIsExpanded] = useState(true);
+
+            return (
+                <section className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 transition-all hover:shadow-md">
+                    <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+                        <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800">
+                            <span className="text-blue-600"><IconComp /></span> {title}
+                        </h2>
+                        <span className={`text-gray-400 transition-transform ${isExpanded ? '' : '-rotate-90'}`}>
+                            <ChevronDownIcon />
+                        </span>
+                    </div>
+
+                    {isExpanded && (
+                        <div className="space-y-6">
+                            {items.map((item, index) => (
+                                <div key={item.id} className="relative pl-4 border-l-2 border-gray-100 group">
+                                    <button
+                                        onClick={() => onRemove(item.id)}
+                                        className="absolute right-0 top-0 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                                        title="Remove"
+                                    >
+                                        <Trash2Icon className="w-4 h-4" />
+                                    </button>
+
+                                    <div className="grid grid-cols-2 gap-3 mb-2">
+                                        {fields.map((field) => (
+                                            <div key={field.key} className={field.fullWidth ? "col-span-2" : "col-span-1"}>
+                                                {field.type === 'textarea' ? (
+                                                    <TextAreaGroup
+                                                        label={t.labels[field.labelKey]}
+                                                        value={item[field.key]}
+                                                        onChange={(e) => onChange(item.id, field.key, e.target.value)}
+                                                        placeholder={t.placeholders[field.placeholderKey] || ''}
+                                                    />
+                                                ) : (
+                                                    <InputGroup
+                                                        label={t.labels[field.labelKey]}
+                                                        value={item[field.key]}
+                                                        onChange={(e) => onChange(item.id, field.key, e.target.value)}
+                                                    />
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                            <button
+                                onClick={onAdd}
+                                className="w-full py-2 flex items-center justify-center gap-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200 dashed"
+                            >
+                                <PlusIcon className="w-4 h-4" /> {t.add}
+                            </button>
+                        </div>
+                    )}
+                </section>
+            );
+        };
+
+        // --- 主题布局组件 ---
+
+        // Helper: Markdown-like Bullet points rendering
+        const TextWithBullets = ({ text, className }) => {
+            if (!text) return null;
+            const lines = text.split('\n');
+            return (
+                <div className={className}>
+                    {lines.map((line, i) => (
+                        <p key={i} className="mb-0.5 min-h-[1.2em]">
+                            {line}
+                        </p>
+                    ))}
+                </div>
+            );
+        }
+
+        // 1. Classic Theme
+        const ThemeClassic = ({ data, t, fontStyle }) => {
+            return (
+                <div className="h-full w-full p-12 text-slate-900 relative" style={{ fontFamily: fontStyle }}>
+                    {/* Header: Flex Row (Left: Info, Right: Avatar) */}
+                    <div className="border-b-2 border-gray-800 pb-8 mb-8 flex justify-between items-start gap-8">
+                        <div className="flex-1">
+                            <h1 className="text-4xl font-bold uppercase tracking-wider mb-2" style={{ color: data.design?.color }}>{data.personal.fullName}</h1>
+                            <p className="text-xl text-gray-600 font-medium mb-4">{data.personal.role}</p>
+
+                            {/* Primary Contact Info */}
+                            <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500 mb-1">
+                                {data.personal.email && <span className="flex items-center gap-1"><MailIcon className="w-3 h-3" style={{ color: data.design?.color }} /> {data.personal.email}</span>}
+                                {data.personal.phone && <span className="flex items-center gap-1"><PhoneIcon className="w-3 h-3" style={{ color: data.design?.color }} /> {data.personal.phone}</span>}
+                                {data.personal.address && <span className="flex items-center gap-1"><MapPinIcon className="w-3 h-3" style={{ color: data.design?.color }} /> {data.personal.address}</span>}
+                            </div>
+
+                            {/* Secondary/Links Info */}
+                            {(data.personal.linkedin || data.personal.website) && (
+                                <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500">
+                                    {data.personal.linkedin && <span className="break-all flex items-center gap-1"><LinkedinIcon className="w-3 h-3" style={{ color: data.design?.color }} /> {data.personal.linkedin}</span>}
+                                    {data.personal.website && <span className="break-all flex items-center gap-1"><GlobeIcon className="w-3 h-3" style={{ color: data.design?.color }} /> {data.personal.website}</span>}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Avatar */}
+                        {data.personal.avatar && (
+                            <div className="shrink-0">
+                                <img src={data.personal.avatar} alt="Profile" className="w-32 h-32 object-cover border border-gray-300 shadow-sm rounded-sm" />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Summary */}
+                    {data.personal.summary && (
+                        <div className="mb-6">
+                            <h2 className="text-sm font-bold uppercase tracking-widest border-b border-gray-300 pb-1 mb-3">
+                                {t.labels.summary}
+                            </h2>
+                            <p className="text-sm leading-relaxed text-justify">{data.personal.summary}</p>
+                        </div>
+                    )}
+
+                    {/* Experience */}
+                    {data.experience.length > 0 && (
+                        <div className="mb-6">
+                            <h2 className="text-sm font-bold uppercase tracking-widest border-b border-gray-300 pb-1 mb-4">
+                                {t.experience}
+                            </h2>
+                            <div className="space-y-4">
+                                {data.experience.map(exp => (
+                                    <div key={exp.id}>
+                                        <div className="flex justify-between items-baseline mb-1">
+                                            <h3 className="font-bold text-base">{exp.role}</h3>
+                                            <span className="text-sm font-medium text-gray-600">{exp.date}</span>
+                                        </div>
+                                        <div className="flex justify-between items-baseline mb-2 text-sm">
+                                            <span className="font-semibold italic text-slate-700">{exp.company}</span>
+                                            <span className="text-gray-500">{exp.location}</span>
+                                        </div>
+                                        <TextWithBullets text={exp.description} className="text-sm text-gray-700 leading-snug" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Education */}
+                    {data.education.length > 0 && (
+                        <div className="mb-6">
+                            <h2 className="text-sm font-bold uppercase tracking-widest border-b border-gray-300 pb-1 mb-4">
+                                {t.education}
+                            </h2>
+                            <div className="space-y-4">
+                                {data.education.map(edu => (
+                                    <div key={edu.id}>
+                                        <div className="flex justify-between items-baseline mb-1">
+                                            <h3 className="font-bold text-base">{edu.school}</h3>
+                                            <span className="text-sm font-medium text-gray-600">{edu.date}</span>
+                                        </div>
+                                        <div className="flex justify-between items-baseline mb-1 text-sm">
+                                            <span>{edu.degree}</span>
+                                            <span className="text-gray-500">{edu.location}</span>
+                                        </div>
+                                        {edu.description && <p className="text-sm text-gray-600 mt-1">{edu.description}</p>}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Skills & Projects (Combined row if space allows, but stacks for now) */}
+                    {data.skills.length > 0 && (
+                        <div className="mb-6">
+                            <h2 className="text-sm font-bold uppercase tracking-widest border-b border-gray-300 pb-1 mb-3">
+                                {t.skills}
+                            </h2>
+                            <div className="text-sm">
+                                {data.skills.map(skill => (
+                                    <div key={skill.id} className="mb-1 flex">
+                                        <span className="font-bold w-32 shrink-0">{skill.name}:</span>
+                                        <span>{skill.items}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {data.projects.length > 0 && (
+                        <div>
+                            <h2 className="text-sm font-bold uppercase tracking-widest border-b border-gray-300 pb-1 mb-3">
+                                {t.projects}
+                            </h2>
+                            <div className="space-y-3">
+                                {data.projects.map(proj => (
+                                    <div key={proj.id} className="text-sm">
+                                        <div className="flex flex-wrap items-baseline gap-2 mb-1">
+                                            <span className="font-bold whitespace-nowrap">{proj.name}</span>
+                                            {proj.role && <span className="text-gray-500 text-xs whitespace-nowrap">| {proj.role}</span>}
+                                            {proj.link && <span className="text-blue-600 text-xs break-all">[{proj.link}]</span>}
+                                        </div>
+                                        <p className="text-gray-700 leading-snug">{proj.description}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // 2. Modern Theme (Sidebar)
+        const ThemeModern = ({ data, t, fontStyle }) => {
+            return (
+                <div className="flex h-full w-full bg-white" style={{ fontFamily: fontStyle }}>
+                    {/* Sidebar */}
+                    <div className="w-1/3 bg-slate-900 text-white p-8 pt-12 flex flex-col">
+                        <div className="mb-10 text-center">
+                            {/* Avatar or Initials */}
+                            <div className="w-32 h-32 mx-auto mb-6 rounded-full overflow-hidden border-4 border-slate-600 bg-slate-700 flex items-center justify-center shrink-0">
+                                {data.personal.avatar ? (
+                                    <img src={data.personal.avatar} alt="Profile" className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="text-4xl font-bold text-slate-400">
+                                        {data.personal.fullName ? data.personal.fullName.charAt(0).toUpperCase() : 'U'}
+                                    </span>
+                                )}
+                            </div>
+                            <h1 className="text-2xl font-bold mb-2 leading-tight break-words">{data.personal.fullName}</h1>
+                            <p className="text-sm font-medium uppercase tracking-wide leading-relaxed break-words px-2" style={{ color: data.design?.color || '#93c5fd' }}>{data.personal.role}</p>
+                        </div>
+
+                        {/* Contact Info */}
+                        <div className="mb-10 text-sm space-y-3 text-slate-300">
+                            {data.personal.email && <div className="flex items-center gap-3"><MailIcon className="w-4 h-4 shrink-0" style={{ color: data.design?.color || '#60a5fa' }} /> <span className="break-all">{data.personal.email}</span></div>}
+                            {data.personal.phone && <div className="flex items-center gap-3"><PhoneIcon className="w-4 h-4 shrink-0" style={{ color: data.design?.color || '#60a5fa' }} /> <span className="break-all">{data.personal.phone}</span></div>}
+                            {data.personal.address && <div className="flex items-start gap-3"><MapPinIcon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: data.design?.color || '#60a5fa' }} /> <span className="break-words leading-snug">{data.personal.address}</span></div>}
+                            {data.personal.linkedin && <div className="flex items-center gap-3"><LinkedinIcon className="w-4 h-4 shrink-0" style={{ color: data.design?.color || '#60a5fa' }} /> <span className="break-all">{data.personal.linkedin}</span></div>}
+                            {data.personal.website && <div className="flex items-center gap-3"><GlobeIcon className="w-4 h-4 shrink-0" style={{ color: data.design?.color || '#60a5fa' }} /> <span className="break-all">{data.personal.website}</span></div>}
+                        </div>
+
+                        {/* Skills */}
+                        {data.skills.length > 0 && (
+                            <div className="mb-10">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2">
+                                    {t.skills}
+                                </h3>
+                                <div className="space-y-4">
+                                    {data.skills.map(skill => (
+                                        <div key={skill.id}>
+                                            <p className="text-xs font-bold text-white mb-1">{skill.name}</p>
+                                            <p className="text-xs text-slate-400 leading-relaxed">{skill.items}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Education (moved to sidebar for Modern look) */}
+                        {data.education.length > 0 && (
+                            <div>
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2">
+                                    {t.education}
+                                </h3>
+                                <div className="space-y-4">
+                                    {data.education.map(edu => (
+                                        <div key={edu.id}>
+                                            <p className="text-sm font-bold text-white">{edu.school}</p>
+                                            <p className="text-xs mb-1" style={{ color: data.design?.color || '#93c5fd' }}>{edu.degree}</p>
+                                            <p className="text-xs text-slate-500">{edu.date}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Main Content */}
+                    <div className="w-2/3 p-10 pt-16">
+                        {data.personal.summary && (
+                            <div className="mb-10">
+                                <h2 className="text-lg font-bold text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <span className="w-8 h-1 block" style={{ backgroundColor: data.design?.color || '#2563eb' }}></span> {t.labels.summary}
+                                </h2>
+                                <p className="text-sm text-gray-600 leading-7 text-justify">{data.personal.summary}</p>
+                            </div>
+                        )}
+
+                        {data.experience.length > 0 && (
+                            <div className="mb-10">
+                                <h2 className="text-lg font-bold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
+                                    <span className="w-8 h-1 block" style={{ backgroundColor: data.design?.color || '#2563eb' }}></span> {t.experience}
+                                </h2>
+                                <div className="space-y-8 pl-4 border-l-[3px] border-slate-200 ml-2 mt-2">
+                                    {data.experience.map(exp => (
+                                        <div key={exp.id} className="relative pl-6">
+                                            {/* Timeline Dot: Calculated to center on the 3px line. Left offset needs to target center of line. */}
+                                            {/* Line is at 0px inside Padded container? No, Line matches border-l. */}
+                                            {/* We use -left-[27px] approx? Let's check calculations.
+                                                Container has pl-4 (16px).
+                                                Line is at width 3px.
+                                                Item content starts at 16px.
+                                                We want dot center at 1.5px (center of line).
+                                                16px - 1.5px = 14.5px offset to left?
+                                                Dot is w-4 (16px). Center is 8px.
+                                                So we want dot left edge at - (14.5 - 8) ? No.
+                                                Let's place it absolutely relative to the line.
+                                                Actually, simplified:
+                                                Put dot overlapping the border.
+                                                Container: relative.
+                                                Dot: absolute -left-[calc(16px+1.5px-8px)] ?
+                                                Standard Tailwind approach: -left-[21px] roughly.
+                                            */}
+                                            <div className="absolute -left-[23px] top-1.5 w-4 h-4 bg-white border-4 rounded-full box-border z-10" style={{ borderColor: data.design?.color || '#2563eb' }}></div>
+                                            <h3 className="text-lg font-bold text-slate-800 break-words">{exp.role}</h3>
+                                            <div className="flex justify-between text-sm font-medium mb-2" style={{ color: data.design?.color || '#2563eb' }}>
+                                                <span>{exp.company}</span>
+                                                <span className="text-slate-400">{exp.date}</span>
+                                            </div>
+                                            <TextWithBullets text={exp.description} className="text-sm text-gray-600 leading-relaxed" />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {data.projects.length > 0 && (
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
+                                    <span className="w-8 h-1 block" style={{ backgroundColor: data.design?.color || '#2563eb' }}></span> {t.projects}
+                                </h2>
+                                <div className="grid grid-cols-1 gap-6">
+                                    {data.projects.map(proj => (
+                                        <div key={proj.id} className="bg-slate-50 p-4 rounded-lg">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <h4 className="font-bold text-slate-800">{proj.name}</h4>
+                                                {proj.link && <span className="text-xs" style={{ color: data.design?.color || '#3b82f6' }}>{proj.link}</span>}
+                                            </div>
+                                            <p className="text-sm text-gray-600">{proj.description}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // 3. Minimal Theme
+        const ThemeMinimal = ({ data, t, fontStyle }) => {
+            return (
+                <div className="h-full w-full p-16 text-slate-800" style={{ fontFamily: fontStyle }}>
+                    {/* Header */}
+                    <div className="mb-12 flex justify-between items-start">
+                        <div>
+                            <h1 className="text-5xl font-light mb-2">{data.personal.fullName}</h1>
+                            <p className="text-xl text-gray-500 font-light mb-6">{data.personal.role}</p>
+                            <div className="flex flex-wrap text-sm text-gray-400 font-mono gap-x-6">
+                                {data.personal.email && <span>{data.personal.email}</span>}
+                                {data.personal.phone && <span>{data.personal.phone}</span>}
+                                {data.personal.address && <span>{data.personal.address}</span>}
+                                {data.personal.linkedin && <span>{data.personal.linkedin}</span>}
+                            </div>
+                        </div>
+                        {/* Minimal Avatar - Full Color, No Grayscale */}
+                        {data.personal.avatar && (
+                            <div className="w-28 h-28 overflow-hidden rounded-lg shrink-0 border border-gray-100 bg-gray-50">
+                                <img src={data.personal.avatar} alt="Profile" className="w-full h-full object-cover" />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Content Grid */}
+                    <div className="grid grid-cols-[1fr_3fr] gap-x-12 gap-y-12">
+                        {/* Row 1: Skills (Left) + Experience (Right) */}
+
+                        {/* Left Column */}
+                        <div className="space-y-12">
+                            {data.skills.length > 0 && (
+                                <div>
+                                    <h3 className="text-xs font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Skills</h3>
+                                    <div className="space-y-4">
+                                        {data.skills.map(skill => (
+                                            <div key={skill.id}>
+                                                <p className="font-bold text-sm mb-1">{skill.name}</p>
+                                                <p className="text-xs text-gray-500 leading-relaxed">{skill.items}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {data.education.length > 0 && (
+                                <div>
+                                    <h3 className="text-xs font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Education</h3>
+                                    <div className="space-y-4">
+                                        {data.education.map(edu => (
+                                            <div key={edu.id}>
+                                                <p className="font-bold text-sm">{edu.school}</p>
+                                                <p className="text-xs text-gray-500 mb-1">{edu.degree}</p>
+                                                <p className="text-xs text-gray-400 font-mono">{edu.date}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Right Column */}
+                        <div className="space-y-12">
+                            {data.personal.summary && (
+                                <div>
+                                    <p className="text-base leading-relaxed text-gray-600">{data.personal.summary}</p>
+                                </div>
+                            )}
+
+                            {data.experience.length > 0 && (
+                                <div>
+                                    <h3 className="text-xs font-bold uppercase tracking-wider mb-6 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Work Experience</h3>
+                                    <div className="space-y-8">
+                                        {data.experience.map(exp => (
+                                            <div key={exp.id}>
+                                                <div className="flex justify-between items-baseline mb-2">
+                                                    <h4 className="font-bold text-lg">{exp.role}</h4>
+                                                    <span className="text-sm text-gray-400 font-mono">{exp.date}</span>
+                                                </div>
+                                                <p className="text-sm font-medium text-gray-500 mb-3">{exp.company}, {exp.location}</p>
+                                                <TextWithBullets text={exp.description} className="text-sm text-gray-600 leading-7" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {data.projects.length > 0 && (
+                                <div>
+                                    <h3 className="text-xs font-bold uppercase tracking-wider mb-6 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Selected Projects</h3>
+                                    <div className="space-y-6">
+                                        {data.projects.map(proj => (
+                                            <div key={proj.id}>
+                                                <div className="flex items-baseline gap-3 mb-1">
+                                                    <h4 className="font-bold text-sm">{proj.name}</h4>
+                                                    {proj.link && <span className="text-xs font-mono text-gray-400">{proj.link}</span>}
+                                                </div>
+                                                <p className="text-sm text-gray-600">{proj.description}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 4. Professional Theme (Corporate Standard)
+        // Two columns, Left Sidebar (lighter), clean and spacious.
+        const ThemeProfessional = ({ data, t, fontStyle }) => {
+            return (
+                <div className="h-full w-full flex text-slate-800" style={{ fontFamily: fontStyle }}>
+                    {/* Sidebar (Left, 30%) */}
+                    <div className="w-[32%] bg-slate-50 border-r border-slate-200 p-8 pt-12 flex flex-col shrink-0">
+                        {/* Avatar */}
+                        {data.personal.avatar && (
+                            <div className="w-32 h-32 mx-auto mb-8 rounded-full overflow-hidden border-4 border-white shadow-md shrink-0">
+                                <img src={data.personal.avatar} alt="Profile" className="w-full h-full object-cover" />
+                            </div>
+                        )}
+
+                        {/* Contact Info */}
+                        <div className="mb-10 text-sm space-y-4">
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-200 pb-2">{t.personalInfo}</h3>
+                            {data.personal.email && <div className="flex items-center gap-3"><MailIcon className="w-4 h-4 shrink-0" style={{ color: data.design?.color }} /> <span className="break-all font-medium text-slate-700">{data.personal.email}</span></div>}
+                            {data.personal.phone && <div className="flex items-center gap-3"><PhoneIcon className="w-4 h-4 shrink-0" style={{ color: data.design?.color }} /> <span className="font-medium text-slate-700">{data.personal.phone}</span></div>}
+                            {data.personal.address && <div className="flex items-start gap-3"><MapPinIcon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: data.design?.color }} /> <span className="break-words leading-snug">{data.personal.address}</span></div>}
+                            {data.personal.linkedin && <div className="flex items-center gap-3"><LinkedinIcon className="w-4 h-4 shrink-0" style={{ color: data.design?.color }} /> <span className="break-all" style={{ color: data.design?.color || '#2563eb' }}>{data.personal.linkedin}</span></div>}
+                            {data.personal.website && <div className="flex items-center gap-3"><GlobeIcon className="w-4 h-4 shrink-0" style={{ color: data.design?.color }} /> <span className="break-all" style={{ color: data.design?.color || '#2563eb' }}>{data.personal.website}</span></div>}
+                        </div>
+
+                        {/* Skills */}
+                        {data.skills.length > 0 && (
+                            <div className="mb-10">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-200 pb-2">{t.skills}</h3>
+                                <div className="space-y-4">
+                                    {data.skills.map(skill => (
+                                        <div key={skill.id}>
+                                            <p className="font-bold text-sm text-slate-700 mb-1">{skill.name}</p>
+                                            <p className="text-sm text-slate-500 leading-relaxed">{skill.items}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Education (Sidebar in Professional usually works well) */}
+                        {data.education.length > 0 && (
+                            <div>
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-200 pb-2">{t.education}</h3>
+                                <div className="space-y-5">
+                                    {data.education.map(edu => (
+                                        <div key={edu.id}>
+                                            <div className="font-bold text-slate-800 text-sm">{edu.school}</div>
+                                            <div className="text-xs text-slate-500 font-medium mb-1">{edu.degree}</div>
+                                            <div className="text-xs text-slate-400">{edu.date}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Main Content (Right, 70%) */}
+                    <div className="flex-1 p-10 pt-16">
+                        <div className="mb-10 border-b-2 pb-6" style={{ borderColor: data.design?.color || '#1e293b' }}>
+                            <h1 className="text-4xl font-extrabold text-slate-900 mb-2 uppercase tracking-tight">{data.personal.fullName}</h1>
+                            <p className="text-xl font-medium tracking-wide bg-slate-100 inline-block px-2 rounded-sm" style={{ color: data.design?.color || '#1d4ed8' }}>{data.personal.role}</p>
+                        </div>
+
+                        {data.personal.summary && (
+                            <div className="mb-8">
+                                <h2 className="text-lg font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    {t.labels.summary}
+                                </h2>
+                                <p className="text-slate-600 leading-7 text-justify">{data.personal.summary}</p>
+                            </div>
+                        )}
+
+                        {data.experience.length > 0 && (
+                            <div className="mb-8">
+                                <h2 className="text-lg font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
+                                    <span style={{ color: data.design?.color }}>{t.experience}</span>
+                                </h2>
+                                <div className="space-y-8">
+                                    {data.experience.map(exp => (
+                                        <div key={exp.id}>
+                                            <div className="flex justify-between items-baseline mb-1">
+                                                <h3 className="text-xl font-bold text-slate-800">{exp.role}</h3>
+                                                <span className="text-sm font-bold text-slate-400">{exp.date}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 mb-3 text-sm font-medium">
+                                                <span style={{ color: data.design?.color || '#1d4ed8' }}>{exp.company}</span>
+                                                <span className="text-gray-300">|</span>
+                                                <span className="text-gray-500">{exp.location}</span>
+                                            </div>
+                                            <TextWithBullets text={exp.description} className="text-slate-600 leading-relaxed text-sm pl-1" />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {data.projects.length > 0 && (
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
+                                    <span style={{ color: data.design?.color }}>{t.projects}</span>
+                                </h2>
+                                <div className="space-y-6">
+                                    {data.projects.map(proj => (
+                                        <div key={proj.id}>
+                                            <div className="flex items-baseline gap-2 mb-1">
+                                                <h3 className="font-bold text-slate-800">{proj.name}</h3>
+                                                {proj.link && <a href={`https://${proj.link}`} target="_blank" className="text-xs hover:scale-105 transition-transform" style={{ color: data.design?.color || '#2563eb' }}>🔗 {proj.link}</a>}
+                                            </div>
+                                            <p className="text-sm text-slate-600 leading-relaxed">{proj.description}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // 5. Elegant Theme (Sophisticated, Single Column)
+        // Center aligned headers, Serif fonts, very editorial.
+        const ThemeElegant = ({ data, t }) => {
+            return (
+                <div className="h-full w-full p-14 text-slate-900" style={{ fontFamily: "'Playfair Display', serif" }}>
+                    {/* Header - Centered */}
+                    <div className="text-center mb-10 overflow-hidden">
+                        {data.personal.avatar && (
+                            <div className="w-28 h-28 mx-auto mb-5 rounded-full overflow-hidden border border-gray-200">
+                                <img src={data.personal.avatar} alt="Profile" className="w-full h-full object-cover" />
+                            </div>
+                        )}
+                        <h1 className="text-5xl italic font-medium mb-3" style={{ color: data.design?.color }}>{data.personal.fullName}</h1>
+                        <p className="text-xs font-sans font-bold tracking-[0.2em] text-gray-500 uppercase mb-6">{data.personal.role}</p>
+
+                        <div className="flex flex-wrap justify-center gap-4 text-sm font-sans text-gray-500 border-t border-b border-gray-100 py-3" style={{ borderColor: data.design?.color ? data.design.color + '40' : undefined }}>
+                            {data.personal.email && <span>{data.personal.email}</span>}
+                            {data.personal.phone && <span>{data.personal.phone}</span>}
+                            {data.personal.address && <span>{data.personal.address}</span>}
+                            {data.personal.website && <span>{data.personal.website}</span>}
+                        </div>
+                    </div>
+
+                    <div className="font-sans">
+                        {/* Use Sans for body text to maintain readability */}
+
+                        {/* Summary */}
+                        {data.personal.summary && (
+                            <div className="mb-10 text-center max-w-2xl mx-auto">
+                                <p className="text-slate-600 leading-relaxed italic text-lg opacity-80">"{data.personal.summary}"</p>
+                            </div>
+                        )}
+
+                        {/* Experience */}
+                        {data.experience.length > 0 && (
+                            <div className="mb-10">
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="h-px bg-gray-200 flex-1" style={{ backgroundColor: data.design?.color ? data.design.color + '40' : undefined }}></div>
+                                    <h2 className="text-2xl font-serif italic text-slate-800" style={{ color: data.design?.color }}>{t.experience}</h2>
+                                    <div className="h-px bg-gray-200 flex-1" style={{ backgroundColor: data.design?.color ? data.design.color + '40' : undefined }}></div>
+                                </div>
+
+                                <div className="space-y-10">
+                                    {data.experience.map(exp => (
+                                        <div key={exp.id} className="grid grid-cols-[1fr_3fr] gap-6">
+                                            <div className="text-right pt-1">
+                                                <div className="font-bold text-slate-900">{exp.company}</div>
+                                                <div className="text-xs text-gray-400 uppercase tracking-widest mt-1">{exp.date}</div>
+                                                <div className="text-xs text-gray-400 mt-0.5">{exp.location}</div>
+                                            </div>
+                                            <div className="border-l border-gray-100 pl-6 relative">
+                                                <div className="absolute -left-[3px] top-2 w-1.5 h-1.5 rounded-full bg-slate-300" style={{ backgroundColor: data.design?.color }}></div>
+                                                <h3 className="text-lg font-serif italic font-medium mb-2">{exp.role}</h3>
+                                                <TextWithBullets text={exp.description} className="text-slate-600 leading-relaxed text-sm" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Education & Skills (Grid) */}
+                        <div className="grid grid-cols-2 gap-12 mt-12 border-t border-gray-100 pt-10">
+                            {data.education.length > 0 && (
+                                <div>
+                                    <h2 className="text-xl font-serif italic text-center mb-6" style={{ color: data.design?.color }}>{t.education}</h2>
+                                    <div className="space-y-6">
+                                        {data.education.map(edu => (
+                                            <div key={edu.id} className="text-center">
+                                                <div className="font-bold text-slate-800">{edu.school}</div>
+                                                <div className="text-sm italic text-gray-600">{edu.degree}</div>
+                                                <div className="text-xs text-gray-400 mt-1">{edu.date}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {data.skills.length > 0 && (
+                                <div>
+                                    <h2 className="text-xl font-serif italic text-center mb-6" style={{ color: data.design?.color }}>{t.skills}</h2>
+                                    <div className="space-y-4 text-center">
+                                        {data.skills.map(skill => (
+                                            <div key={skill.id}>
+                                                <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">{skill.name}</div>
+                                                <div className="text-sm text-slate-700">{skill.items}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {data.projects.length > 0 && (
+                            <div className="mt-12 border-t border-gray-100 pt-10" style={{ borderColor: data.design?.color ? data.design.color + '40' : undefined }}>
+                                <h2 className="text-xl font-serif italic text-center mb-6" style={{ color: data.design?.color }}>{t.projects}</h2>
+                                <div className="grid grid-cols-1 gap-6 max-w-3xl mx-auto">
+                                    {data.projects.map(proj => (
+                                        <div key={proj.id} className="text-center">
+                                            <div className="font-bold text-slate-800 mb-1">
+                                                {proj.name}
+                                                {proj.link && <span className="font-normal text-gray-400 text-xs ml-2 font-sans tracking-tight">{proj.link}</span>}
+                                            </div>
+                                            <p className="text-sm text-slate-600">{proj.description}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="mt-16 text-center">
+                            <div className="w-8 h-8 mx-auto border border-gray-300 rounded-full flex items-center justify-center" style={{ borderColor: data.design?.color, color: data.design?.color }}>
+                                <span className="text-xs font-serif italic">fin</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 主App ---
+        const App = () => {
+            // Load state from localStorage or use defaults
+            const loadState = (key, defaultVal) => {
+                try {
+                    const saved = localStorage.getItem(key);
+                    return saved ? JSON.parse(saved) : defaultVal;
+                } catch (e) {
+                    console.error("Load failed", e);
+                    return defaultVal;
+                }
+            };
+
+            const [lang, setLang] = useState(() => loadState('resume_lang', 'zh'));
+            const [theme, setTheme] = useState(() => loadState('resume_theme', 'classic'));
+            const [design, setDesign] = useState(() => loadState('resume_design', { font: 'default', color: '#3b82f6' }));
+            const [resume, setResume] = useState(() => loadState('resume_data_v1', initialData));
+            const [isSaved, setIsSaved] = useState(true);
+
+            // Inject design into resume data for easier pass-down (or just pass separate prop)
+            // Actually, best to keep separate but for now let's merge or pass as part of theme
+            const resumeWithDesign = { ...resume, design };
+
+            // Auto-Save Effects
+            useEffect(() => {
+                localStorage.setItem('resume_lang', JSON.stringify(lang));
+            }, [lang]);
+
+            useEffect(() => {
+                localStorage.setItem('resume_theme', JSON.stringify(theme));
+            }, [theme]);
+
+            useEffect(() => {
+                localStorage.setItem('resume_design', JSON.stringify(design));
+            }, [design]);
+
+            useEffect(() => {
+                setIsSaved(false);
+                const timer = setTimeout(() => {
+                    localStorage.setItem('resume_data_v1', JSON.stringify(resume));
+                    setIsSaved(true);
+                }, 1000); // 1s Debounce
+                return () => clearTimeout(timer);
+            }, [resume]);
+
+            const t = uiText[lang];
+
+            // Handlers
+            const handlePersonalChange = (e) => {
+                const { name, value } = e.target;
+                setResume(prev => ({ ...prev, personal: { ...prev.personal, [name]: value } }));
+            };
+
+            const handleAvatarUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > 2 * 1024 * 1024) { // 2MB Limit Warning
+                        alert(lang === 'zh' ? '图片过大，建议上传小于2MB的图片以保证流畅性。' : 'Image too large. Recommended < 2MB.');
+                    }
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setResume(prev => ({ ...prev, personal: { ...prev.personal, avatar: reader.result } }));
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const removeAvatar = () => {
+                setResume(prev => ({ ...prev, personal: { ...prev.personal, avatar: '' } }));
+            }
+
+            const loadExample = () => {
+                setResume(lang === 'zh' ? exampleDataZh : exampleDataEn);
+            };
+
+            const reset = () => {
+                if (confirm(t.reset + "?")) setResume(initialData);
+            };
+
+            const printPDF = () => {
+                window.print();
+            };
+
+            // Generic List Handlers
+            const addToList = (listName, emptyItem) => {
+                setResume(prev => ({
+                    ...prev,
+                    [listName]: [...prev[listName], { ...emptyItem, id: Date.now() }]
+                }));
+            };
+
+            const removeFromList = (listName, id) => {
+                setResume(prev => ({
+                    ...prev,
+                    [listName]: prev[listName].filter(item => item.id !== id)
+                }));
+            };
+
+            const updateListItem = (listName, id, field, value) => {
+                setResume(prev => ({
+                    ...prev,
+                    [listName]: prev[listName].map(item => item.id === id ? { ...item, [field]: value } : item)
+                }));
+            };
+
+            // Font selection based on Lang
+            const getFont = () => {
+                if (design.font && design.font !== 'default') {
+                    if (design.font === 'sans') return "'Inter', sans-serif";
+                    if (design.font === 'serif') return "'EB Garamond', serif";
+                    if (design.font === 'mono') return "'Fira Code', monospace";
+                    if (design.font === 'oswald') return "'Oswald', sans-serif";
+                    if (design.font === 'lato') return "'Lato', sans-serif";
+                }
+                if (theme === 'professional') return "'Roboto', sans-serif";
+                if (theme === 'elegant') return "'Playfair Display', serif";
+                if (lang === 'zh') return "'Noto Sans SC', sans-serif";
+                if (theme === 'classic') return "'EB Garamond', serif";
+                if (theme === 'minimal') return "'Inter', sans-serif";
+                return "'Roboto', sans-serif"; // modern and default
+            };
+
+            const fontStyle = getFont();
+
+            // Theme Renderer
+            const renderTheme = () => {
+                const props = { data: resumeWithDesign, t, fontStyle };
+                switch (theme) {
+                    case 'classic': return <ThemeClassic {...props} />;
+                    case 'modern': return <ThemeModern {...props} />;
+                    case 'minimal': return <ThemeMinimal {...props} />;
+                    case 'professional': return <ThemeProfessional {...props} />;
+                    case 'elegant': return <ThemeElegant {...props} />;
+                    default: return <ThemeClassic {...props} />;
+                }
+            };
+            return (
+                <div className="min-h-screen flex flex-col xl:flex-row">
+                    {/* Left: Editor Sidebar */}
+                    <div className="bg-gray-50 border-r border-gray-200 w-full xl:w-[480px] h-auto xl:h-screen xl:overflow-y-auto shrink-0 print:hidden">
+                        <header className="p-5 bg-white border-b border-gray-200 sticky top-0 z-10 flex justify-between items-center shadow-sm">
+                            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center gap-2">
+                                <FileTextIcon className="text-blue-600" /> {t.title}
+                            </h1>
+                            <div className="flex gap-2 items-center">
+                                <span className={`text-xs font-medium transition-colors ${isSaved ? 'text-green-500' : 'text-orange-400'}`}>
+                                    {isSaved ? (lang === 'zh' ? '已保存' : 'Saved') : (lang === 'zh' ? '保存中...' : 'Saving...')}
+                                </span>
+                                <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                                <button onClick={() => setLang(lang === 'en' ? 'zh' : 'en')} className="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-sm font-medium">
+                                    {lang === 'en' ? '中文' : 'EN'}
+                                </button>
+                                <button onClick={loadExample} className="text-blue-600 p-2 hover:bg-blue-50 rounded" title={t.example}>
+                                    <Wand2Icon />
+                                </button>
+                                <button onClick={reset} className="text-red-500 p-2 hover:bg-red-50 rounded" title={t.reset}>
+                                    <RotateCcwIcon />
+                                </button>
+                            </div>
+                        </header>
+
+                        <div className="p-6 space-y-6">
+                            {/* Personal Info */}
+                            <section className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                                <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800 mb-4">
+                                    <span className="text-blue-600"><UserIcon /></span> {t.personalInfo}
+                                </h2>
+
+                                {/* Photo Upload */}
+                                <div className="mb-4 flex items-center gap-3">
+                                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border border-gray-200 shrink-0">
+                                        {resume.personal.avatar ? (
+                                            <img src={resume.personal.avatar} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <UserIcon className="text-gray-400" />
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-md text-sm font-medium hover:bg-blue-100 transition-colors">
+                                            <UploadIcon className="w-3 h-3" /> {t.uploadPhoto}
+                                            <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                                        </label>
+                                        {resume.personal.avatar && (
+                                            <button onClick={removeAvatar} className="ml-2 text-xs text-red-400 hover:text-red-500 underline">
+                                                {t.removePhoto}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <InputGroup label={t.labels.fullName} name="fullName" value={resume.personal.fullName} onChange={handlePersonalChange} />
+                                    <InputGroup label={t.labels.role} name="role" value={resume.personal.role} onChange={handlePersonalChange} />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <InputGroup label={t.labels.email} name="email" value={resume.personal.email} onChange={handlePersonalChange} />
+                                        <InputGroup label={t.labels.phone} name="phone" value={resume.personal.phone} onChange={handlePersonalChange} />
+                                    </div>
+                                    <InputGroup label={t.labels.address} name="address" value={resume.personal.address} onChange={handlePersonalChange} />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <InputGroup label={t.labels.linkedin} name="linkedin" value={resume.personal.linkedin} onChange={handlePersonalChange} />
+                                        <InputGroup label={t.labels.website} name="website" value={resume.personal.website} onChange={handlePersonalChange} />
+                                    </div>
+                                    <TextAreaGroup label={t.labels.summary} name="summary" value={resume.personal.summary} onChange={handlePersonalChange} placeholder={t.placeholders.summary} rows={3} />
+                                </div>
+                            </section>
+
+                            {/* Experience */}
+                            <DynamicList
+                                title={t.experience}
+                                items={resume.experience}
+                                icon={BriefcaseIcon}
+                                t={t}
+                                onAdd={() => addToList('experience', { role: '', company: '', date: '', location: '', description: '' })}
+                                onRemove={(id) => removeFromList('experience', id)}
+                                onChange={(id, field, val) => updateListItem('experience', id, field, val)}
+                                fields={[
+                                    { key: 'role', labelKey: 'role' },
+                                    { key: 'company', labelKey: 'company' },
+                                    { key: 'date', labelKey: 'date' },
+                                    { key: 'location', labelKey: 'location' },
+                                    { key: 'description', labelKey: 'description', type: 'textarea', placeholderKey: 'description', fullWidth: true }
+                                ]}
+                            />
+
+                            {/* Education */}
+                            <DynamicList
+                                title={t.education}
+                                items={resume.education}
+                                icon={GraduationCapIcon}
+                                t={t}
+                                onAdd={() => addToList('education', { degree: '', school: '', date: '', location: '' })}
+                                onRemove={(id) => removeFromList('education', id)}
+                                onChange={(id, field, val) => updateListItem('education', id, field, val)}
+                                fields={[
+                                    { key: 'school', labelKey: 'school' },
+                                    { key: 'degree', labelKey: 'degree' },
+                                    { key: 'date', labelKey: 'date' },
+                                    { key: 'location', labelKey: 'location' },
+                                    { key: 'description', labelKey: 'description', type: 'textarea', fullWidth: true }
+                                ]}
+                            />
+
+                            {/* Skills */}
+                            <DynamicList
+                                title={t.skills}
+                                items={resume.skills}
+                                icon={RocketIcon}
+                                t={t}
+                                onAdd={() => addToList('skills', { name: '', items: '' })}
+                                onRemove={(id) => removeFromList('skills', id)}
+                                onChange={(id, field, val) => updateListItem('skills', id, field, val)}
+                                fields={[
+                                    { key: 'name', labelKey: 'name' }, // e.g. "Languages"
+                                    { key: 'items', labelKey: 'items' } // e.g. "JS, Python"
+                                ]}
+                            />
+
+                            {/* Projects */}
+                            <DynamicList
+                                title={t.projects}
+                                items={resume.projects}
+                                icon={LayoutIcon}
+                                t={t}
+                                onAdd={() => addToList('projects', { name: '', description: '', link: '' })}
+                                onRemove={(id) => removeFromList('projects', id)}
+                                onChange={(id, field, val) => updateListItem('projects', id, field, val)}
+                                fields={[
+                                    { key: 'name', labelKey: 'name' },
+                                    { key: 'link', labelKey: 'link' },
+                                    { key: 'description', labelKey: 'description', type: 'textarea', fullWidth: true }
+                                ]}
+                            />
+
+                            <div className="h-10"></div>
+                        </div>
+                    </div>
+
+                    {/* Right: Preview Area */}
+                    <div className="bg-gray-200 flex-1 h-auto xl:h-screen overflow-auto relative flex flex-col items-center p-8 print:p-0 print:h-auto print:overflow-visible print:block print:bg-white">
+
+                        {/* Toolbar (Floating) */}
+                        <div className="sticky top-0 z-20 mb-6 flex flex-col items-center gap-2 print:hidden w-full max-w-2xl mx-auto">
+                            {/* Theme Selection */}
+                            <div className="bg-white/90 backdrop-blur-md p-2 rounded-full shadow-lg border border-gray-200 flex gap-2 flex-wrap justify-center">
+                                {Object.keys(t.themes).map((key) => (
+                                    <button
+                                        key={key}
+                                        onClick={() => setTheme(key)}
+                                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${theme === key ? 'bg-slate-800 text-white shadow-md' : 'text-slate-600 hover:bg-gray-100'}`}
+                                    >
+                                        {t.themes[key]}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Appearance Options (Font & Color) */}
+                            <div className="bg-white/90 backdrop-blur-md px-6 py-2 rounded-full shadow-lg border border-gray-200 flex gap-6 items-center flex-wrap justify-center">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold uppercase text-gray-400">{t.fontLabel}:</span>
+                                    <select
+                                        value={design.font}
+                                        onChange={(e) => setDesign(p => ({ ...p, font: e.target.value }))}
+                                        className="bg-transparent text-sm font-medium text-slate-700 outline-none cursor-pointer"
+                                    >
+                                        {Object.keys(t.fonts).map(k => (
+                                            <option key={k} value={k}>{t.fonts[k]}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="w-px h-4 bg-gray-300"></div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold uppercase text-gray-400">{t.customColor}:</span>
+                                    <div className="flex gap-1">
+                                        {['#3b82f6', '#10b981', '#8b5cf6', '#f43f5e', '#f59e0b', '#475569'].map(c => (
+                                            <button
+                                                key={c}
+                                                onClick={() => setDesign(p => ({ ...p, color: c }))}
+                                                className={`w-5 h-5 rounded-full border border-gray-200 transition-transform hover:scale-110 ${design.color === c ? 'ring-2 ring-offset-1 ring-gray-400' : ''}`}
+                                                style={{ backgroundColor: c }}
+                                            />
+                                        ))}
+                                        <input
+                                            type="color"
+                                            value={design.color}
+                                            onChange={(e) => setDesign(p => ({ ...p, color: e.target.value }))}
+                                            className="w-6 h-6 p-0 border-0 rounded-full overflow-hidden cursor-pointer"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-1">
+                                <button onClick={printPDF} className="px-6 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow-md flex items-center gap-2">
+                                    <PrinterIcon className="w-4 h-4" /> {t.export}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Resume Paper */}
+                        <div className="bg-white shadow-2xl w-[210mm] min-h-[297mm] print:shadow-none print:w-full print:min-h-0">
+                            {renderTheme()}
+                        </div>
+
+                        <div className="h-20 print:hidden"></div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
