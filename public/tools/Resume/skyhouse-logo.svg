@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 200 240" width="200" height="240" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="moonGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" stop-color="#f39c12" />
+            <stop offset="100%" stop-color="#f1c40f" />
+        </linearGradient>
+    </defs>
+
+    <!-- ROTATION/TILT GROUP -->
+    <g transform="translate(100, 100) rotate(4) translate(-100, -100)">
+
+        <!-- BALLOONS -->
+        <!-- Center Balloon (Muted Teal) -->
+        <path d="M100 35 Q 98 50, 100 70" stroke="#b2bec3" stroke-width="0.5" fill="none" />
+        <circle cx="100" cy="35" r="14" fill="#5F9EA0" />
+
+        <!-- Left Balloon (Foggy Grey) -->
+        <path d="M75 45 Q 85 60, 95 70" stroke="#b2bec3" stroke-width="0.5" fill="none" />
+        <circle cx="75" cy="45" r="12" fill="#bdc3c7" />
+
+        <!-- Right Balloon (Foggy Grey) -->
+        <path d="M125 45 Q 115 60, 105 70" stroke="#b2bec3" stroke-width="0.5" fill="none" />
+        <circle cx="125" cy="45" r="12" fill="#bdc3c7" />
+
+        <!-- HOUSE GROUP -->
+        <g transform="translate(76, 74)">
+            <!-- House Body -->
+            <rect x="0" y="24" width="48" height="32" fill="#dfe6e9" />
+            <!-- House Roof -->
+            <path d="M0 24 L24 0 L48 24" fill="#2d3436" />
+            <!-- Window (Warm Orange) -->
+            <rect x="19" y="35" width="10" height="10" fill="#ffa502" />
+        </g>
+
+        <!-- CRESCENT BASE -->
+        <path d="M55 135 C 55 175, 145 175, 145 135 C 145 160, 55 160, 55 135" fill="url(#moonGrad)" />
+    </g>
+
+    <!-- TEXT LOCKUP -->
+    <text x="100" y="235" text-anchor="middle" font-family="'Outfit', Arial, sans-serif" font-weight="600" font-size="14" letter-spacing="8" fill="#2d3436">SKYHOUSE</text>
+</svg>

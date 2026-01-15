@@ -265,7 +265,10 @@
                 personalInfo: '个人信息',
                 appearance: '外观设置',
                 customColor: '自定义颜色',
-                personalInfo: '个人信息',
+                uploadLogo: '上传 Logo',
+                removeLogo: '移除 Logo',
+                logoPosition: 'Logo 位置',
+                logoPositions: { 'header-left': '页眉左侧', 'header-right': '页眉右侧', 'footer-left': '页脚左侧', 'footer-right': '页脚右侧' },
                 uploadPhoto: '上传照片',
                 removePhoto: '移除照片',
                 experience: '工作经历',
@@ -299,7 +302,10 @@
                 personalInfo: 'Personal Info',
                 appearance: 'Appearance',
                 customColor: 'Custom Color',
-                personalInfo: 'Personal Info',
+                uploadLogo: 'Upload Logo',
+                removeLogo: 'Remove Logo',
+                logoPosition: 'Logo Position',
+                logoPositions: { 'header-left': 'Header Left', 'header-right': 'Header Right', 'footer-left': 'Footer Left', 'footer-right': 'Footer Right' },
                 uploadPhoto: 'Upload Photo',
                 removePhoto: 'Remove Photo',
                 experience: 'Experience',
@@ -1062,7 +1068,7 @@
 
             const [lang, setLang] = useState(() => loadState('resume_lang', 'zh'));
             const [theme, setTheme] = useState(() => loadState('resume_theme', 'classic'));
-            const [design, setDesign] = useState(() => loadState('resume_design', { font: 'default', color: '#3b82f6' }));
+            const [design, setDesign] = useState(() => loadState('resume_design', { font: 'default', color: '#3b82f6', logo: '', logoPosition: 'header-right' }));
             const [resume, setResume] = useState(() => loadState('resume_data_v1', initialData));
             const [isSaved, setIsSaved] = useState(true);
 
@@ -1116,7 +1122,25 @@
 
             const removeAvatar = () => {
                 setResume(prev => ({ ...prev, personal: { ...prev.personal, avatar: '' } }));
-            }
+            };
+
+            const handleLogoUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > 1 * 1024 * 1024) { // 1MB
+                        alert(lang === 'zh' ? 'Logo 图片过大，建议小于 1MB。' : 'Logo too large. Recommended < 1MB.');
+                    }
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setDesign(prev => ({ ...prev, logo: reader.result }));
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const removeLogo = () => {
+                setDesign(prev => ({ ...prev, logo: '' }));
+            };
 
             const loadExample = () => {
                 setResume(lang === 'zh' ? exampleDataZh : exampleDataEn);
@@ -1378,6 +1402,40 @@
                                 </div>
                             </div>
 
+                            {/* Logo Section */}
+                            <div className="bg-white/90 backdrop-blur-md px-6 py-2 rounded-full shadow-lg border border-gray-200 flex gap-4 items-center flex-wrap justify-center">
+                                <div className="flex items-center gap-2">
+                                    {design.logo ? (
+                                        <>
+                                            <img src={design.logo} alt="Logo" className="w-6 h-6 object-contain rounded" />
+                                            <button onClick={removeLogo} className="text-xs text-red-500 hover:underline">{t.removeLogo}</button>
+                                        </>
+                                    ) : (
+                                        <label className="cursor-pointer text-xs font-medium text-blue-600 hover:underline flex items-center gap-1">
+                                            <UploadIcon className="w-3 h-3" /> {t.uploadLogo}
+                                            <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                                        </label>
+                                    )}
+                                </div>
+                                {design.logo && (
+                                    <>
+                                        <div className="w-px h-4 bg-gray-300"></div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-bold uppercase text-gray-400">{t.logoPosition}:</span>
+                                            <select
+                                                value={design.logoPosition || 'header-right'}
+                                                onChange={(e) => setDesign(p => ({ ...p, logoPosition: e.target.value }))}
+                                                className="bg-transparent text-xs font-medium text-slate-700 outline-none cursor-pointer"
+                                            >
+                                                {Object.keys(t.logoPositions).map(k => (
+                                                    <option key={k} value={k}>{t.logoPositions[k]}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
                             <div className="mt-1">
                                 <button onClick={printPDF} className="px-6 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow-md flex items-center gap-2">
                                     <PrinterIcon className="w-4 h-4" /> {t.export}
@@ -1386,7 +1444,13 @@
                         </div>
 
                         {/* Resume Paper */}
-                        <div className="bg-white shadow-2xl w-[210mm] min-h-[297mm] print:shadow-none print:w-full print:min-h-0">
+                        <div className="bg-white shadow-2xl w-[210mm] min-h-[297mm] print:shadow-none print:w-full print:min-h-0 relative overflow-hidden">
+                            {/* Logo Overlay */}
+                            {design.logo && (
+                                <div className={`absolute z-10 print:z-0 ${(design.logoPosition || 'header-right').startsWith('header') ? 'top-4' : 'bottom-4'} ${(design.logoPosition || 'header-right').endsWith('left') ? 'left-4' : 'right-4'}`}>
+                                    <img src={design.logo} alt="Logo" className="w-12 h-12 object-contain opacity-80" />
+                                </div>
+                            )}
                             {renderTheme()}
                         </div>
 
