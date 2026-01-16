@@ -124,8 +124,29 @@
         const App = () => {
             const [lang, setLang] = useState('en');
             const [showCopyToast, setShowCopyToast] = useState(false);
+            const [isSaving, setIsSaving] = useState(false);
             const [theme, setTheme] = useState('classic');
+
             const [selectedFont, setSelectedFont] = useState("'Georgia', serif");
+
+            // Persistence Helper
+            const loadState = (key, fallback) => {
+                try {
+                    const saved = localStorage.getItem(key);
+                    return saved ? JSON.parse(saved) : fallback;
+                } catch (e) {
+                    console.error('Failed to load state', e);
+                    return fallback;
+                }
+            };
+
+            const saveState = (key, value) => {
+                try {
+                    localStorage.setItem(key, JSON.stringify(value));
+                } catch (e) {
+                    console.error('Failed to save state', e);
+                }
+            };
 
             // 字体列表
             const fontOptions = [
@@ -260,7 +281,12 @@
                         placeholderOpening: '[此处将显示您的开场白...]',
                         placeholderBody: '[此处将显示您的核心经历和技能描述...]',
                         placeholderClosing: '[此处将显示您的结语...]',
-                        contactTitle: '联系方式'
+                        placeholderClosing: '[此处将显示您的结语...]',
+                        placeholderClosing: '[此处将显示您的结语...]',
+                        contactTitle: '联系方式',
+                        at: ' @ ',
+                        saved: '已保存',
+                        saving: '保存中...'
                     }
                 },
                 en: {
@@ -316,10 +342,19 @@
                         placeholderOpening: '[Your opening paragraph will appear here...]',
                         placeholderBody: '[Your body paragraphs regarding skills and experience...]',
                         placeholderClosing: '[Your closing remarks...]',
-                        contactTitle: 'CONTACT'
+                        placeholderClosing: '[Your closing remarks...]',
+                        placeholderClosing: '[Your closing remarks...]',
+                        contactTitle: 'CONTACT',
+                        at: ' at ',
+                        saved: 'Saved',
+                        saving: 'Saving...'
                     }
                 }
             };
+
+
+
+
 
             const initialData = {
                 fullName: '',
@@ -336,7 +371,18 @@
                 closing: '',
             };
 
-            const [formData, setFormData] = useState(initialData);
+            // Initialize with saved data if available
+            const [formData, setFormData] = useState(() => loadState('cover_letter_data', initialData));
+
+            // Auto-save effect
+            React.useEffect(() => {
+                setIsSaving(true);
+                const timer = setTimeout(() => {
+                    saveState('cover_letter_data', formData);
+                    setIsSaving(false);
+                }, 500); // Debounce save
+                return () => clearTimeout(timer);
+            }, [formData]);
 
             const exampleDataZh = {
                 fullName: '张伟',
@@ -499,16 +545,18 @@ ${formData.fullName}
 
                         <div className={theme.position}>
                             {t.preview.labelPosition} {data.position || t.preview.defaultPosition}
+                            {data.companyName && (
+                                <span className="block text-base font-normal mt-1 opacity-90">
+                                    @ {data.companyName}
+                                </span>
+                            )}
                         </div>
 
                         <LetterBody theme={theme} data={data} t={t} isEn={isEn} />
 
                         <div className={theme.footer}>
-                            <p className="mb-4">{t.preview.sincerely}</p>
-                            <div className="h-16 w-48 border-b border-gray-300 mb-2 flex items-end pb-1 font-handwriting text-2xl text-slate-600 italic">
-                                <span className="opacity-70" style={{ fontFamily: 'cursive' }}>{data.fullName}</span>
-                            </div>
-                            <p className="font-bold text-slate-900">{data.fullName}</p>
+                            <p className="mb-8">{t.preview.sincerely}</p>
+                            <p className="font-bold text-slate-900 text-lg border-b-2 border-slate-900 inline-block pb-1 pr-12 min-w-[200px]">{data.fullName}</p>
                         </div>
                     </main>
                 </div>
@@ -529,16 +577,18 @@ ${formData.fullName}
 
                         <div className={theme.position}>
                             {t.preview.labelPosition} {data.position || t.preview.defaultPosition}
+                            {data.companyName && (
+                                <span className="block text-base font-normal mt-1 text-blue-500 opacity-90">
+                                    @ {data.companyName}
+                                </span>
+                            )}
                         </div>
 
                         <LetterBody theme={theme} data={data} t={t} isEn={isEn} />
 
                         <div className={theme.footer}>
-                            <p className="mb-4">{t.preview.sincerely}</p>
-                            <div className="h-16 w-48 border-b border-gray-300 mb-2 flex items-end pb-1 font-handwriting text-2xl text-slate-600 italic">
-                                <span className="opacity-70" style={{ fontFamily: 'cursive' }}>{data.fullName}</span>
-                            </div>
-                            <p className="font-bold text-slate-900">{data.fullName}</p>
+                            <p className="mb-8">{t.preview.sincerely}</p>
+                            <p className="font-bold text-slate-900 text-lg border-b-2 border-slate-900 inline-block pb-1 pr-12 min-w-[200px]">{data.fullName}</p>
                         </div>
                     </div>
                 </div>
@@ -561,16 +611,18 @@ ${formData.fullName}
 
                         <div className={theme.position}>
                             {t.preview.labelPosition} {data.position || t.preview.defaultPosition}
+                            {data.companyName && (
+                                <span className="block text-base font-normal mt-1 text-gray-600 not-italic">
+                                    @ {data.companyName}
+                                </span>
+                            )}
                         </div>
 
                         <LetterBody theme={theme} data={data} t={t} isEn={isEn} />
 
                         <div className={theme.footer}>
-                            <p className="mb-4">{t.preview.sincerely}</p>
-                            <div className="h-16 w-48 border-b border-gray-300 mb-2 flex items-end pb-1 font-handwriting text-2xl text-slate-600 italic">
-                                <span className="opacity-70" style={{ fontFamily: 'cursive' }}>{data.fullName}</span>
-                            </div>
-                            <p className="font-bold text-slate-900">{data.fullName}</p>
+                            <p className="mb-8">{t.preview.sincerely}</p>
+                            <p className="font-bold text-slate-900 text-lg border-b-2 border-slate-900 inline-block pb-1 pr-12 min-w-[200px]">{data.fullName}</p>
                         </div>
                     </main>
 
@@ -600,6 +652,19 @@ ${formData.fullName}
                                     <PenToolIcon />
                                 </div>
                                 <h1 className="text-xl font-bold tracking-wide">{t.title}</h1>
+                                <span className={`ml-4 text-xs font-medium transition-all duration-300 flex items-center gap-1.5 ${isSaving ? 'text-blue-300' : 'text-blue-200/60'}`}>
+                                    {isSaving ? (
+                                        <>
+                                            <RotateCcwIcon className="w-3 h-3 animate-spin" />
+                                            {t.preview.saving}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle2Icon className="w-3 h-3" />
+                                            {t.preview.saved}
+                                        </>
+                                    )}
+                                </span>
                             </div>
 
                             <div className="flex items-center gap-3">

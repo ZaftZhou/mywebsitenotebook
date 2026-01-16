@@ -145,6 +145,7 @@
         const XIcon = ({ className }) => <Icon className={className}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></Icon>;
         const ArrowUpIcon = ({ className }) => <Icon className={className}><path d="m18 15-6-6-6 6" /></Icon>;
         const ArrowDownIcon = ({ className }) => <Icon className={className}><path d="m6 9 6 6 6-6" /></Icon>;
+        const AlertCircleIcon = ({ className }) => <Icon className={className}><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></Icon>;
         const PaletteIcon = ({ className }) => <Icon className={className}><circle cx="13.5" cy="6.5" r=".5" fill="currentColor" /><circle cx="17.5" cy="10.5" r=".5" fill="currentColor" /><circle cx="8.5" cy="7.5" r=".5" fill="currentColor" /><circle cx="6.5" cy="12.5" r=".5" fill="currentColor" /><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.6 0 1-.4 1-1 0-.6-.4-1-1-1-1.5 0-3-1.5-3-3 0-1.1.9-2 2-2h1c3.9 0 7-3.1 7-7 0-3.9-3.1-7-7-7z" /></Icon>;
 
         // --- 数据结构与初始值 ---
@@ -332,7 +333,7 @@
                 logoPosition: 'Logo 位置',
                 logoSize: 'Logo 大小',
                 logoOpacity: 'Logo 透明度',
-                logoPositions: { 'header-left': '页眉左侧', 'header-right': '页眉右侧', 'footer-left': '页脚左侧', 'footer-right': '页脚右侧' },
+                logoPositions: { 'header-left': '页眉左侧', 'header-right': '页眉右侧', 'footer-left': '页脚左侧', 'footer-right': '页脚右侧', 'watermark-center': '全屏水印/居中' },
                 uploadPhoto: '上传照片',
                 removePhoto: '移除照片',
                 experience: '工作经历',
@@ -399,7 +400,7 @@
                 logoPosition: 'Logo Position',
                 logoSize: 'Logo Size',
                 logoOpacity: 'Logo Opacity',
-                logoPositions: { 'header-left': 'Header Left', 'header-right': 'Header Right', 'footer-left': 'Footer Left', 'footer-right': 'Footer Right' },
+                logoPositions: { 'header-left': 'Header Left', 'header-right': 'Header Right', 'footer-left': 'Footer Left', 'footer-right': 'Footer Right', 'watermark-center': 'Watermark Center' },
                 uploadPhoto: 'Upload Photo',
                 removePhoto: 'Remove Photo',
                 experience: 'Experience',
@@ -972,7 +973,7 @@
                     </div>
 
                     {/* Main Content */}
-                    <div className="w-2/3 p-10 print:p-8" style={{ paddingTop: `${4 * headerSpacing}rem` }}>
+                    <div className="w-2/3 p-8" style={{ paddingTop: `${4 * headerSpacing}rem` }}>
                         {data.personal.summary && (
                             <div style={{ marginBottom: `${3.5 * sectionSpacing}rem`, ...pageBreak('summary') }}>
                                 <h2 className="text-lg font-bold text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -1261,7 +1262,7 @@
                     </div>
 
                     {/* Main Content (Right, 70%) */}
-                    <div className="flex-1 p-10 print:p-8" style={{ paddingTop: `${4 * headerSpacing}rem` }}>
+                    <div className="flex-1 p-8" style={{ paddingTop: `${4 * headerSpacing}rem` }}>
                         <div className="mb-10 border-b-2 pb-6" style={{ borderColor: data.design?.color || '#1e293b' }}>
                             <h1 className="text-4xl font-extrabold text-slate-900 mb-2 uppercase tracking-tight">{data.personal.fullName}</h1>
                             <p className="text-xl font-medium tracking-wide bg-slate-100 inline-block px-2 rounded-sm" style={{ color: data.design?.color || '#1d4ed8' }}>{data.personal.role}</p>
@@ -1543,6 +1544,7 @@
 
             // --- Hooks and Refs ---
             const containerRef = useRef(null);
+            const [numPages, setNumPages] = useState(1);
 
             // Live Pagination Logic
             useLayoutEffect(() => {
@@ -1575,24 +1577,20 @@
                         const elHeight = rect.height;
                         const elBottomRelative = elTopRelative + elHeight;
 
-                        // Calculate which page start/end falls on (0-indexed)
                         const startPage = Math.floor(elTopRelative / A4_HEIGHT_PX);
-                        const endPage = Math.floor((elBottomRelative - 1) / A4_HEIGHT_PX); // -1 to handle exact boundary
+                        const endPage = Math.floor((elBottomRelative - 1) / A4_HEIGHT_PX);
 
                         if (startPage !== endPage) {
-                            // It crosses a boundary!
-                            // Push it to the start of the next page
-                            // The next page start is (startPage + 1) * A4_HEIGHT_PX
-                            // The margin needed is: (TargetTop - CurrentTop)
-                            // TargetTop = (startPage + 1) * A4_HEIGHT_PX + 40 (MarginTop for aesthetics)
-
-                            const targetTop = (startPage + 1) * A4_HEIGHT_PX + 40;
-                            const currentTop = elTopRelative;
-                            const pushDown = targetTop - currentTop;
-
+                            const targetTop = (startPage + 1) * A4_HEIGHT_PX + 20; // Slight padding
+                            const pushDown = targetTop - elTopRelative;
                             el.style.marginTop = `${pushDown}px`;
                         }
                     });
+
+                    // Final page count calculation
+                    const finalHeight = containerRef.current.scrollHeight;
+                    const pages = Math.ceil(finalHeight / A4_HEIGHT_PX);
+                    setNumPages(pages || 1);
                 }, 50);
 
                 return () => clearTimeout(timer);
@@ -2261,12 +2259,14 @@
                         </div>
 
                         {/* Resume Paper */}
-                        <div ref={containerRef} className={`bg-white shadow-2xl w-[210mm] min-h-[297mm] print:shadow-none print:w-[210mm] print:min-h-0 print:mx-auto relative overflow-hidden transition-all duration-300 ${design.pagedMode ? 'pb-[200px]' : ''}`}>
+                        <div ref={containerRef} className={`bg-white shadow-2xl w-[210mm] min-h-[297mm] print:shadow-none print:w-[210mm] print:min-h-0 print:mx-auto relative overflow-visible transition-all duration-300 ${design.pagedMode ? 'pb-[200px]' : ''}`}>
                             {/* Logo Overlay - fixed in print, absolute in preview */}
                             {design.logo && (
-                                <div className={`absolute z-10 print:fixed print:z-50 
-                                    ${(design.logoPosition || 'header-right').startsWith('header') ? 'top-6 print:top-[12mm]' : 'bottom-6 print:bottom-[12mm]'} 
-                                    ${(design.logoPosition || 'header-right').endsWith('left') ? 'left-8 print:left-[15mm]' : 'right-8 print:right-[15mm]'}`}
+                                <div className={`absolute z-10 print:fixed print:z-0 pointer-events-none
+                                    ${design.logoPosition === 'watermark-center'
+                                        ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 print:top-1/2 print:left-1/2 print:-translate-x-1/2 print:-translate-y-1/2 text-center opacity-30'
+                                        : `${(design.logoPosition || 'header-right').startsWith('header') ? 'top-[12mm] print:top-[12mm]' : 'bottom-[12mm] print:bottom-[12mm]'} 
+                                           ${(design.logoPosition || 'header-right').endsWith('left') ? 'left-[15mm] print:left-[15mm]' : 'right-[15mm] print:right-[15mm]'}`}`}
                                 >
                                     <img
                                         src={design.logo}
