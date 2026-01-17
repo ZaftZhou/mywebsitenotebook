@@ -427,11 +427,15 @@
                 add: '添加',
                 contentTab: '内容编辑',
                 designTab: '外观设计',
-                setAsDefault: '设为默认',
-                loadDefault: '加载默认',
+                setAsDefault: '设为默认', // Deprecated, kept for translation safety if needed, but UI removed
+                loadDefault: '加载默认', // Deprecated
                 defaultSaved: '已设为默认模板',
                 defaultLoaded: '已加载默认模板',
-                noDefault: '暂无默认模板',
+                noDefault: '暂无默认模板', // Deprecated
+
+                saveAsExample: '保存为示例',
+                exampleSaved: '已保存为新的示例模板',
+
                 labels: {
                     fullName: '姓名', role: '目标职位/头衔', email: '邮箱', phone: '电话',
                     address: '地址', linkedin: 'LinkedIn', website: '个人网站', summary: '个人简介',
@@ -498,11 +502,15 @@
                 add: 'Add',
                 contentTab: 'Content',
                 designTab: 'Design',
-                setAsDefault: 'Set as Default',
-                loadDefault: 'Load Default',
+                setAsDefault: 'Set as Default', // Deprecated
+                loadDefault: 'Load Default', // Deprecated
                 defaultSaved: 'Default template saved',
                 defaultLoaded: 'Default template loaded',
-                noDefault: 'No default template found',
+                noDefault: 'No default template found', // Deprecated
+
+                saveAsExample: 'Save as Example',
+                exampleSaved: 'Saved as new Example template',
+
                 labels: {
                     fullName: 'Full Name', role: 'Title / Job Target', email: 'Email', phone: 'Phone',
                     address: 'Location', linkedin: 'LinkedIn', website: 'Website', summary: 'Summary',
@@ -2122,7 +2130,16 @@
                 }
             };
 
-            const [lang, setLang] = useState(() => loadState('resume_lang', 'zh'));
+            const saveState = (key, value) => {
+                try {
+                    localStorage.setItem(key, JSON.stringify(value));
+                } catch (e) {
+                    console.error("Save failed", e);
+                    alert("Failed to save data to local storage properly");
+                }
+            };
+
+            const [lang, setLang] = useState(() => loadState('resume_lang', 'en'));
             const [theme, setTheme] = useState(() => loadState('resume_theme', 'classic'));
             const defaultLayout = [
                 { id: 'p1', sections: ['summary', 'experience', 'education', 'projects', 'skills', 'languages'] }
@@ -2167,6 +2184,47 @@
             });
             const [isSaved, setIsSaved] = useState(true);
             const [activeTab, setActiveTab] = useState('design');
+
+            // --- Resizable Sidebar Logic ---
+            const [sidebarWidth, setSidebarWidth] = useState(() => loadState('resume_ui_width', 480));
+            const [isResizing, setIsResizing] = useState(false);
+
+            useEffect(() => {
+                localStorage.setItem('resume_ui_width', JSON.stringify(sidebarWidth));
+            }, [sidebarWidth]);
+
+            const startResizing = (e) => {
+                e.preventDefault();
+                setIsResizing(true);
+            };
+
+            const stopResizing = () => {
+                setIsResizing(false);
+            };
+
+            const resize = (e) => {
+                if (isResizing) {
+                    const newWidth = e.clientX;
+                    // Extended width limit as requested
+                    if (newWidth > 300 && newWidth < 1400) {
+                        setSidebarWidth(newWidth);
+                    }
+                }
+            };
+
+            useEffect(() => {
+                if (isResizing) {
+                    window.addEventListener('mousemove', resize);
+                    window.addEventListener('mouseup', stopResizing);
+                } else {
+                    window.removeEventListener('mousemove', resize);
+                    window.removeEventListener('mouseup', stopResizing);
+                }
+                return () => {
+                    window.removeEventListener('mousemove', resize);
+                    window.removeEventListener('mouseup', stopResizing);
+                };
+            }, [isResizing]);
 
             // Inject design into resume data
             const resumeWithDesign = { ...resume, design };
@@ -2241,8 +2299,29 @@
                 setDesign(prev => ({ ...prev, logo: '' }));
             };
 
+            // Load Example (User Custom or Built-in)
             const loadExample = () => {
-                setResume(lang === 'zh' ? exampleDataZh : exampleDataEn);
+                const userExample = loadState('resume_user_example', null);
+                if (userExample) {
+                    if (userExample.resume) setResume(userExample.resume);
+                    if (userExample.design) setDesign(userExample.design);
+                    if (userExample.theme) setTheme(userExample.theme);
+                    if (userExample.lang) setLang(userExample.lang);
+                } else {
+                    setResume(lang === 'zh' ? exampleDataZh : exampleDataEn);
+                }
+            };
+
+            // Save as Example (Overrides built-in example for this user)
+            const saveAsExample = () => {
+                const dataToSave = {
+                    resume,
+                    design,
+                    theme,
+                    lang
+                };
+                saveState('resume_user_example', dataToSave);
+                alert(t.exampleSaved);
             };
 
             const reset = () => {
@@ -2300,32 +2379,6 @@
                 reader.readAsText(file);
                 // Reset input value to allow re-importing same file
                 event.target.value = '';
-            };
-
-            // Set as Default Template
-            const saveAsDefault = () => {
-                const dataToSave = {
-                    resume,
-                    design,
-                    theme,
-                    lang
-                };
-                saveState('resume_user_default', dataToSave);
-                alert(t.defaultSaved);
-            };
-
-            // Load Default Template
-            const loadDefault = () => {
-                const savedDefault = loadState('resume_user_default', null);
-                if (savedDefault) {
-                    if (savedDefault.resume) setResume(savedDefault.resume);
-                    if (savedDefault.design) setDesign(savedDefault.design);
-                    if (savedDefault.theme) setTheme(savedDefault.theme);
-                    if (savedDefault.lang) setLang(savedDefault.lang);
-                    alert(t.defaultLoaded);
-                } else {
-                    alert(t.noDefault);
-                }
             };
 
             const addToList = (listName, emptyItem) => {
@@ -2466,7 +2519,16 @@
             return (
                 <div className="min-h-screen flex flex-col xl:flex-row bg-gray-50">
                     {/* Left: Editor Sidebar */}
-                    <div className="bg-gray-50 border-r border-gray-200 w-full xl:w-[480px] h-auto xl:h-screen xl:sticky xl:top-0 xl:overflow-y-auto shrink-0 print:hidden z-10">
+                    <div
+                        style={{ '--sidebar-width': `${sidebarWidth}px` }}
+                        className="bg-gray-50 border-r border-gray-200 w-full xl:w-[var(--sidebar-width)] h-auto xl:h-screen xl:sticky xl:top-0 xl:overflow-y-auto shrink-0 print:hidden z-10 relative group"
+                    >
+                        {/* Drag Handle */}
+                        <div
+                            className="hidden xl:block absolute top-0 right-0 w-1.5 h-full cursor-ew-resize hover:bg-blue-400 z-50 transition-colors opacity-0 group-hover:opacity-100 bg-transparent"
+                            onMouseDown={startResizing}
+                            title="Drag to resize"
+                        ></div>
                         <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
                             <div className="p-4 flex justify-between items-center border-b border-gray-100">
                                 <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center gap-2">
@@ -2477,15 +2539,17 @@
                                         {isSaved ? (lang === 'zh' ? '已保存' : 'Saved') : (lang === 'zh' ? '保存中...' : 'Saving...')}
                                     </span>
                                     <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                                    <button onClick={() => setLang(lang === 'en' ? 'zh' : 'en')} className="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-sm font-medium">
-                                        {lang === 'en' ? '中文' : 'EN'}
+                                    <button onClick={saveAsExample} className="text-purple-600 p-2 hover:bg-purple-50 rounded" title={t.saveAsExample}>
+                                        <BookmarkIcon />
                                     </button>
+
                                     <button onClick={loadExample} className="text-blue-600 p-2 hover:bg-blue-50 rounded" title={t.example}>
                                         <Wand2Icon />
                                     </button>
                                     <button onClick={reset} className="text-red-500 p-2 hover:bg-red-50 rounded" title={t.reset}>
                                         <RotateCcwIcon />
                                     </button>
+
                                     <div className="w-px h-4 bg-gray-300 mx-1"></div>
                                     <button onClick={exportTemplate} className="text-emerald-600 p-2 hover:bg-emerald-50 rounded" title={lang === 'zh' ? '导出模板' : 'Export Template'}>
                                         <DownloadIcon />
@@ -2500,14 +2564,7 @@
                                         />
                                     </label>
 
-                                    <div className="w-px h-4 bg-gray-300 mx-1"></div>
 
-                                    <button onClick={saveAsDefault} className="text-gray-600 p-2 hover:bg-gray-100 rounded" title={t.setAsDefault}>
-                                        <BookmarkIcon />
-                                    </button>
-                                    <button onClick={loadDefault} className="text-yellow-500 p-2 hover:bg-yellow-50 rounded" title={t.loadDefault}>
-                                        <BookmarkIcon />
-                                    </button>
                                 </div>
                             </div>
                             {/* Tabs */}
