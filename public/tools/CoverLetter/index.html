@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro 求职信生成器</title>
+    <title>Pro Cover Letter Builder</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 React 和 React DOM -->
@@ -65,19 +65,29 @@
                 box-shadow: none !important;
             }
 
+            /* 简历页面容器 - 保持210mm宽度、297mm高度确保打印与预览一致 */
+            #cover-letter-preview {
+                width: 210mm !important;
+                height: 297mm !important;
+                min-height: 297mm !important;
+                max-height: 297mm !important;
+                box-shadow: none !important;
+                margin: 0 auto !important;
+                print-color-adjust: exact !important;
+                -webkit-print-color-adjust: exact !important;
+                overflow: hidden !important;
+            }
+
+            /* 隐藏侧边栏等无关元素 */
+            .print\:hidden {
+                display: none !important;
+            }
+
             .print\:w-full {
                 width: 100% !important;
             }
 
-            .print\:max-w-none {
-                max-width: none !important;
-            }
-
-            .print\:h-screen {
-                height: 100vh !important;
-            }
-
-            /* 确保侧边栏填满 */
+            /* 隐藏滚动条 */
             ::-webkit-scrollbar {
                 display: none;
             }
@@ -116,6 +126,9 @@
         const TypeIcon = ({ className }) => <Icon className={className}><path d="M4 7V4h16v3" /><path d="M9 20h6" /><path d="M12 4v16" /></Icon>;
         const PaletteIcon = ({ className }) => <Icon className={className}><circle cx="13.5" cy="6.5" r=".5" /><circle cx="17.5" cy="10.5" r=".5" /><circle cx="8.5" cy="7.5" r=".5" /><circle cx="6.5" cy="12.5" r=".5" /><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" /></Icon>;
         const LayoutIcon = ({ className }) => <Icon className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><line x1="9" x2="9" y1="3" y2="21" /></Icon>;
+        const DownloadIcon = ({ className }) => <Icon className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></Icon>;
+        const UploadIcon = ({ className }) => <Icon className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></Icon>;
+        const BookmarkIcon = ({ className }) => <Icon className={className}><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" /></Icon>;
 
         // --- 主程序逻辑 ---
 
@@ -229,7 +242,7 @@
 
             const uiText = {
                 zh: {
-                    title: 'Pro 求职信生成器',
+                    title: 'Pro Cover Letter Builder',
                     reset: '清空',
                     example: '示例',
                     fontLabel: '字体',
@@ -281,13 +294,20 @@
                         placeholderOpening: '[此处将显示您的开场白...]',
                         placeholderBody: '[此处将显示您的核心经历和技能描述...]',
                         placeholderClosing: '[此处将显示您的结语...]',
-                        placeholderClosing: '[此处将显示您的结语...]',
-                        placeholderClosing: '[此处将显示您的结语...]',
                         contactTitle: '联系方式',
                         at: ' @ ',
                         saved: '已保存',
                         saving: '保存中...'
-                    }
+                    },
+                    exportJson: '导出数据 (JSON)',
+                    importJson: '导入数据 (JSON)',
+                    importSuccess: '导入成功！',
+                    importError: '导入失败，请检查文件格式。',
+                    setAsDefault: '设为默认',
+                    loadDefault: '加载默认',
+                    defaultSaved: '已设为默认模板',
+                    defaultLoaded: '已加载默认模板',
+                    noDefault: '暂无默认模板'
                 },
                 en: {
                     title: 'Pro Cover Letter Generator',
@@ -342,13 +362,20 @@
                         placeholderOpening: '[Your opening paragraph will appear here...]',
                         placeholderBody: '[Your body paragraphs regarding skills and experience...]',
                         placeholderClosing: '[Your closing remarks...]',
-                        placeholderClosing: '[Your closing remarks...]',
-                        placeholderClosing: '[Your closing remarks...]',
                         contactTitle: 'CONTACT',
-                        at: ' at ',
+                        at: ' @ ',
                         saved: 'Saved',
                         saving: 'Saving...'
-                    }
+                    },
+                    exportJson: 'Export Data (JSON)',
+                    importJson: 'Import Data (JSON)',
+                    importSuccess: 'Import Successful!',
+                    importError: 'Import Failed. Please check the file format.',
+                    setAsDefault: 'Set as Default',
+                    loadDefault: 'Load Default',
+                    defaultSaved: 'Default template saved',
+                    defaultLoaded: 'Default template loaded',
+                    noDefault: 'No default template found'
                 }
             };
 
@@ -494,6 +521,81 @@ ${formData.fullName}
                     } else {
                         alert('Please allow popups to print, or right-click and select "Print"');
                     }
+                }
+            };
+
+            // 导出 JSON 数据
+            const exportTemplate = () => {
+                const dataToSave = {
+                    formData,
+                    theme,
+                    lang
+                };
+                const jsonString = JSON.stringify(dataToSave, null, 2);
+                const blob = new Blob([jsonString], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+
+                // 文件名: cover_letter_Name_Date.json
+                const sanitizedName = (formData.fullName || 'User').replace(/[^a-z0-9]/gi, '_');
+                const dateStr = new Date().toISOString().split('T')[0];
+                link.href = url;
+                link.download = `cover_letter_${sanitizedName}_${dateStr}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            // 导入 JSON 数据
+            const importTemplate = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        if (importedData.formData) {
+                            setFormData(importedData.formData);
+                        }
+                        if (importedData.theme) {
+                            setTheme(importedData.theme);
+                        }
+                        if (importedData.lang) {
+                            setLang(importedData.lang);
+                        }
+                        alert(t.importSuccess);
+                    } catch (err) {
+                        console.error("Import error:", err);
+                        alert(t.importError);
+                    }
+                };
+                reader.readAsText(file);
+                // 重置 input 以便下次能选中同一个文件
+                event.target.value = '';
+            };
+
+            // 设置为默认模板
+            const saveAsDefault = () => {
+                const dataToSave = {
+                    formData,
+                    theme,
+                    lang
+                };
+                saveState('cover_letter_user_default', dataToSave);
+                alert(t.defaultSaved);
+            };
+
+            // 加载默认模板
+            const loadDefault = () => {
+                const savedDefault = loadState('cover_letter_user_default', null);
+                if (savedDefault) {
+                    if (savedDefault.formData) setFormData(savedDefault.formData);
+                    if (savedDefault.theme) setTheme(savedDefault.theme);
+                    if (savedDefault.lang) setLang(savedDefault.lang);
+                    alert(t.defaultLoaded);
+                } else {
+                    alert(t.noDefault);
                 }
             };
 
@@ -683,6 +785,54 @@ ${formData.fullName}
                                     </button>
                                 </div>
 
+                                <div className="h-6 w-px bg-slate-700 mx-2"></div>
+
+                                {/* 导出/导入 按钮组 */}
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={exportTemplate}
+                                        className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-md text-sm transition-colors text-white"
+                                        title={t.exportJson}
+                                    >
+                                        <DownloadIcon className="w-4 h-4" />
+                                        <span className="hidden xl:inline">{t.exportJson}</span>
+                                    </button>
+
+                                    <label className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-md text-sm transition-colors text-white cursor-pointer relative">
+                                        <input
+                                            type="file"
+                                            onChange={importTemplate}
+                                            accept=".json"
+                                            className="hidden"
+                                        />
+                                        <UploadIcon className="w-4 h-4" />
+                                        <span className="hidden xl:inline">{t.importJson}</span>
+                                    </label>
+                                </div>
+
+                                <div className="h-6 w-px bg-slate-700 mx-2"></div>
+
+                                <button
+                                    onClick={saveAsDefault}
+                                    className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-md text-sm transition-colors text-white"
+                                    title={t.setAsDefault}
+                                >
+                                    <BookmarkIcon className="w-4 h-4" />
+                                    <span className="hidden xl:inline">{t.setAsDefault}</span>
+                                </button>
+
+                                <button
+                                    onClick={loadDefault}
+                                    className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-md text-sm transition-colors text-white"
+                                    title={t.loadDefault}
+                                >
+                                    <BookmarkIcon className="w-4 h-4 text-yellow-400" />
+                                    <span className="hidden xl:inline">{t.loadDefault}</span>
+                                </button>
+
+                                <div className="h-6 w-px bg-slate-700 mx-2"></div>
+
+
                                 <button
                                     onClick={fillExample}
                                     className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-md text-sm transition-colors text-white"
@@ -784,7 +934,7 @@ ${formData.fullName}
 
                             <div
                                 id="cover-letter-preview"
-                                className="w-full max-w-[21cm] shadow-2xl print:shadow-none print:w-full print:max-w-none print:h-screen text-slate-800 min-h-[29.7cm] flex flex-col bg-white"
+                                className="w-[210mm] h-[297mm] shadow-2xl print:shadow-none bg-white flex flex-col text-slate-800 overflow-hidden mx-auto"
                             >
                                 {/* 动态渲染布局组件 */}
                                 {currentTheme.layoutType === 'split' ? (

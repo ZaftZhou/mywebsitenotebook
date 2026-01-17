@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro 简历生成器</title>
+    <title>Pro Resume Builder</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 React 和 React DOM -->
@@ -222,6 +222,7 @@
         const GraduationCapIcon = ({ className }) => <Icon className={className}><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></Icon>;
         const RocketIcon = ({ className }) => <Icon className={className}><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" /><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" /><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" /><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" /></Icon>;
         const UploadIcon = ({ className }) => <Icon className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></Icon>;
+        const BookmarkIcon = ({ className }) => <Icon className={className}><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" /></Icon>;
         const DownloadIcon = ({ className }) => <Icon className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></Icon>;
         const XIcon = ({ className }) => <Icon className={className}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></Icon>;
         const ArrowUpIcon = ({ className }) => <Icon className={className}><path d="m18 15-6-6-6 6" /></Icon>;
@@ -397,7 +398,7 @@
 
         const uiText = {
             zh: {
-                title: 'Pro 简历生成器',
+                title: 'Pro Resume Builder',
                 reset: '重置',
                 example: '示例',
                 fontLabel: '字体',
@@ -423,10 +424,14 @@
                 skills: '技能清单',
                 languages: '语言能力',
                 export: '导出 PDF',
-                export: '导出 PDF',
                 add: '添加',
                 contentTab: '内容编辑',
                 designTab: '外观设计',
+                setAsDefault: '设为默认',
+                loadDefault: '加载默认',
+                defaultSaved: '已设为默认模板',
+                defaultLoaded: '已加载默认模板',
+                noDefault: '暂无默认模板',
                 labels: {
                     fullName: '姓名', role: '目标职位/头衔', email: '邮箱', phone: '电话',
                     address: '地址', linkedin: 'LinkedIn', website: '个人网站', summary: '个人简介',
@@ -490,10 +495,14 @@
                 skills: 'Skills',
                 languages: 'Languages',
                 export: 'Export PDF',
-                export: 'Export PDF',
                 add: 'Add',
                 contentTab: 'Content',
                 designTab: 'Design',
+                setAsDefault: 'Set as Default',
+                loadDefault: 'Load Default',
+                defaultSaved: 'Default template saved',
+                defaultLoaded: 'Default template loaded',
+                noDefault: 'No default template found',
                 labels: {
                     fullName: 'Full Name', role: 'Title / Job Target', email: 'Email', phone: 'Phone',
                     address: 'Location', linkedin: 'LinkedIn', website: 'Website', summary: 'Summary',
@@ -793,8 +802,106 @@
             );
         }
 
+        // Draggable Logo Component
+        const DraggableLogo = ({ design, onDrag }) => {
+            if (!design?.logo) return null;
+
+            const handleMouseDown = (e) => {
+                if (!onDrag) return; // Read-only mode or missing handler
+                e.preventDefault();
+                e.stopPropagation();
+
+                const startX = e.clientX;
+                const startY = e.clientY;
+
+                const target = e.currentTarget; // The div container
+                const parent = target.closest('.sheet'); // Ensure we are inside a sheet
+                if (!parent) return;
+
+                const parentRect = parent.getBoundingClientRect();
+                const rect = target.getBoundingClientRect();
+
+                // Start position relative to sheet (px)
+                const startLeft = rect.left - parentRect.left;
+                const startTop = rect.top - parentRect.top;
+
+                const handleMouseMove = (moveEvent) => {
+                    const dx = moveEvent.clientX - startX;
+                    const dy = moveEvent.clientY - startY;
+
+                    let newX = startLeft + dx;
+                    let newY = startTop + dy;
+
+                    // Convert to percentage of sheet dimensions
+                    const percentX = (newX / parentRect.width) * 100;
+                    const percentY = (newY / parentRect.height) * 100;
+
+                    onDrag({ x: percentX, y: percentY });
+                };
+
+                const handleMouseUp = () => {
+                    window.removeEventListener('mousemove', handleMouseMove);
+                    window.removeEventListener('mouseup', handleMouseUp);
+                };
+
+                window.addEventListener('mousemove', handleMouseMove);
+                window.addEventListener('mouseup', handleMouseUp);
+            };
+
+            // Style for the container
+            const getPositionStyle = () => {
+                if (design.logoCoords) {
+                    return {
+                        left: `${design.logoCoords.x}%`,
+                        top: `${design.logoCoords.y}%`,
+                        transform: 'none' // Remove centering transforms if custom pos
+                    };
+                }
+                return {};
+            };
+
+            const getContainerClasses = () => {
+                const base = "absolute z-10 cursor-move print:absolute print:z-0";
+
+                if (design.logoCoords) {
+                    return base;
+                }
+
+                // Default positioning classes
+                const pos = design.logoPosition || 'header-right';
+                let classes = base;
+
+                if (pos === 'watermark-center') {
+                    classes += ' top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center opacity-30';
+                } else {
+                    classes += pos.startsWith('header') ? ' top-[12mm]' : ' bottom-[12mm]';
+                    classes += pos.endsWith('left') ? ' left-[15mm]' : ' right-[15mm]';
+                }
+                return classes;
+            };
+
+            return (
+                <div
+                    className={getContainerClasses()}
+                    style={getPositionStyle()}
+                    onMouseDown={handleMouseDown}
+                >
+                    <img
+                        src={design.logo}
+                        alt="Logo"
+                        className="object-contain pointer-events-none"
+                        style={{
+                            width: `${design.logoSize || 48}px`,
+                            height: `${design.logoSize || 48}px`,
+                            opacity: (design.logoOpacity || 80) / 100
+                        }}
+                    />
+                </div>
+            );
+        };
+
         // 1. Classic Theme
-        const ThemeClassic = ({ data, t, fontStyle }) => {
+        const ThemeClassic = ({ data, t, fontStyle, onDrag }) => {
             const spacing = data.design?.spacing || 1;
             const headerSpacing = data.design?.headerSpacing ?? 1;
             const sectionSpacing = data.design?.sectionSpacing ?? 1;
@@ -810,7 +917,7 @@
                     case 'summary':
                         return data.personal.summary && (
                             <div key="summary" style={{ marginBottom: `${2 * sectionSpacing}rem` }}>
-                                <h2 className="text-[0.875em] font-bold uppercase tracking-widest border-b border-gray-300 pb-1 mb-3">
+                                <h2 className="font-bold uppercase tracking-widest border-b border-gray-300 pb-1 mb-3" style={{ fontSize: 'var(--subheading-size)' }}>
                                     {t.labels.summary}
                                 </h2>
                                 <p className="text-[0.875em] leading-relaxed text-justify">{data.personal.summary}</p>
@@ -819,7 +926,7 @@
                     case 'experience':
                         return data.experience.length > 0 && (
                             <div key="experience" style={{ marginBottom: `${2.5 * sectionSpacing}rem` }}>
-                                <h2 className="text-[0.875em] font-bold uppercase tracking-widest border-b border-gray-300 pb-1" style={s(1)}>
+                                <h2 className="font-bold uppercase tracking-widest border-b border-gray-300 pb-1" style={{ ...s(1), fontSize: 'var(--subheading-size)' }}>
                                     {t.experience}
                                 </h2>
                                 <div style={gap(2)}>
@@ -848,7 +955,7 @@
                     case 'education':
                         return data.education.length > 0 && (
                             <div key="education" style={{ ...s(3) }}>
-                                <h2 className="text-[0.875em] font-bold uppercase tracking-widest border-b border-gray-300 pb-1" style={s(1)}>
+                                <h2 className="font-bold uppercase tracking-widest border-b border-gray-300 pb-1" style={{ ...s(1), fontSize: 'var(--subheading-size)' }}>
                                     {t.education}
                                 </h2>
                                 <div style={gap(2)}>
@@ -906,7 +1013,7 @@
                     case 'projects':
                         return data.projects.length > 0 && (
                             <div key="projects">
-                                <h2 className="text-[0.875em] font-bold uppercase tracking-widest border-b border-gray-300 pb-1" style={s(0.75)}>
+                                <h2 className="font-bold uppercase tracking-widest border-b border-gray-300 pb-1" style={{ ...s(0.75), fontSize: 'var(--subheading-size)' }}>
                                     {t.projects}
                                 </h2>
                                 <div style={gap(1.5)}>
@@ -939,6 +1046,8 @@
                 }}>
                     {layout.map((page, i) => (
                         <div key={page.id} className="sheet bg-white w-[210mm] h-[297mm] p-[15mm] print:p-[15mm] relative shadow-2xl print:shadow-none mb-8 print:mb-0 print:break-before-page overflow-hidden">
+                            {/* Logo Overlay (Inside Sheet) */}
+                            <DraggableLogo design={data.design} onDrag={onDrag} />
                             {/* Header (Always on Page 1) */}
                             {i === 0 && (
                                 <div className="border-b-2 border-gray-800 flex justify-between items-start gap-8" style={{ paddingBottom: `${1.5 * headerSpacing}rem`, marginBottom: `${1.5 * headerSpacing}rem` }}>
@@ -978,7 +1087,7 @@
         };
 
         // 2. Modern Theme (Sidebar)
-        const ThemeModern = ({ data, t, fontStyle }) => {
+        const ThemeModern = ({ data, t, fontStyle, onDrag }) => {
             const spacing = data.design?.spacing || 1;
             const headerSpacing = data.design?.headerSpacing ?? 1;
             const sectionSpacing = data.design?.sectionSpacing ?? 1;
@@ -999,7 +1108,7 @@
                 switch (sectionId) {
                     case 'skills': return data.skills.length > 0 && (
                         <div key="skills" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.75em] font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2">
+                            <h3 className="font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2" style={{ fontSize: 'var(--subheading-size)' }}>
                                 {t.skills}
                             </h3>
                             <div className="space-y-6">
@@ -1016,7 +1125,7 @@
                     );
                     case 'languages': return data.languages?.length > 0 && (
                         <div key="languages" style={{ marginBottom: `${2.5 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.75em] font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2">
+                            <h3 className="font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2" style={{ fontSize: 'var(--subheading-size)' }}>
                                 {t.languages}
                             </h3>
                             <div className="space-y-3">
@@ -1031,7 +1140,7 @@
                     );
                     case 'education': return data.education.length > 0 && (
                         <div key="education" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.75em] font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2">
+                            <h3 className="font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2" style={{ fontSize: 'var(--subheading-size)' }}>
                                 {t.education}
                             </h3>
                             <div className="space-y-4">
@@ -1049,7 +1158,7 @@
                     // Added: Summary in Sidebar
                     case 'summary': return data.personal.summary && (
                         <div key="summary" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.75em] font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2">
+                            <h3 className="font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2" style={{ fontSize: 'var(--subheading-size)' }}>
                                 {t.labels.summary}
                             </h3>
                             <p className="text-[0.75em] text-slate-400 leading-relaxed text-justify">{data.personal.summary}</p>
@@ -1058,7 +1167,7 @@
                     // Added: Experience in Sidebar (Simplified)
                     case 'experience': return data.experience.length > 0 && (
                         <div key="experience" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.75em] font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2">
+                            <h3 className="font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2" style={{ fontSize: 'var(--subheading-size)' }}>
                                 {t.experience}
                             </h3>
                             <div className="space-y-4">
@@ -1075,7 +1184,7 @@
                     // Added: Projects in Sidebar (Simplified)
                     case 'projects': return data.projects.length > 0 && data.design?.showProjects !== false && (
                         <div key="projects" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.75em] font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2">
+                            <h3 className="font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2" style={{ fontSize: 'var(--subheading-size)' }}>
                                 {t.projects}
                             </h3>
                             <div className="space-y-4">
@@ -1096,7 +1205,7 @@
                 switch (sectionId) {
                     case 'summary': return data.personal.summary && (
                         <div key="summary" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
-                            <h2 className="text-[1.125em] font-bold text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <h2 className="font-bold text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2" style={{ fontSize: 'var(--heading-size)' }}>
                                 <span className="w-8 h-1 block" style={{ backgroundColor: data.design?.color || '#2563eb' }}></span> {t.labels.summary}
                             </h2>
                             <p className="text-[0.875em] text-gray-600 leading-7 text-justify">{data.personal.summary}</p>
@@ -1104,7 +1213,7 @@
                     );
                     case 'experience': return data.experience.length > 0 && (
                         <div key="experience" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
-                            <h2 className="text-[1.125em] font-bold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
+                            <h2 className="font-bold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2" style={{ fontSize: 'var(--heading-size)' }}>
                                 <span className="w-8 h-1 block" style={{ backgroundColor: data.design?.color || '#2563eb' }}></span> {t.experience}
                             </h2>
                             <div className="pl-4 border-l-[3px] border-slate-200 ml-2 mt-2" style={gap(3)}>
@@ -1130,7 +1239,7 @@
                     );
                     case 'projects': return data.projects.length > 0 && data.design?.showProjects !== false && (
                         <div key="projects">
-                            <h2 className="text-[1.125em] font-bold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
+                            <h2 className="font-bold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2" style={{ fontSize: 'var(--heading-size)' }}>
                                 <span className="w-8 h-1 block" style={{ backgroundColor: data.design?.color || '#2563eb' }}></span> {t.projects}
                             </h2>
                             <div className="grid grid-cols-1 gap-6">
@@ -1149,7 +1258,7 @@
                     // Added: Skills in Main
                     case 'skills': return data.skills.length > 0 && (
                         <div key="skills" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
-                            <h2 className="text-lg font-bold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
+                            <h2 className="font-bold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2" style={{ fontSize: 'var(--heading-size)' }}>
                                 <span className="w-8 h-1 block" style={{ backgroundColor: data.design?.color || '#2563eb' }}></span> {t.skills}
                             </h2>
                             <div className="grid grid-cols-2 gap-x-8 gap-y-4">
@@ -1167,7 +1276,7 @@
                     // Added: Education in Main
                     case 'education': return data.education.length > 0 && (
                         <div key="education" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
-                            <h2 className="text-lg font-bold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
+                            <h2 className="font-bold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2" style={{ fontSize: 'var(--heading-size)' }}>
                                 <span className="w-8 h-1 block" style={{ backgroundColor: data.design?.color || '#2563eb' }}></span> {t.education}
                             </h2>
                             <div className="space-y-6">
@@ -1216,6 +1325,8 @@
                 }}>
                     {layout.map((page, i) => (
                         <div key={page.id} className="sheet bg-white w-[210mm] h-[297mm] flex relative shadow-2xl print:p-0 print:shadow-none mb-8 print:mb-0 print:break-before-page overflow-hidden">
+                            {/* Logo Overlay (Inside Sheet) */}
+                            <DraggableLogo design={data.design} onDrag={onDrag} />
                             {/* Sidebar */}
                             <div className="w-1/3 bg-slate-900 text-white p-8 pt-12 flex flex-col min-h-full">
                                 {i === 0 && (
@@ -1261,7 +1372,7 @@
         };
 
         // 3. Minimal Theme
-        const ThemeMinimal = ({ data, t, fontStyle }) => {
+        const ThemeMinimal = ({ data, t, fontStyle, onDrag }) => {
             const spacing = data.design?.spacing || 1;
             const headerSpacing = data.design?.headerSpacing ?? 1;
             const sectionSpacing = data.design?.sectionSpacing ?? 1;
@@ -1282,7 +1393,7 @@
                 switch (sectionId) {
                     case 'skills': return data.skills.length > 0 && (
                         <div key="skills" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Skills</h3>
+                            <h3 className="font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color, fontSize: 'var(--subheading-size)' }}>Skills</h3>
                             <div style={gap(1)}>
                                 {data.skills.map(skill => (
                                     skill.name ? (
@@ -1297,7 +1408,7 @@
                     );
                     case 'education': return data.education.length > 0 && (
                         <div key="education" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Education</h3>
+                            <h3 className="font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color, fontSize: 'var(--subheading-size)' }}>Education</h3>
                             <div style={gap(1)}>
                                 {data.education.map(edu => (
                                     edu.school ? (
@@ -1314,7 +1425,7 @@
                     );
                     case 'languages': return data.languages?.length > 0 && (
                         <div key="languages" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Languages</h3>
+                            <h3 className="font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color, fontSize: 'var(--subheading-size)' }}>Languages</h3>
                             <div style={gap(1)}>
                                 {data.languages.map(lang => (
                                     <div key={lang.id} className="print-break-avoid">
@@ -1328,14 +1439,14 @@
                     // Added: Summary in Left
                     case 'summary': return data.personal.summary && (
                         <div key="summary" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>{t.labels.summary}</h3>
+                            <h3 className="font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color, fontSize: 'var(--subheading-size)' }}>{t.labels.summary}</h3>
                             <p className="text-[0.75em] text-gray-600 leading-relaxed text-justify">{data.personal.summary}</p>
                         </div>
                     );
                     // Added: Experience in Left
                     case 'experience': return data.experience.length > 0 && (
                         <div key="experience" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>{t.experience}</h3>
+                            <h3 className="font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color, fontSize: 'var(--subheading-size)' }}>{t.experience}</h3>
                             <div style={gap(2)}>
                                 {data.experience.map(exp => (
                                     <div key={exp.id} className="print-break-avoid">
@@ -1350,7 +1461,7 @@
                     // Added: Projects in Left
                     case 'projects': return data.projects.length > 0 && data.design?.showProjects !== false && (
                         <div key="projects" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>{t.projects}</h3>
+                            <h3 className="font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color, fontSize: 'var(--subheading-size)' }}>{t.projects}</h3>
                             <div style={gap(1.5)}>
                                 {data.projects.map(proj => (
                                     <div key={proj.id} className="print-break-avoid">
@@ -1376,7 +1487,7 @@
                     );
                     case 'experience': return data.experience.length > 0 && (
                         <div key="experience" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-6 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Work Experience</h3>
+                            <h3 className="font-bold uppercase tracking-wider mb-6 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color, fontSize: 'var(--subheading-size)' }}>Work Experience</h3>
                             <div style={gap(2)}>
                                 {data.experience.map(exp => (
                                     <div key={exp.id} className="print-break-avoid">
@@ -1399,7 +1510,7 @@
                     );
                     case 'projects': return data.projects.length > 0 && data.design?.showProjects !== false && (
                         <div key="projects">
-                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-6 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Selected Projects</h3>
+                            <h3 className="font-bold uppercase tracking-wider mb-6 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color, fontSize: 'var(--subheading-size)' }}>Selected Projects</h3>
                             <div style={gap(1.5)}>
                                 {data.projects.map(proj => (
                                     <div key={proj.id} className="print-break-avoid">
@@ -1416,7 +1527,7 @@
                     // Added: Skills in Right
                     case 'skills': return data.skills.length > 0 && (
                         <div key="skills" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-6 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Skills</h3>
+                            <h3 className="font-bold uppercase tracking-wider mb-6 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color, fontSize: 'var(--subheading-size)' }}>Skills</h3>
                             <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                                 {data.skills.map(skill => (
                                     skill.name ? (
@@ -1432,7 +1543,7 @@
                     // Added: Education in Right
                     case 'education': return data.education.length > 0 && (
                         <div key="education" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-6 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Education</h3>
+                            <h3 className="font-bold uppercase tracking-wider mb-6 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color, fontSize: 'var(--subheading-size)' }}>Education</h3>
                             <div style={gap(2)}>
                                 {data.education.map(edu => (
                                     edu.school ? (
@@ -1479,6 +1590,8 @@
                 }}>
                     {layout.map((page, i) => (
                         <div key={page.id} className="sheet bg-white w-[210mm] h-[297mm] p-[15mm] print:p-[15mm] relative shadow-2xl print:shadow-none mb-8 print:mb-0 print:break-before-page overflow-hidden">
+                            {/* Logo Overlay (Inside Sheet) */}
+                            <DraggableLogo design={data.design} onDrag={onDrag} />
                             {/* Header (Page 1 Only) */}
                             {i === 0 && (
                                 <div className="flex justify-between items-start" style={{ marginBottom: `${3 * headerSpacing}rem` }}>
@@ -1524,7 +1637,7 @@
         };
 
         // 4. Professional Theme (Corporate Standard)
-        const ThemeProfessional = ({ data, t, fontStyle }) => {
+        const ThemeProfessional = ({ data, t, fontStyle, onDrag }) => {
             const spacing = data.design?.spacing || 1;
             const headerSpacing = data.design?.headerSpacing ?? 1;
             const sectionSpacing = data.design?.sectionSpacing ?? 1;
@@ -1545,7 +1658,7 @@
                 switch (sectionId) {
                     case 'skills': return data.skills.length > 0 && (
                         <div key="skills" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.9em] font-bold uppercase tracking-widest text-slate-800 mb-4 border-b-2 border-slate-200 pb-1">
+                            <h3 className="font-bold uppercase tracking-widest text-slate-800 mb-4 border-b-2 border-slate-200 pb-1" style={{ fontSize: 'var(--subheading-size)' }}>
                                 {t.skills}
                             </h3>
                             <div style={gap(1.5)}>
@@ -1562,7 +1675,7 @@
                     );
                     case 'education': return data.education.length > 0 && (
                         <div key="education" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.9em] font-bold uppercase tracking-widest text-slate-800 mb-4 border-b-2 border-slate-200 pb-1">
+                            <h3 className="font-bold uppercase tracking-widest text-slate-800 mb-4 border-b-2 border-slate-200 pb-1" style={{ fontSize: 'var(--subheading-size)' }}>
                                 {t.education}
                             </h3>
                             <div style={gap(2)}>
@@ -1578,7 +1691,7 @@
                     );
                     case 'languages': return data.languages?.length > 0 && (
                         <div key="languages" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.9em] font-bold uppercase tracking-widest text-slate-800 mb-4 border-b-2 border-slate-200 pb-1">
+                            <h3 className="font-bold uppercase tracking-widest text-slate-800 mb-4 border-b-2 border-slate-200 pb-1" style={{ fontSize: 'var(--subheading-size)' }}>
                                 {t.languages}
                             </h3>
                             <div style={gap(1)}>
@@ -1594,14 +1707,14 @@
                     // Added: Summary in Sidebar
                     case 'summary': return data.personal.summary && (
                         <div key="summary" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.9em] font-bold uppercase tracking-widest text-slate-800 mb-4 border-b-2 border-slate-200 pb-1">{t.labels.summary}</h3>
+                            <h3 className="font-bold uppercase tracking-widest text-slate-800 mb-4 border-b-2 border-slate-200 pb-1" style={{ fontSize: 'var(--subheading-size)' }}>{t.labels.summary}</h3>
                             <p className="text-[0.8em] text-slate-600 leading-relaxed text-justify">{data.personal.summary}</p>
                         </div>
                     );
                     // Added: Experience in Sidebar
                     case 'experience': return data.experience.length > 0 && (
                         <div key="experience" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.9em] font-bold uppercase tracking-widest text-slate-800 mb-4 border-b-2 border-slate-200 pb-1">{t.experience}</h3>
+                            <h3 className="font-bold uppercase tracking-widest text-slate-800 mb-4 border-b-2 border-slate-200 pb-1" style={{ fontSize: 'var(--subheading-size)' }}>{t.experience}</h3>
                             <div style={gap(2)}>
                                 {data.experience.map(exp => (
                                     <div key={exp.id} className="print-break-avoid">
@@ -1616,7 +1729,7 @@
                     // Added: Projects in Sidebar
                     case 'projects': return data.projects.length > 0 && data.design?.showProjects !== false && (
                         <div key="projects" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
-                            <h3 className="text-[0.9em] font-bold uppercase tracking-widest text-slate-800 mb-4 border-b-2 border-slate-200 pb-1">{t.projects}</h3>
+                            <h3 className="font-bold uppercase tracking-widest text-slate-800 mb-4 border-b-2 border-slate-200 pb-1" style={{ fontSize: 'var(--subheading-size)' }}>{t.projects}</h3>
                             <div style={gap(2)}>
                                 {data.projects.map(proj => (
                                     <div key={proj.id} className="print-break-avoid">
@@ -1640,7 +1753,7 @@
                     );
                     case 'experience': return data.experience.length > 0 && (
                         <div key="experience" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
-                            <h2 className="text-[1.25em] font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
+                            <h2 className="font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2" style={{ fontSize: 'var(--heading-size)' }}>
                                 <span style={{ color: data.design?.color }}>{t.experience}</span>
                             </h2>
                             <div style={gap(3)}>
@@ -1669,7 +1782,7 @@
                     );
                     case 'projects': return data.projects.length > 0 && data.design?.showProjects !== false && (
                         <div key="projects">
-                            <h2 className="text-[1.25em] font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
+                            <h2 className="font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2" style={{ fontSize: 'var(--heading-size)' }}>
                                 <span style={{ color: data.design?.color }}>{t.projects}</span>
                             </h2>
                             <div style={gap(1.5)}>
@@ -1688,7 +1801,7 @@
                     // Added: Skills in Main
                     case 'skills': return data.skills.length > 0 && (
                         <div key="skills" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
-                            <h2 className="text-[1.25em] font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
+                            <h2 className="font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2" style={{ fontSize: 'var(--heading-size)' }}>
                                 <span style={{ color: data.design?.color }}>{t.skills}</span>
                             </h2>
                             <div className="grid grid-cols-2 gap-x-8 gap-y-4">
@@ -1706,7 +1819,7 @@
                     // Added: Education in Main
                     case 'education': return data.education.length > 0 && (
                         <div key="education" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
-                            <h2 className="text-[1.25em] font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
+                            <h2 className="font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2" style={{ fontSize: 'var(--heading-size)' }}>
                                 <span style={{ color: data.design?.color }}>{t.education}</span>
                             </h2>
                             <div style={gap(3)}>
@@ -1726,7 +1839,7 @@
                     // Added: Languages in Main
                     case 'languages': return data.languages?.length > 0 && (
                         <div key="languages" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
-                            <h2 className="text-[1.25em] font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
+                            <h2 className="font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2" style={{ fontSize: 'var(--heading-size)' }}>
                                 <span style={{ color: data.design?.color }}>{t.languages}</span>
                             </h2>
                             <div className="grid grid-cols-2 gap-4">
@@ -1754,7 +1867,9 @@
                     '--line-height': data.design?.lineHeight || 1.5
                 }}>
                     {layout.map((page, i) => (
-                        <div key={page.id} className="sheet bg-white w-[210mm] min-h-[297mm] flex relative shadow-2xl print:p-0 print:shadow-none mb-8 print:mb-0 print:break-before-page overflow-hidden">
+                        <div key={page.id} className="sheet bg-white w-[210mm] h-[297mm] flex relative shadow-2xl print:p-0 print:shadow-none mb-8 print:mb-0 print:break-before-page overflow-hidden">
+                            {/* Logo Overlay (Inside Sheet) */}
+                            <DraggableLogo design={data.design} onDrag={onDrag} />
                             {/* Left Sidebar (30%) */}
                             <div className="w-[30%] bg-slate-50 p-8 border-r border-slate-200 flex flex-col min-h-full">
                                 {i === 0 && (
@@ -1984,6 +2099,10 @@
                                     </div>
                                 </div>
                             )}
+
+                            {/* Visual Page Boundary Indicators */}
+                            <div className="page-boundary-indicator"></div>
+                            <div className="content-overflow-warning">⚠️ Overflow Alert</div>
                         </div>
                     ))}
                 </div>
@@ -2016,6 +2135,7 @@
                 logoPosition: 'header-right',
                 logoSize: 48,
                 logoOpacity: 80,
+                logoCoords: null, // { x: number, y: number } in percent or px, let's use percent for responsiveness or mm? Px relative to A4 (794x1123) is easiest.
                 showPageNumbers: true,
                 pageNumberPosition: 'bottom-right',
                 spacing: 1,
@@ -2182,6 +2302,32 @@
                 event.target.value = '';
             };
 
+            // Set as Default Template
+            const saveAsDefault = () => {
+                const dataToSave = {
+                    resume,
+                    design,
+                    theme,
+                    lang
+                };
+                saveState('resume_user_default', dataToSave);
+                alert(t.defaultSaved);
+            };
+
+            // Load Default Template
+            const loadDefault = () => {
+                const savedDefault = loadState('resume_user_default', null);
+                if (savedDefault) {
+                    if (savedDefault.resume) setResume(savedDefault.resume);
+                    if (savedDefault.design) setDesign(savedDefault.design);
+                    if (savedDefault.theme) setTheme(savedDefault.theme);
+                    if (savedDefault.lang) setLang(savedDefault.lang);
+                    alert(t.defaultLoaded);
+                } else {
+                    alert(t.noDefault);
+                }
+            };
+
             const addToList = (listName, emptyItem) => {
                 setResume(prev => ({
                     ...prev,
@@ -2277,6 +2423,11 @@
                 });
             };
 
+            // Draggable Logo Handler
+            const updateLogoCoords = (coords) => {
+                setDesign(prev => ({ ...prev, logoCoords: coords }));
+            };
+
             // Font selection based on Lang
             const getFont = () => {
                 if (design.font && design.font !== 'default') {
@@ -2302,7 +2453,7 @@
 
             // Theme Renderer
             const renderTheme = () => {
-                const props = { data: resumeWithDesign, t, fontStyle };
+                const props = { data: resumeWithDesign, t, fontStyle, onDrag: updateLogoCoords };
                 switch (theme) {
                     case 'classic': return <ThemeClassic {...props} />;
                     case 'modern': return <ThemeModern {...props} />;
@@ -2348,6 +2499,15 @@
                                             className="hidden"
                                         />
                                     </label>
+
+                                    <div className="w-px h-4 bg-gray-300 mx-1"></div>
+
+                                    <button onClick={saveAsDefault} className="text-gray-600 p-2 hover:bg-gray-100 rounded" title={t.setAsDefault}>
+                                        <BookmarkIcon />
+                                    </button>
+                                    <button onClick={loadDefault} className="text-yellow-500 p-2 hover:bg-yellow-50 rounded" title={t.loadDefault}>
+                                        <BookmarkIcon />
+                                    </button>
                                 </div>
                             </div>
                             {/* Tabs */}
@@ -2857,26 +3017,7 @@
                             ref={containerRef}
                             className={`bg-white shadow-2xl w-[210mm] min-h-[297mm] print:shadow-none print:mx-auto relative overflow-visible transition-all duration-300 ${design.pagedMode ? 'pb-[200px]' : ''}`}
                         >
-                            {/* Logo Overlay - fixed in print, absolute in preview */}
-                            {design.logo && (
-                                <div className={`absolute z-10 print:fixed print:z-0 pointer-events-none
-                                    ${design.logoPosition === 'watermark-center'
-                                        ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 print:top-1/2 print:left-1/2 print:-translate-x-1/2 print:-translate-y-1/2 text-center opacity-30'
-                                        : `${(design.logoPosition || 'header-right').startsWith('header') ? 'top-[12mm] print:top-[12mm]' : 'bottom-[12mm] print:bottom-[12mm]'} 
-                                           ${(design.logoPosition || 'header-right').endsWith('left') ? 'left-[15mm] print:left-[15mm]' : 'right-[15mm] print:right-[15mm]'}`}`}
-                                >
-                                    <img
-                                        src={design.logo}
-                                        alt="Logo"
-                                        className="object-contain"
-                                        style={{
-                                            width: `${design.logoSize || 48}px`,
-                                            height: `${design.logoSize || 48}px`,
-                                            opacity: (design.logoOpacity || 80) / 100
-                                        }}
-                                    />
-                                </div>
-                            )}
+
                             {renderTheme()}
 
                         </div>
