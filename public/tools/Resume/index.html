@@ -41,10 +41,65 @@
             background: #94a3b8;
         }
 
+        /* 核心A4尺寸变量 */
+        :root {
+            --a4-width: 210mm;
+            --a4-height: 297mm;
+            --a4-padding: 15mm;
+            /* 可打印区域高度 = 297mm - 上下内边距 */
+            --a4-content-height: calc(297mm - 30mm);
+        }
+
+        /* 页面边界指示器 */
+        .page-boundary-indicator {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 2px;
+            background: repeating-linear-gradient(90deg,
+                    #ef4444 0,
+                    #ef4444 10px,
+                    transparent 10px,
+                    transparent 20px);
+            pointer-events: none;
+            z-index: 99;
+        }
+
+        .page-boundary-indicator::after {
+            content: '⚠ Page Break';
+            position: absolute;
+            right: 8px;
+            top: -20px;
+            font-size: 10px;
+            color: #ef4444;
+            background: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        /* 溢出警告样式 */
+        .content-overflow-warning {
+            position: absolute;
+            bottom: -32px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+            font-size: 11px;
+            padding: 4px 12px;
+            border-radius: 4px;
+            white-space: nowrap;
+            z-index: 10;
+        }
+
         /* 打印样式优化 - 确保打印与预览一致 */
         @page {
             size: A4;
-            margin: 15mm;
+            margin: 0;
+            /* 移除页面边距，让简历的内边距生效 */
         }
 
         @media print {
@@ -108,6 +163,31 @@
             ::-webkit-scrollbar {
                 display: none;
             }
+
+            /* 简历页面容器 - 保持210mm宽度、297mm高度确保打印与预览一致 */
+            .sheet {
+                width: 210mm !important;
+                height: 297mm !important;
+                min-height: 297mm !important;
+                max-height: 297mm !important;
+                box-shadow: none !important;
+                margin: 0 auto !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                overflow: hidden !important;
+            }
+
+            /* 最后一页不需要分页 */
+            .sheet:last-child {
+                page-break-after: auto !important;
+                break-after: auto !important;
+            }
+
+            /* 隐藏页面边界指示器 */
+            .page-boundary-indicator,
+            .content-overflow-warning {
+                display: none !important;
+            }
         }
     </style>
 </head>
@@ -142,6 +222,7 @@
         const GraduationCapIcon = ({ className }) => <Icon className={className}><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></Icon>;
         const RocketIcon = ({ className }) => <Icon className={className}><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" /><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" /><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" /><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" /></Icon>;
         const UploadIcon = ({ className }) => <Icon className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></Icon>;
+        const DownloadIcon = ({ className }) => <Icon className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></Icon>;
         const XIcon = ({ className }) => <Icon className={className}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></Icon>;
         const ArrowUpIcon = ({ className }) => <Icon className={className}><path d="m18 15-6-6-6 6" /></Icon>;
         const ArrowDownIcon = ({ className }) => <Icon className={className}><path d="m6 9 6 6 6-6" /></Icon>;
@@ -715,165 +796,183 @@
         // 1. Classic Theme
         const ThemeClassic = ({ data, t, fontStyle }) => {
             const spacing = data.design?.spacing || 1;
-            const headerSpacing = data.design?.headerSpacing ?? 1; // Header-to-content gap
-            const sectionSpacing = data.design?.sectionSpacing ?? 1; // Section-to-section gap
-            const page2Start = data.design?.page2Start; // Section to start on page 2
+            const headerSpacing = data.design?.headerSpacing ?? 1;
+            const sectionSpacing = data.design?.sectionSpacing ?? 1;
+
             const s = (rem) => ({ marginBottom: `${rem * spacing}rem` });
             const gap = (rem) => ({ display: 'flex', flexDirection: 'column', gap: `${rem * spacing}rem` });
-            const pageBreak = (section) => page2Start === section ? { breakBefore: 'page' } : {};
+
+            // Layout Fallback
+            const layout = data.design?.layout || [{ id: 'p1', sections: ['summary', 'experience', 'education', 'skills', 'languages', 'projects'] }];
+
+            const renderSection = (sectionId) => {
+                switch (sectionId) {
+                    case 'summary':
+                        return data.personal.summary && (
+                            <div key="summary" style={{ marginBottom: `${2 * sectionSpacing}rem` }}>
+                                <h2 className="text-[0.875em] font-bold uppercase tracking-widest border-b border-gray-300 pb-1 mb-3">
+                                    {t.labels.summary}
+                                </h2>
+                                <p className="text-[0.875em] leading-relaxed text-justify">{data.personal.summary}</p>
+                            </div>
+                        );
+                    case 'experience':
+                        return data.experience.length > 0 && (
+                            <div key="experience" style={{ marginBottom: `${2.5 * sectionSpacing}rem` }}>
+                                <h2 className="text-[0.875em] font-bold uppercase tracking-widest border-b border-gray-300 pb-1" style={s(1)}>
+                                    {t.experience}
+                                </h2>
+                                <div style={gap(2)}>
+                                    {data.experience.map(exp => (
+                                        <div key={exp.id} className="print-break-avoid">
+                                            <div className="flex justify-between items-baseline mb-1">
+                                                <h3 className="font-bold text-[1em]">{exp.role}</h3>
+                                                <span className="text-[0.875em] font-medium text-gray-600">{exp.date}</span>
+                                            </div>
+                                            <div className="flex justify-between items-baseline mb-2 text-[0.875em]">
+                                                <span className="font-semibold italic text-slate-700">{exp.company}</span>
+                                                <span className="text-gray-500">{exp.location}</span>
+                                            </div>
+                                            <TextWithBullets text={exp.description} className="text-[0.875em] text-gray-700 leading-snug" />
+                                            {exp.technologies && (
+                                                <div className="text-[0.75em] text-slate-500 mt-2 font-mono">
+                                                    <span className="font-bold text-slate-700 mr-2">{t.labels.technologies}:</span>
+                                                    {exp.technologies}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    case 'education':
+                        return data.education.length > 0 && (
+                            <div key="education" style={{ ...s(3) }}>
+                                <h2 className="text-[0.875em] font-bold uppercase tracking-widest border-b border-gray-300 pb-1" style={s(1)}>
+                                    {t.education}
+                                </h2>
+                                <div style={gap(2)}>
+                                    {data.education.map(edu => (
+                                        <div key={edu.id} className="print-break-avoid">
+                                            <div className="flex justify-between items-baseline mb-1">
+                                                <h3 className="font-bold text-[1em]">{edu.school}</h3>
+                                                <span className="text-[0.875em] font-medium text-gray-600">{edu.date}</span>
+                                            </div>
+                                            <div className="flex justify-between items-baseline mb-1 text-[0.875em]">
+                                                <span>{edu.degree}</span>
+                                                <span className="text-gray-500">{edu.location}</span>
+                                            </div>
+                                            {edu.description && <TextWithBullets text={edu.description} className="text-[0.875em] text-gray-600 mt-1" />}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    case 'skills':
+                        return data.skills.length > 0 && (
+                            <div key="skills" style={{ ...s(3) }}>
+                                <h2 className="text-[0.875em] font-bold uppercase tracking-widest border-b border-gray-300 pb-1 mb-3">
+                                    {t.skills}
+                                </h2>
+                                <div className="text-[0.875em]">
+                                    {data.skills.map(skill => (
+                                        skill.name ? (
+                                            <div key={skill.id} className="mb-1 flex print-break-avoid">
+                                                <span className="font-bold w-32 shrink-0">{skill.name}:</span>
+                                                <span>{skill.items}</span>
+                                            </div>
+                                        ) : null
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    case 'languages':
+                        return data.languages?.length > 0 && (
+                            <div key="languages" style={{ ...s(3) }}>
+                                <h2 className="text-[0.875em] font-bold uppercase tracking-widest border-b border-gray-300 pb-1 mb-3">
+                                    {t.languages}
+                                </h2>
+                                <div className="text-[0.875em] flex flex-wrap gap-x-6 gap-y-2">
+                                    {data.languages.map(lang => (
+                                        lang.language ? (
+                                            <div key={lang.id} className="print-break-avoid">
+                                                <span className="font-bold">{lang.language}:</span> <span className="text-gray-600 ml-1">{lang.proficiency}</span>
+                                            </div>
+                                        ) : null
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    case 'projects':
+                        return data.projects.length > 0 && (
+                            <div key="projects">
+                                <h2 className="text-[0.875em] font-bold uppercase tracking-widest border-b border-gray-300 pb-1" style={s(0.75)}>
+                                    {t.projects}
+                                </h2>
+                                <div style={gap(1.5)}>
+                                    {data.projects.map(proj => (
+                                        <div key={proj.id} className="text-[0.875em] print-break-avoid">
+                                            <div className="flex flex-wrap items-baseline gap-2 mb-1">
+                                                <span className="font-bold whitespace-nowrap">{proj.name}</span>
+                                                {proj.role && <span className="text-gray-500 text-[0.75em] whitespace-nowrap">| {proj.role}</span>}
+                                                {proj.link && <span className="text-blue-600 text-[0.75em] break-all">[{proj.link}]</span>}
+                                            </div>
+                                            <TextWithBullets text={proj.description} className="text-gray-700 leading-snug" />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    default: return null;
+                }
+            };
 
             return (
-                <div className="h-full w-full p-[15mm] print:p-0 text-slate-900 relative" style={{ fontFamily: fontStyle }}>
-                    {/* Header: Flex Row (Left: Info, Right: Avatar) */}
-                    <div className="border-b-2 border-gray-800 flex justify-between items-start gap-8" style={{ paddingBottom: `${1.5 * headerSpacing}rem`, marginBottom: `${1.5 * headerSpacing}rem` }}>
-                        <div className="flex-1">
-                            <h1 className="text-4xl font-bold uppercase tracking-wider mb-2" style={{ color: data.design?.color }}>{data.personal.fullName}</h1>
-                            <p className="text-xl text-gray-600 font-medium mb-4">{data.personal.role}</p>
-
-                            {/* Primary Contact Info */}
-                            <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500 mb-1">
-                                {data.personal.email && <span className="flex items-center gap-1"><MailIcon className="w-3 h-3" style={{ color: data.design?.color }} /> {data.personal.email}</span>}
-                                {data.personal.phone && <span className="flex items-center gap-1"><PhoneIcon className="w-3 h-3" style={{ color: data.design?.color }} /> {data.personal.phone}</span>}
-                                {data.personal.address && <span className="flex items-center gap-1"><MapPinIcon className="w-3 h-3" style={{ color: data.design?.color }} /> {data.personal.address}</span>}
-                            </div>
-
-                            {/* Secondary/Links Info */}
-                            {(data.personal.linkedin || data.personal.website) && (
-                                <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500">
-                                    {data.personal.linkedin && <span className="break-all flex items-center gap-1"><LinkedinIcon className="w-3 h-3" style={{ color: data.design?.color }} /> {data.personal.linkedin}</span>}
-                                    {data.personal.website && <span className="break-all flex items-center gap-1"><GlobeIcon className="w-3 h-3" style={{ color: data.design?.color }} /> {data.personal.website}</span>}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Avatar */}
-                        {data.personal.avatar && (
-                            <div className="shrink-0">
-                                <img src={data.personal.avatar} alt="Profile" className="w-32 h-32 object-cover border border-gray-300 shadow-sm rounded-sm" />
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Summary */}
-                    {data.personal.summary && (
-                        <div style={{ marginBottom: `${2 * sectionSpacing}rem` }}>
-                            <h2 className="text-sm font-bold uppercase tracking-widest border-b border-gray-300 pb-1 mb-3">
-                                {t.labels.summary}
-                            </h2>
-                            <p className="text-sm leading-relaxed text-justify">{data.personal.summary}</p>
-                        </div>
-                    )}
-
-                    {/* Experience */}
-                    {data.experience.length > 0 && (
-                        <div style={{ marginBottom: `${2.5 * sectionSpacing}rem`, ...pageBreak('experience') }}>
-                            <h2 className="text-sm font-bold uppercase tracking-widest border-b border-gray-300 pb-1" style={s(1)}>
-                                {t.experience}
-                            </h2>
-                            <div style={gap(2)}>
-                                {data.experience.map(exp => (
-                                    <div key={exp.id} className="print-break-avoid">
-                                        <div className="flex justify-between items-baseline mb-1">
-                                            <h3 className="font-bold text-base">{exp.role}</h3>
-                                            <span className="text-sm font-medium text-gray-600">{exp.date}</span>
+                <div style={{
+                    fontFamily: fontStyle,
+                    fontSize: (data.design?.bodySize || 12) + 'px',
+                    lineHeight: data.design?.lineHeight || 1.5,
+                    '--heading-size': (data.design?.headingSize || 18) + 'px',
+                    '--subheading-size': (data.design?.subheadingSize || 14) + 'px',
+                    '--body-size': (data.design?.bodySize || 12) + 'px',
+                    '--line-height': data.design?.lineHeight || 1.5
+                }}>
+                    {layout.map((page, i) => (
+                        <div key={page.id} className="sheet bg-white w-[210mm] h-[297mm] p-[15mm] print:p-[15mm] relative shadow-2xl print:shadow-none mb-8 print:mb-0 print:break-before-page overflow-hidden">
+                            {/* Header (Always on Page 1) */}
+                            {i === 0 && (
+                                <div className="border-b-2 border-gray-800 flex justify-between items-start gap-8" style={{ paddingBottom: `${1.5 * headerSpacing}rem`, marginBottom: `${1.5 * headerSpacing}rem` }}>
+                                    <div className="flex-1">
+                                        <h1 className="font-bold uppercase tracking-wider mb-2" style={{ color: data.design?.color, fontSize: 'calc(var(--heading-size) * 1.8)' }}>{data.personal.fullName}</h1>
+                                        <p className="text-gray-600 font-medium mb-4" style={{ fontSize: 'var(--subheading-size)' }}>{data.personal.role}</p>
+                                        <div className="flex flex-wrap gap-x-6 gap-y-1 text-gray-500 mb-1" style={{ fontSize: 'var(--body-size)' }}>
+                                            {data.personal.email && <span className="flex items-center gap-1"><MailIcon className="w-3 h-3" style={{ color: data.design?.color }} /> {data.personal.email}</span>}
+                                            {data.personal.phone && <span className="flex items-center gap-1"><PhoneIcon className="w-3 h-3" style={{ color: data.design?.color }} /> {data.personal.phone}</span>}
+                                            {data.personal.address && <span className="flex items-center gap-1"><MapPinIcon className="w-3 h-3" style={{ color: data.design?.color }} /> {data.personal.address}</span>}
                                         </div>
-                                        <div className="flex justify-between items-baseline mb-2 text-sm">
-                                            <span className="font-semibold italic text-slate-700">{exp.company}</span>
-                                            <span className="text-gray-500">{exp.location}</span>
-                                        </div>
-                                        <TextWithBullets text={exp.description} className="text-sm text-gray-700 leading-snug" />
-                                        {exp.technologies && (
-                                            <div className="text-xs text-slate-500 mt-2 font-mono">
-                                                <span className="font-bold text-slate-700 mr-2">{t.labels.technologies}:</span>
-                                                {exp.technologies}
+                                        {(data.personal.linkedin || data.personal.website) && (
+                                            <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500">
+                                                {data.personal.linkedin && <span className="break-all flex items-center gap-1"><LinkedinIcon className="w-3 h-3" style={{ color: data.design?.color }} /> {data.personal.linkedin}</span>}
+                                                {data.personal.website && <span className="break-all flex items-center gap-1"><GlobeIcon className="w-3 h-3" style={{ color: data.design?.color }} /> {data.personal.website}</span>}
                                             </div>
                                         )}
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                                    {data.personal.avatar && (
+                                        <div className="shrink-0">
+                                            <img src={data.personal.avatar} alt="Profile" className="w-32 h-32 object-cover border border-gray-300 shadow-sm rounded-sm" />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
-                    {/* Education */}
-                    {data.education.length > 0 && (
-                        <div style={{ ...s(3), ...pageBreak('education') }}>
-                            <h2 className="text-sm font-bold uppercase tracking-widest border-b border-gray-300 pb-1" style={s(1)}>
-                                {t.education}
-                            </h2>
-                            <div style={gap(2)}>
-                                {data.education.map(edu => (
-                                    <div key={edu.id} className="print-break-avoid">
-                                        <div className="flex justify-between items-baseline mb-1">
-                                            <h3 className="font-bold text-base">{edu.school}</h3>
-                                            <span className="text-sm font-medium text-gray-600">{edu.date}</span>
-                                        </div>
-                                        <div className="flex justify-between items-baseline mb-1 text-sm">
-                                            <span>{edu.degree}</span>
-                                            <span className="text-gray-500">{edu.location}</span>
-                                        </div>
-                                        {edu.description && <TextWithBullets text={edu.description} className="text-sm text-gray-600 mt-1" />}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                            {/* Sections */}
+                            {page.sections.map(section => renderSection(section))}
 
-                    {/* Skills & Projects (Combined row if space allows, but stacks for now) */}
-                    {data.skills.length > 0 && (
-                        <div style={{ ...s(3), ...pageBreak('skills') }}>
-                            <h2 className="text-sm font-bold uppercase tracking-widest border-b border-gray-300 pb-1 mb-3">
-                                {t.skills}
-                            </h2>
-                            <div className="text-sm">
-                                {data.skills.map(skill => (
-                                    skill.name ? (
-                                        <div key={skill.id} className="mb-1 flex print-break-avoid">
-                                            <span className="font-bold w-32 shrink-0">{skill.name}:</span>
-                                            <span>{skill.items}</span>
-                                        </div>
-                                    ) : null
-                                ))}
-                            </div>
+                            {/* Visual Page Boundary Indicators */}
+                            <div className="page-boundary-indicator"></div>
+                            <div className="content-overflow-warning">⚠️ Overflow Alert</div>
                         </div>
-                    )}
-
-                    {/* Languages */}
-                    {data.languages && data.languages.length > 0 && (
-                        <div style={{ ...s(3), ...pageBreak('languages') }}>
-                            <h2 className="text-sm font-bold uppercase tracking-widest border-b border-gray-300 pb-1 mb-3">
-                                {t.languages}
-                            </h2>
-                            <div className="text-sm flex flex-wrap gap-x-6 gap-y-2">
-                                {data.languages.map(lang => (
-                                    lang.language ? (
-                                        <div key={lang.id} className="print-break-avoid">
-                                            <span className="font-bold">{lang.language}:</span> <span className="text-gray-600 ml-1">{lang.proficiency}</span>
-                                        </div>
-                                    ) : null
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {data.projects.length > 0 && data.design?.showProjects !== false && (
-                        <div style={pageBreak('projects')}>
-                            <h2 className="text-sm font-bold uppercase tracking-widest border-b border-gray-300 pb-1" style={s(0.75)}>
-                                {t.projects}
-                            </h2>
-                            <div style={gap(1.5)}>
-                                {data.projects.map(proj => (
-                                    <div key={proj.id} className="text-sm print-break-avoid">
-                                        <div className="flex flex-wrap items-baseline gap-2 mb-1">
-                                            <span className="font-bold whitespace-nowrap">{proj.name}</span>
-                                            {proj.role && <span className="text-gray-500 text-xs whitespace-nowrap">| {proj.role}</span>}
-                                            {proj.link && <span className="text-blue-600 text-xs break-all">[{proj.link}]</span>}
-                                        </div>
-                                        <TextWithBullets text={proj.description} className="text-gray-700 leading-snug" />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                    ))}
                 </div>
             );
         };
@@ -883,169 +982,280 @@
             const spacing = data.design?.spacing || 1;
             const headerSpacing = data.design?.headerSpacing ?? 1;
             const sectionSpacing = data.design?.sectionSpacing ?? 1;
-            const page2Start = data.design?.page2Start;
+
             const s = (rem) => ({ marginBottom: `${rem * spacing}rem` });
             const gap = (rem) => ({ display: 'flex', flexDirection: 'column', gap: `${rem * spacing}rem` });
-            const pageBreak = (section) => page2Start === section ? { breakBefore: 'page' } : {};
+
+            const layout = data.design?.layout || [{ id: 'p1', sections: ['summary', 'experience', 'education', 'skills', 'languages', 'projects'] }];
+
+            // Helper to get position
+            const getPos = (sectionId) => {
+                if (data.design?.sectionPositions?.[sectionId]) return data.design.sectionPositions[sectionId];
+                const sidebarDefaults = ['skills', 'education', 'languages', 'contact'];
+                return sidebarDefaults.includes(sectionId) ? 'sidebar' : 'main';
+            }
+
+            const renderSidebarSection = (sectionId) => {
+                switch (sectionId) {
+                    case 'skills': return data.skills.length > 0 && (
+                        <div key="skills" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.75em] font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2">
+                                {t.skills}
+                            </h3>
+                            <div className="space-y-6">
+                                {data.skills.map(skill => (
+                                    skill.name ? (
+                                        <div key={skill.id} className="print-break-avoid">
+                                            <p className="text-[0.75em] font-bold text-white mb-1">{skill.name}</p>
+                                            <p className="text-[0.75em] text-slate-400 leading-relaxed">{skill.items}</p>
+                                        </div>
+                                    ) : null
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    case 'languages': return data.languages?.length > 0 && (
+                        <div key="languages" style={{ marginBottom: `${2.5 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.75em] font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2">
+                                {t.languages}
+                            </h3>
+                            <div className="space-y-3">
+                                {data.languages.map(lang => (
+                                    <div key={lang.id} className="flex justify-between items-baseline print-break-avoid">
+                                        <span className="text-[0.875em] font-bold text-white">{lang.language}</span>
+                                        <span className="text-[0.75em] text-slate-400">{lang.proficiency}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    case 'education': return data.education.length > 0 && (
+                        <div key="education" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.75em] font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2">
+                                {t.education}
+                            </h3>
+                            <div className="space-y-4">
+                                {data.education.map(edu => (
+                                    <div key={edu.id} className="print-break-avoid">
+                                        <p className="text-[0.875em] font-bold text-white">{edu.school}</p>
+                                        <p className="text-[0.75em] mb-1" style={{ color: data.design?.color || '#93c5fd' }}>{edu.degree}</p>
+                                        <p className="text-[0.75em] text-slate-500 mb-1">{edu.date}</p>
+                                        {edu.description && <TextWithBullets text={edu.description} className="text-[0.625em] text-slate-400 leading-normal opacity-80" />}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    // Added: Summary in Sidebar
+                    case 'summary': return data.personal.summary && (
+                        <div key="summary" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.75em] font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2">
+                                {t.labels.summary}
+                            </h3>
+                            <p className="text-[0.75em] text-slate-400 leading-relaxed text-justify">{data.personal.summary}</p>
+                        </div>
+                    );
+                    // Added: Experience in Sidebar (Simplified)
+                    case 'experience': return data.experience.length > 0 && (
+                        <div key="experience" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.75em] font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2">
+                                {t.experience}
+                            </h3>
+                            <div className="space-y-4">
+                                {data.experience.map(exp => (
+                                    <div key={exp.id} className="print-break-avoid">
+                                        <p className="text-[0.875em] font-bold text-white">{exp.role}</p>
+                                        <p className="text-[0.75em] text-slate-400 mb-1">{exp.company}</p>
+                                        <p className="text-[0.625em] text-slate-600 mb-2">{exp.date}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    // Added: Projects in Sidebar (Simplified)
+                    case 'projects': return data.projects.length > 0 && data.design?.showProjects !== false && (
+                        <div key="projects" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.75em] font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2">
+                                {t.projects}
+                            </h3>
+                            <div className="space-y-4">
+                                {data.projects.map(proj => (
+                                    <div key={proj.id} className="print-break-avoid">
+                                        <p className="text-[0.875em] font-bold text-white">{proj.name}</p>
+                                        <p className="text-[0.75em] text-slate-400 leading-relaxed line-clamp-3">{proj.description}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    default: return null;
+                }
+            }
+
+            const renderMainSection = (sectionId) => {
+                switch (sectionId) {
+                    case 'summary': return data.personal.summary && (
+                        <div key="summary" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
+                            <h2 className="text-[1.125em] font-bold text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <span className="w-8 h-1 block" style={{ backgroundColor: data.design?.color || '#2563eb' }}></span> {t.labels.summary}
+                            </h2>
+                            <p className="text-[0.875em] text-gray-600 leading-7 text-justify">{data.personal.summary}</p>
+                        </div>
+                    );
+                    case 'experience': return data.experience.length > 0 && (
+                        <div key="experience" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
+                            <h2 className="text-[1.125em] font-bold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
+                                <span className="w-8 h-1 block" style={{ backgroundColor: data.design?.color || '#2563eb' }}></span> {t.experience}
+                            </h2>
+                            <div className="pl-4 border-l-[3px] border-slate-200 ml-2 mt-2" style={gap(3)}>
+                                {data.experience.map(exp => (
+                                    <div key={exp.id} className="relative pl-6 print-break-avoid">
+                                        <div className="absolute -left-[23px] top-1.5 w-4 h-4 bg-white border-4 rounded-full box-border z-10" style={{ borderColor: data.design?.color || '#2563eb' }}></div>
+                                        <h3 className="text-[1.125em] font-bold text-slate-800 break-words">{exp.role}</h3>
+                                        <div className="flex justify-between text-[0.875em] font-medium mb-3" style={{ color: data.design?.color || '#2563eb' }}>
+                                            <span>{exp.company}</span>
+                                            <span className="text-slate-400">{exp.date}</span>
+                                        </div>
+                                        <TextWithBullets text={exp.description} className="text-[0.875em] text-gray-600 leading-7" />
+                                        {exp.technologies && (
+                                            <div className="text-[0.75em] text-slate-500 mt-4 font-mono">
+                                                <span className="font-bold mr-2" style={{ color: data.design?.color }}>{t.labels.technologies}:</span>
+                                                {exp.technologies}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    case 'projects': return data.projects.length > 0 && data.design?.showProjects !== false && (
+                        <div key="projects">
+                            <h2 className="text-[1.125em] font-bold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
+                                <span className="w-8 h-1 block" style={{ backgroundColor: data.design?.color || '#2563eb' }}></span> {t.projects}
+                            </h2>
+                            <div className="grid grid-cols-1 gap-6">
+                                {data.projects.map(proj => (
+                                    <div key={proj.id} className="bg-slate-50 p-4 rounded-lg print-break-avoid">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <h4 className="font-bold text-slate-800">{proj.name}</h4>
+                                            {proj.link && <span className="text-[0.75em]" style={{ color: data.design?.color || '#3b82f6' }}>{proj.link}</span>}
+                                        </div>
+                                        <TextWithBullets text={proj.description} className="text-[0.875em] text-gray-600" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    // Added: Skills in Main
+                    case 'skills': return data.skills.length > 0 && (
+                        <div key="skills" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
+                            <h2 className="text-lg font-bold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
+                                <span className="w-8 h-1 block" style={{ backgroundColor: data.design?.color || '#2563eb' }}></span> {t.skills}
+                            </h2>
+                            <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                                {data.skills.map(skill => (
+                                    skill.name ? (
+                                        <div key={skill.id} className="print-break-avoid">
+                                            <p className="font-bold text-[0.95em] text-slate-700 mb-1">{skill.name}</p>
+                                            <p className="text-[0.95em] text-slate-500 leading-relaxed">{skill.items}</p>
+                                        </div>
+                                    ) : null
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    // Added: Education in Main
+                    case 'education': return data.education.length > 0 && (
+                        <div key="education" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
+                            <h2 className="text-lg font-bold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
+                                <span className="w-8 h-1 block" style={{ backgroundColor: data.design?.color || '#2563eb' }}></span> {t.education}
+                            </h2>
+                            <div className="space-y-6">
+                                {data.education.map(edu => (
+                                    <div key={edu.id} className="print-break-avoid relative pl-4 border-l-2 border-slate-100">
+                                        <p className="text-base font-bold text-slate-800">{edu.school}</p>
+                                        <div className="flex justify-between items-baseline mb-2">
+                                            <p className="text-sm font-medium" style={{ color: data.design?.color }}>{edu.degree}</p>
+                                            <p className="text-xs text-slate-400">{edu.date}</p>
+                                        </div>
+                                        {edu.description && <TextWithBullets text={edu.description} className="text-[0.95em] text-slate-600 leading-relaxed" />}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    // Added: Languages in Main
+                    case 'languages': return data.languages?.length > 0 && (
+                        <div key="languages" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
+                            <h2 className="text-lg font-bold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
+                                <span className="w-8 h-1 block" style={{ backgroundColor: data.design?.color || '#2563eb' }}></span> {t.languages}
+                            </h2>
+                            <div className="grid grid-cols-2 gap-4">
+                                {data.languages.map(lang => (
+                                    <div key={lang.id} className="flex justify-between items-center bg-slate-50 p-3 rounded print-break-avoid">
+                                        <span className="font-bold text-[0.95em] text-slate-700">{lang.language}</span>
+                                        <span className="text-[0.8em] text-slate-500">{lang.proficiency}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    default: return null;
+                }
+            }
 
             return (
-                <div className="flex h-full w-full bg-white relative p-[15mm] print:p-0" style={{ fontFamily: fontStyle }}>
-                    {/* Sidebar */}
-                    <div className="w-1/3 bg-slate-900 text-white p-8 pt-12 flex flex-col">
-                        <div className="text-center" style={s(2.5)}>
-                            {/* Avatar or Initials */}
-                            <div className="w-32 h-32 mx-auto mb-6 rounded-full overflow-hidden border-4 border-slate-600 bg-slate-700 flex items-center justify-center shrink-0">
-                                {data.personal.avatar ? (
-                                    <img src={data.personal.avatar} alt="Profile" className="w-full h-full object-cover" />
-                                ) : (
-                                    <span className="text-4xl font-bold text-slate-400">
-                                        {data.personal.fullName ? data.personal.fullName.charAt(0).toUpperCase() : 'U'}
-                                    </span>
+                <div style={{
+                    fontFamily: fontStyle,
+                    fontSize: (data.design?.bodySize || 12) + 'px',
+                    lineHeight: data.design?.lineHeight || 1.5,
+                    '--heading-size': (data.design?.headingSize || 18) + 'px',
+                    '--subheading-size': (data.design?.subheadingSize || 14) + 'px',
+                    '--body-size': (data.design?.bodySize || 12) + 'px',
+                    '--line-height': data.design?.lineHeight || 1.5
+                }}>
+                    {layout.map((page, i) => (
+                        <div key={page.id} className="sheet bg-white w-[210mm] h-[297mm] flex relative shadow-2xl print:p-0 print:shadow-none mb-8 print:mb-0 print:break-before-page overflow-hidden">
+                            {/* Sidebar */}
+                            <div className="w-1/3 bg-slate-900 text-white p-8 pt-12 flex flex-col min-h-full">
+                                {i === 0 && (
+                                    <>
+                                        <div className="text-center" style={s(2.5)}>
+                                            <div className="w-32 h-32 mx-auto mb-6 rounded-full overflow-hidden border-4 border-slate-600 bg-slate-700 flex items-center justify-center shrink-0">
+                                                {data.personal.avatar ? (
+                                                    <img src={data.personal.avatar} alt="Profile" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="text-4xl font-bold text-slate-400">
+                                                        {data.personal.fullName ? data.personal.fullName.charAt(0).toUpperCase() : 'U'}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <h1 className="text-2xl font-bold mb-3 leading-tight break-words">{data.personal.fullName}</h1>
+                                            <p className="text-sm font-medium uppercase tracking-wide leading-relaxed break-words" style={{ color: data.design?.color || '#93c5fd' }}>{data.personal.role}</p>
+                                        </div>
+                                        <div className="text-sm text-slate-300" style={{ ...s(3), ...gap(1) }}>
+                                            {data.personal.email && <div className="flex items-center gap-3"><MailIcon className="w-4 h-4 shrink-0" style={{ color: data.design?.color || '#60a5fa' }} /> <span className="break-words w-full">{data.personal.email}</span></div>}
+                                            {data.personal.phone && <div className="flex items-center gap-3"><PhoneIcon className="w-4 h-4 shrink-0" style={{ color: data.design?.color || '#60a5fa' }} /> <span className="break-all">{data.personal.phone}</span></div>}
+                                            {data.personal.address && <div className="flex items-start gap-3"><MapPinIcon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: data.design?.color || '#60a5fa' }} /> <span className="break-words leading-snug">{data.personal.address}</span></div>}
+                                            {data.personal.linkedin && <div className="flex items-start gap-3"><LinkedinIcon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: data.design?.color || '#60a5fa' }} /> <span className="break-all leading-snug">{data.personal.linkedin}</span></div>}
+                                            {data.personal.website && <div className="flex items-start gap-3"><GlobeIcon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: data.design?.color || '#60a5fa' }} /> <span className="break-all leading-snug">{data.personal.website}</span></div>}
+                                        </div>
+                                    </>
                                 )}
+                                {page.sections.filter(s => getPos(s) === 'sidebar').map(renderSidebarSection)}
                             </div>
-                            <h1 className="text-2xl font-bold mb-3 leading-tight break-words">{data.personal.fullName}</h1>
-                            <p className="text-sm font-medium uppercase tracking-wide leading-relaxed break-words" style={{ color: data.design?.color || '#93c5fd' }}>{data.personal.role}</p>
+
+                            {/* Main Content */}
+                            <div className="w-2/3 p-8">
+                                {i === 0 && <div style={{ paddingTop: `${4 * headerSpacing}rem` }}></div>}
+                                {page.sections.filter(s => getPos(s) === 'main').map(renderMainSection)}
+                            </div>
+
+                            {/* Visual Page Boundary Indicators */}
+                            <div className="page-boundary-indicator"></div>
+                            <div className="content-overflow-warning">⚠️ Overflow Alert</div>
                         </div>
-
-                        {/* Contact Info */}
-                        <div className="text-sm text-slate-300" style={{ ...s(3), ...gap(1) }}>
-                            {data.personal.email && <div className="flex items-center gap-3"><MailIcon className="w-4 h-4 shrink-0" style={{ color: data.design?.color || '#60a5fa' }} /> <span className="break-words w-full">{data.personal.email}</span></div>}
-                            {data.personal.phone && <div className="flex items-center gap-3"><PhoneIcon className="w-4 h-4 shrink-0" style={{ color: data.design?.color || '#60a5fa' }} /> <span className="break-all">{data.personal.phone}</span></div>}
-                            {data.personal.address && <div className="flex items-start gap-3"><MapPinIcon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: data.design?.color || '#60a5fa' }} /> <span className="break-words leading-snug">{data.personal.address}</span></div>}
-                            {data.personal.linkedin && <div className="flex items-start gap-3"><LinkedinIcon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: data.design?.color || '#60a5fa' }} /> <span className="break-all leading-snug">{data.personal.linkedin}</span></div>}
-                            {data.personal.website && <div className="flex items-start gap-3"><GlobeIcon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: data.design?.color || '#60a5fa' }} /> <span className="break-all leading-snug">{data.personal.website}</span></div>}
-                        </div>
-
-                        {/* Skills */}
-                        {data.skills.length > 0 && (
-                            <div style={{ marginBottom: `${3 * sectionSpacing}rem`, ...pageBreak('skills') }}>
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2">
-                                    {t.skills}
-                                </h3>
-                                <div className="space-y-6">
-                                    {data.skills.map(skill => (
-                                        skill.name ? (
-                                            <div key={skill.id} className="print-break-avoid">
-                                                <p className="text-xs font-bold text-white mb-1">{skill.name}</p>
-                                                <p className="text-xs text-slate-400 leading-relaxed">{skill.items}</p>
-                                            </div>
-                                        ) : null
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Languages */}
-                        {data.languages && data.languages.length > 0 && (
-                            <div style={{ marginBottom: `${2.5 * sectionSpacing}rem`, ...pageBreak('languages') }}>
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2">
-                                    {t.languages}
-                                </h3>
-                                <div className="space-y-3">
-                                    {data.languages.map(lang => (
-                                        <div key={lang.id} className="flex justify-between items-baseline print-break-avoid">
-                                            <span className="text-sm font-bold text-white">{lang.language}</span>
-                                            <span className="text-xs text-slate-400">{lang.proficiency}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Education (moved to sidebar for Modern look) */}
-                        {data.education.length > 0 && (
-                            <div style={pageBreak('education')}>
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-700 pb-2">
-                                    {t.education}
-                                </h3>
-                                <div className="space-y-4">
-                                    {data.education.map(edu => (
-                                        <div key={edu.id} className="print-break-avoid">
-                                            <p className="text-sm font-bold text-white">{edu.school}</p>
-                                            <p className="text-xs mb-1" style={{ color: data.design?.color || '#93c5fd' }}>{edu.degree}</p>
-                                            <p className="text-xs text-slate-500 mb-1">{edu.date}</p>
-                                            {edu.description && <TextWithBullets text={edu.description} className="text-[10px] text-slate-400 leading-normal opacity-80" />}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Main Content */}
-                    <div className="w-2/3 p-8" style={{ paddingTop: `${4 * headerSpacing}rem` }}>
-                        {data.personal.summary && (
-                            <div style={{ marginBottom: `${3.5 * sectionSpacing}rem`, ...pageBreak('summary') }}>
-                                <h2 className="text-lg font-bold text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                    <span className="w-8 h-1 block" style={{ backgroundColor: data.design?.color || '#2563eb' }}></span> {t.labels.summary}
-                                </h2>
-                                <p className="text-sm text-gray-600 leading-7 text-justify">{data.personal.summary}</p>
-                            </div>
-                        )}
-
-                        {data.experience.length > 0 && (
-                            <div style={{ marginBottom: `${3.5 * sectionSpacing}rem`, ...pageBreak('experience') }}>
-                                <h2 className="text-lg font-bold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
-                                    <span className="w-8 h-1 block" style={{ backgroundColor: data.design?.color || '#2563eb' }}></span> {t.experience}
-                                </h2>
-                                <div className="pl-4 border-l-[3px] border-slate-200 ml-2 mt-2" style={gap(3)}>
-                                    {data.experience.map(exp => (
-                                        <div key={exp.id} className="relative pl-6 print-break-avoid">
-                                            {/* Timeline Dot: Calculated to center on the 3px line. Left offset needs to target center of line. */}
-                                            {/* Line is at 0px inside Padded container? No, Line matches border-l. */}
-                                            {/* We use -left-[27px] approx? Let's check calculations.
-                                                Container has pl-4 (16px).
-                                                Line is at width 3px.
-                                                Item content starts at 16px.
-                                                We want dot center at 1.5px (center of line).
-                                                16px - 1.5px = 14.5px offset to left?
-                                                Dot is w-4 (16px). Center is 8px.
-                                                So we want dot left edge at - (14.5 - 8) ? No.
-                                                Let's place it absolutely relative to the line.
-                                                Actually, simplified:
-                                                Put dot overlapping the border.
-                                                Container: relative.
-                                                Dot: absolute -left-[calc(16px+1.5px-8px)] ?
-                                                Standard Tailwind approach: -left-[21px] roughly.
-                                            */}
-                                            <div className="absolute -left-[23px] top-1.5 w-4 h-4 bg-white border-4 rounded-full box-border z-10" style={{ borderColor: data.design?.color || '#2563eb' }}></div>
-                                            <h3 className="text-lg font-bold text-slate-800 break-words">{exp.role}</h3>
-                                            <div className="flex justify-between text-sm font-medium mb-3" style={{ color: data.design?.color || '#2563eb' }}>
-                                                <span>{exp.company}</span>
-                                                <span className="text-slate-400">{exp.date}</span>
-                                            </div>
-                                            <TextWithBullets text={exp.description} className="text-sm text-gray-600 leading-7" />
-                                            {exp.technologies && (
-                                                <div className="text-xs text-slate-500 mt-4 font-mono">
-                                                    <span className="font-bold mr-2" style={{ color: data.design?.color }}>{t.labels.technologies}:</span>
-                                                    {exp.technologies}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {data.projects.length > 0 && data.design?.showProjects !== false && (
-                            <div style={pageBreak('projects')}>
-                                <h2 className="text-lg font-bold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
-                                    <span className="w-8 h-1 block" style={{ backgroundColor: data.design?.color || '#2563eb' }}></span> {t.projects}
-                                </h2>
-                                <div className="grid grid-cols-1 gap-6">
-                                    {data.projects.map(proj => (
-                                        <div key={proj.id} className="bg-slate-50 p-4 rounded-lg print-break-avoid">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <h4 className="font-bold text-slate-800">{proj.name}</h4>
-                                                {proj.link && <span className="text-xs" style={{ color: data.design?.color || '#3b82f6' }}>{proj.link}</span>}
-                                            </div>
-                                            <TextWithBullets text={proj.description} className="text-sm text-gray-600" />
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                    ))}
                 </div>
             );
         };
@@ -1055,277 +1265,561 @@
             const spacing = data.design?.spacing || 1;
             const headerSpacing = data.design?.headerSpacing ?? 1;
             const sectionSpacing = data.design?.sectionSpacing ?? 1;
-            const page2Start = data.design?.page2Start;
+
             const s = (rem) => ({ marginBottom: `${rem * spacing}rem` });
             const gap = (rem) => ({ display: 'flex', flexDirection: 'column', gap: `${rem * spacing}rem` });
-            const pageBreak = (section) => page2Start === section ? { breakBefore: 'page' } : {};
+
+            const layout = data.design?.layout || [{ id: 'p1', sections: ['summary', 'experience', 'education', 'skills', 'languages', 'projects'] }];
+
+            // Helper to get position
+            const getPos = (sectionId) => {
+                if (data.design?.sectionPositions?.[sectionId]) return data.design.sectionPositions[sectionId];
+                const leftDefaults = ['skills', 'education', 'languages'];
+                return leftDefaults.includes(sectionId) ? 'sidebar' : 'main';
+            }
+
+            const renderLeftSection = (sectionId) => {
+                switch (sectionId) {
+                    case 'skills': return data.skills.length > 0 && (
+                        <div key="skills" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Skills</h3>
+                            <div style={gap(1)}>
+                                {data.skills.map(skill => (
+                                    skill.name ? (
+                                        <div key={skill.id} className="print-break-avoid">
+                                            <p className="font-bold text-[0.875em] mb-1">{skill.name}</p>
+                                            <p className="text-[0.75em] text-gray-500 leading-relaxed">{skill.items}</p>
+                                        </div>
+                                    ) : null
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    case 'education': return data.education.length > 0 && (
+                        <div key="education" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Education</h3>
+                            <div style={gap(1)}>
+                                {data.education.map(edu => (
+                                    edu.school ? (
+                                        <div key={edu.id} className="print-break-avoid">
+                                            <p className="font-bold text-[0.875em]">{edu.school}</p>
+                                            <p className="text-[0.75em] text-gray-500 mb-1">{edu.degree}</p>
+                                            <p className="text-[0.75em] text-gray-400 font-mono mb-1">{edu.date}</p>
+                                            {edu.description && <TextWithBullets text={edu.description} className="text-[0.75em] text-gray-400 leading-relaxed" />}
+                                        </div>
+                                    ) : null
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    case 'languages': return data.languages?.length > 0 && (
+                        <div key="languages" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Languages</h3>
+                            <div style={gap(1)}>
+                                {data.languages.map(lang => (
+                                    <div key={lang.id} className="print-break-avoid">
+                                        <span className="font-bold text-[0.875em]">{lang.language}</span>
+                                        <span className="text-[0.75em] text-gray-500 block">{lang.proficiency}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    // Added: Summary in Left
+                    case 'summary': return data.personal.summary && (
+                        <div key="summary" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>{t.labels.summary}</h3>
+                            <p className="text-[0.75em] text-gray-600 leading-relaxed text-justify">{data.personal.summary}</p>
+                        </div>
+                    );
+                    // Added: Experience in Left
+                    case 'experience': return data.experience.length > 0 && (
+                        <div key="experience" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>{t.experience}</h3>
+                            <div style={gap(2)}>
+                                {data.experience.map(exp => (
+                                    <div key={exp.id} className="print-break-avoid">
+                                        <p className="font-bold text-[0.875em]">{exp.role}</p>
+                                        <p className="text-[0.75em] text-gray-400 font-mono mb-1">{exp.date}</p>
+                                        <p className="text-[0.75em] font-medium text-gray-500 mb-1">{exp.company}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    // Added: Projects in Left
+                    case 'projects': return data.projects.length > 0 && data.design?.showProjects !== false && (
+                        <div key="projects" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>{t.projects}</h3>
+                            <div style={gap(1.5)}>
+                                {data.projects.map(proj => (
+                                    <div key={proj.id} className="print-break-avoid">
+                                        <div className="mb-1">
+                                            <h4 className="font-bold text-[0.875em]">{proj.name}</h4>
+                                        </div>
+                                        <TextWithBullets text={proj.description} className="text-[0.75em] text-gray-600" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    default: return null;
+                }
+            }
+
+            const renderRightSection = (sectionId) => {
+                switch (sectionId) {
+                    case 'summary': return data.personal.summary && (
+                        <div key="summary" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
+                            <p className="text-[1em] leading-relaxed text-gray-600">{data.personal.summary}</p>
+                        </div>
+                    );
+                    case 'experience': return data.experience.length > 0 && (
+                        <div key="experience" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-6 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Work Experience</h3>
+                            <div style={gap(2)}>
+                                {data.experience.map(exp => (
+                                    <div key={exp.id} className="print-break-avoid">
+                                        <div className="flex justify-between items-baseline mb-2">
+                                            <h4 className="font-bold text-[1.125em]">{exp.role}</h4>
+                                            <span className="text-[0.875em] text-gray-400 font-mono">{exp.date}</span>
+                                        </div>
+                                        <p className="text-[0.875em] font-medium text-gray-500 mb-3">{exp.company}, {exp.location}</p>
+                                        <TextWithBullets text={exp.description} className="text-[0.875em] text-gray-600 leading-7" />
+                                        {exp.technologies && (
+                                            <div className="text-[0.75em] text-gray-400 mt-2 font-mono">
+                                                <span className="font-bold mr-2 text-gray-500">{t.labels.technologies}:</span>
+                                                {exp.technologies}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    case 'projects': return data.projects.length > 0 && data.design?.showProjects !== false && (
+                        <div key="projects">
+                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-6 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Selected Projects</h3>
+                            <div style={gap(1.5)}>
+                                {data.projects.map(proj => (
+                                    <div key={proj.id} className="print-break-avoid">
+                                        <div className="flex items-baseline gap-3 mb-1">
+                                            <h4 className="font-bold text-[0.875em]">{proj.name}</h4>
+                                            {proj.link && <span className="text-[0.75em] font-mono text-gray-400">{proj.link}</span>}
+                                        </div>
+                                        <TextWithBullets text={proj.description} className="text-[0.875em] text-gray-600" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    // Added: Skills in Right
+                    case 'skills': return data.skills.length > 0 && (
+                        <div key="skills" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-6 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Skills</h3>
+                            <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                                {data.skills.map(skill => (
+                                    skill.name ? (
+                                        <div key={skill.id} className="print-break-avoid">
+                                            <p className="font-bold text-[0.875em] mb-1">{skill.name}</p>
+                                            <p className="text-[0.875em] text-gray-500 leading-relaxed">{skill.items}</p>
+                                        </div>
+                                    ) : null
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    // Added: Education in Right
+                    case 'education': return data.education.length > 0 && (
+                        <div key="education" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.75em] font-bold uppercase tracking-wider mb-6 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Education</h3>
+                            <div style={gap(2)}>
+                                {data.education.map(edu => (
+                                    edu.school ? (
+                                        <div key={edu.id} className="print-break-avoid">
+                                            <div className="flex justify-between items-baseline mb-1">
+                                                <p className="font-bold text-[1.125em]">{edu.school}</p>
+                                                <p className="text-[0.875em] text-gray-400 font-mono">{edu.date}</p>
+                                            </div>
+                                            <p className="text-[0.875em] text-gray-500 mb-2">{edu.degree}</p>
+                                            {edu.description && <TextWithBullets text={edu.description} className="text-[0.875em] text-gray-600 leading-relaxed" />}
+                                        </div>
+                                    ) : null
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    // Added: Languages in Right
+                    case 'languages': return data.languages?.length > 0 && (
+                        <div key="languages" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
+                            <h3 className="text-xs font-bold uppercase tracking-wider mb-6 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Languages</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                {data.languages.map(lang => (
+                                    <div key={lang.id} className="print-break-avoid flex justify-between bg-slate-50 p-3 rounded">
+                                        <span className="font-bold text-sm">{lang.language}</span>
+                                        <span className="text-xs text-gray-500 block">{lang.proficiency}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    default: return null;
+                }
+            }
 
             return (
-                <div className="h-full w-full p-[15mm] print:p-0 text-slate-800 relative" style={{ fontFamily: fontStyle }}>
-                    {/* Header */}
-                    <div className="flex justify-between items-start" style={{ marginBottom: `${3 * headerSpacing}rem` }}>
-                        <div>
-                            <h1 className="text-5xl font-light mb-2">{data.personal.fullName}</h1>
-                            <p className="text-xl text-gray-500 font-light mb-6">{data.personal.role}</p>
-                            <div className="flex flex-wrap text-sm text-gray-400 font-mono gap-x-6">
-                                {data.personal.email && <span>{data.personal.email}</span>}
-                                {data.personal.phone && <span>{data.personal.phone}</span>}
-                                {data.personal.address && <span>{data.personal.address}</span>}
-                                {data.personal.linkedin && <span>{data.personal.linkedin}</span>}
+                <div style={{
+                    fontFamily: fontStyle,
+                    fontSize: (data.design?.bodySize || 12) + 'px',
+                    lineHeight: data.design?.lineHeight || 1.5,
+                    '--heading-size': (data.design?.headingSize || 18) + 'px',
+                    '--subheading-size': (data.design?.subheadingSize || 14) + 'px',
+                    '--body-size': (data.design?.bodySize || 12) + 'px',
+                    '--line-height': data.design?.lineHeight || 1.5
+                }}>
+                    {layout.map((page, i) => (
+                        <div key={page.id} className="sheet bg-white w-[210mm] h-[297mm] p-[15mm] print:p-[15mm] relative shadow-2xl print:shadow-none mb-8 print:mb-0 print:break-before-page overflow-hidden">
+                            {/* Header (Page 1 Only) */}
+                            {i === 0 && (
+                                <div className="flex justify-between items-start" style={{ marginBottom: `${3 * headerSpacing}rem` }}>
+                                    <div>
+                                        <h1 className="text-5xl font-light mb-2">{data.personal.fullName}</h1>
+                                        <p className="text-xl text-gray-500 font-light mb-6">{data.personal.role}</p>
+                                        <div className="flex flex-wrap text-sm text-gray-400 font-mono gap-x-6">
+                                            {data.personal.email && <span>{data.personal.email}</span>}
+                                            {data.personal.phone && <span>{data.personal.phone}</span>}
+                                            {data.personal.address && <span>{data.personal.address}</span>}
+                                            {data.personal.linkedin && <span>{data.personal.linkedin}</span>}
+                                        </div>
+                                    </div>
+                                    {data.personal.avatar && (
+                                        <div className="w-28 h-28 overflow-hidden rounded-lg shrink-0 border border-gray-100 bg-gray-50">
+                                            <img src={data.personal.avatar} alt="Profile" className="w-full h-full object-cover" />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Content Grid */}
+                            <div className="grid grid-cols-[1fr_3fr] gap-x-12 h-full">
+                                {/* Left Column */}
+                                <div style={gap(3)}>
+                                    {page.sections.filter(s => getPos(s) === 'sidebar').map(renderLeftSection)}
+                                </div>
+
+                                {/* Right Column */}
+                                <div style={gap(3)}>
+                                    {page.sections.filter(s => getPos(s) === 'main').map(renderRightSection)}
+                                </div>
                             </div>
+
+                            {/* Visual Page Boundary Indicators */}
+                            <div className="page-boundary-indicator"></div>
+                            <div className="content-overflow-warning">⚠️ Overflow Alert</div>
                         </div>
-                        {/* Minimal Avatar - Full Color, No Grayscale */}
-                        {data.personal.avatar && (
-                            <div className="w-28 h-28 overflow-hidden rounded-lg shrink-0 border border-gray-100 bg-gray-50">
-                                <img src={data.personal.avatar} alt="Profile" className="w-full h-full object-cover" />
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Content Grid */}
-                    <div className="grid grid-cols-[1fr_3fr] gap-x-12" style={{ rowGap: `${4 * sectionSpacing}rem` }}>
-                        {/* Row 1: Skills (Left) + Experience (Right) */}
-
-                        {/* Left Column */}
-                        <div style={gap(3)}>
-                            {data.skills.length > 0 && (
-                                <div style={pageBreak('skills')}>
-                                    <h3 className="text-xs font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Skills</h3>
-                                    <div style={gap(1)}>
-                                        {data.skills.map(skill => (
-                                            skill.name ? (
-                                                <div key={skill.id} className="print-break-avoid">
-                                                    <p className="font-bold text-sm mb-1">{skill.name}</p>
-                                                    <p className="text-xs text-gray-500 leading-relaxed">{skill.items}</p>
-                                                </div>
-                                            ) : null
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {data.education.length > 0 && (
-                                <div style={pageBreak('education')}>
-                                    <h3 className="text-xs font-bold uppercase tracking-wider mb-4 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Education</h3>
-                                    <div style={gap(1)}>
-                                        {data.education.map(edu => (
-                                            edu.school ? (
-                                                <div key={edu.id} className="print-break-avoid">
-                                                    <p className="font-bold text-sm">{edu.school}</p>
-                                                    <p className="text-xs text-gray-500 mb-1">{edu.degree}</p>
-                                                    <p className="text-xs text-gray-400 font-mono mb-1">{edu.date}</p>
-                                                    {edu.description && <TextWithBullets text={edu.description} className="text-xs text-gray-400 leading-relaxed" />}
-                                                </div>
-                                            ) : null
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Right Column */}
-                        <div style={gap(3)}>
-                            {data.personal.summary && (
-                                <div style={pageBreak('summary')}>
-                                    <p className="text-base leading-relaxed text-gray-600">{data.personal.summary}</p>
-                                </div>
-                            )}
-
-                            {data.experience.length > 0 && (
-                                <div style={pageBreak('experience')}>
-                                    <h3 className="text-xs font-bold uppercase tracking-wider mb-6 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Work Experience</h3>
-                                    <div style={gap(2)}>
-                                        {data.experience.map(exp => (
-                                            <div key={exp.id} className="print-break-avoid">
-                                                <div className="flex justify-between items-baseline mb-2">
-                                                    <h4 className="font-bold text-lg">{exp.role}</h4>
-                                                    <span className="text-sm text-gray-400 font-mono">{exp.date}</span>
-                                                </div>
-                                                <p className="text-sm font-medium text-gray-500 mb-3">{exp.company}, {exp.location}</p>
-                                                <TextWithBullets text={exp.description} className="text-sm text-gray-600 leading-7" />
-                                                {exp.technologies && (
-                                                    <div className="text-xs text-gray-400 mt-2 font-mono">
-                                                        <span className="font-bold mr-2 text-gray-500">{t.labels.technologies}:</span>
-                                                        {exp.technologies}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {data.projects.length > 0 && data.design?.showProjects !== false && (
-                                <div>
-                                    <h3 className="text-xs font-bold uppercase tracking-wider mb-6 border-b pb-2" style={{ borderColor: data.design?.color || '#e5e7eb', color: data.design?.color }}>Selected Projects</h3>
-                                    <div style={gap(1.5)}>
-                                        {data.projects.map(proj => (
-                                            <div key={proj.id} className="print-break-avoid">
-                                                <div className="flex items-baseline gap-3 mb-1">
-                                                    <h4 className="font-bold text-sm">{proj.name}</h4>
-                                                    {proj.link && <span className="text-xs font-mono text-gray-400">{proj.link}</span>}
-                                                </div>
-                                                <TextWithBullets text={proj.description} className="text-sm text-gray-600" />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                    ))
+                    }
                 </div>
             );
         };
 
         // 4. Professional Theme (Corporate Standard)
-        // Two columns, Left Sidebar (lighter), clean and spacious.
         const ThemeProfessional = ({ data, t, fontStyle }) => {
             const spacing = data.design?.spacing || 1;
             const headerSpacing = data.design?.headerSpacing ?? 1;
             const sectionSpacing = data.design?.sectionSpacing ?? 1;
-            const page2Start = data.design?.page2Start;
+
             const s = (rem) => ({ marginBottom: `${rem * spacing}rem` });
             const gap = (rem) => ({ display: 'flex', flexDirection: 'column', gap: `${rem * spacing}rem` });
-            const pageBreak = (section) => page2Start === section ? { breakBefore: 'page' } : {};
+
+            const layout = data.design?.layout || [{ id: 'p1', sections: ['summary', 'experience', 'education', 'skills', 'languages', 'projects'] }];
+
+            // Helper to get position
+            const getPos = (sectionId) => {
+                if (data.design?.sectionPositions?.[sectionId]) return data.design.sectionPositions[sectionId];
+                const sidebarDefaults = ['skills', 'education', 'languages'];
+                return sidebarDefaults.includes(sectionId) ? 'sidebar' : 'main';
+            }
+
+            const renderSidebarSection = (sectionId) => {
+                switch (sectionId) {
+                    case 'skills': return data.skills.length > 0 && (
+                        <div key="skills" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.9em] font-bold uppercase tracking-widest text-slate-800 mb-4 border-b-2 border-slate-200 pb-1">
+                                {t.skills}
+                            </h3>
+                            <div style={gap(1.5)}>
+                                {data.skills.map(skill => (
+                                    skill.name ? (
+                                        <div key={skill.id} className="print-break-avoid">
+                                            <p className="font-bold text-[0.95em] text-slate-700 mb-1">{skill.name}</p>
+                                            <p className="text-[0.8em] text-slate-500 leading-relaxed">{skill.items}</p>
+                                        </div>
+                                    ) : null
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    case 'education': return data.education.length > 0 && (
+                        <div key="education" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.9em] font-bold uppercase tracking-widest text-slate-800 mb-4 border-b-2 border-slate-200 pb-1">
+                                {t.education}
+                            </h3>
+                            <div style={gap(2)}>
+                                {data.education.map(edu => (
+                                    <div key={edu.id} className="print-break-avoid">
+                                        <p className="font-bold text-[0.95em] text-slate-800">{edu.school}</p>
+                                        <p className="text-[0.8em] text-slate-600 mb-1">{edu.degree}</p>
+                                        <p className="text-[0.8em] text-slate-400 mb-1">{edu.date}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    case 'languages': return data.languages?.length > 0 && (
+                        <div key="languages" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.9em] font-bold uppercase tracking-widest text-slate-800 mb-4 border-b-2 border-slate-200 pb-1">
+                                {t.languages}
+                            </h3>
+                            <div style={gap(1)}>
+                                {data.languages.map(lang => (
+                                    <div key={lang.id} className="flex justify-between items-baseline print-break-avoid">
+                                        <span className="font-bold text-[0.95em] text-slate-700">{lang.language}</span>
+                                        <span className="text-[0.8em] text-slate-500">{lang.proficiency}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    // Added: Summary in Sidebar
+                    case 'summary': return data.personal.summary && (
+                        <div key="summary" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.9em] font-bold uppercase tracking-widest text-slate-800 mb-4 border-b-2 border-slate-200 pb-1">{t.labels.summary}</h3>
+                            <p className="text-[0.8em] text-slate-600 leading-relaxed text-justify">{data.personal.summary}</p>
+                        </div>
+                    );
+                    // Added: Experience in Sidebar
+                    case 'experience': return data.experience.length > 0 && (
+                        <div key="experience" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.9em] font-bold uppercase tracking-widest text-slate-800 mb-4 border-b-2 border-slate-200 pb-1">{t.experience}</h3>
+                            <div style={gap(2)}>
+                                {data.experience.map(exp => (
+                                    <div key={exp.id} className="print-break-avoid">
+                                        <p className="font-bold text-[0.95em] text-slate-800">{exp.role}</p>
+                                        <p className="text-[0.8em] text-slate-500 mb-1">{exp.company}</p>
+                                        <p className="text-[0.8em] text-slate-400">{exp.date}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    // Added: Projects in Sidebar
+                    case 'projects': return data.projects.length > 0 && data.design?.showProjects !== false && (
+                        <div key="projects" style={{ marginBottom: `${3 * sectionSpacing}rem` }}>
+                            <h3 className="text-[0.9em] font-bold uppercase tracking-widest text-slate-800 mb-4 border-b-2 border-slate-200 pb-1">{t.projects}</h3>
+                            <div style={gap(2)}>
+                                {data.projects.map(proj => (
+                                    <div key={proj.id} className="print-break-avoid">
+                                        <p className="font-bold text-[0.95em] text-slate-800">{proj.name}</p>
+                                        <p className="text-[0.8em] text-slate-600 line-clamp-3">{proj.description}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    default: return null;
+                }
+            }
+
+            const renderMainSection = (sectionId) => {
+                switch (sectionId) {
+                    case 'summary': return data.personal.summary && (
+                        <div key="summary" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
+                            <p className="text-[0.95em] text-slate-600 leading-7 text-justify">{data.personal.summary}</p>
+                        </div>
+                    );
+                    case 'experience': return data.experience.length > 0 && (
+                        <div key="experience" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
+                            <h2 className="text-[1.25em] font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
+                                <span style={{ color: data.design?.color }}>{t.experience}</span>
+                            </h2>
+                            <div style={gap(3)}>
+                                {data.experience.map(exp => (
+                                    <div key={exp.id} className="print-break-avoid">
+                                        <div className="flex justify-between items-baseline mb-1">
+                                            <h3 className="font-bold text-[1.1em] text-slate-800">{exp.role}</h3>
+                                            <span className="text-[0.9em] font-medium text-slate-500">{exp.date}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 mb-2 text-[0.95em]">
+                                            <span className="font-bold text-slate-700" style={{ color: data.design?.color }}>{exp.company}</span>
+                                            <span className="text-gray-300">|</span>
+                                            <span className="text-gray-500">{exp.location}</span>
+                                        </div>
+                                        <TextWithBullets text={exp.description} className="text-slate-600 leading-relaxed text-[0.95em] pl-1" />
+                                        {exp.technologies && (
+                                            <div className="text-[0.8em] text-slate-500 mt-3 font-mono">
+                                                <span className="font-bold mr-2 text-slate-700">{t.labels.technologies}:</span>
+                                                {exp.technologies}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    case 'projects': return data.projects.length > 0 && data.design?.showProjects !== false && (
+                        <div key="projects">
+                            <h2 className="text-[1.25em] font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
+                                <span style={{ color: data.design?.color }}>{t.projects}</span>
+                            </h2>
+                            <div style={gap(1.5)}>
+                                {data.projects.map(proj => (
+                                    <div key={proj.id} className="print-break-avoid">
+                                        <div className="flex items-baseline gap-2 mb-1">
+                                            <h3 className="font-bold text-slate-800">{proj.name}</h3>
+                                            {proj.link && <a href={`https://${proj.link}`} target="_blank" className="text-[0.8em] hover:scale-105 transition-transform" style={{ color: data.design?.color || '#2563eb' }}>🔗 {proj.link}</a>}
+                                        </div>
+                                        <TextWithBullets text={proj.description} className="text-[0.95em] text-slate-600 leading-relaxed" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    // Added: Skills in Main
+                    case 'skills': return data.skills.length > 0 && (
+                        <div key="skills" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
+                            <h2 className="text-[1.25em] font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
+                                <span style={{ color: data.design?.color }}>{t.skills}</span>
+                            </h2>
+                            <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                                {data.skills.map(skill => (
+                                    skill.name ? (
+                                        <div key={skill.id} className="print-break-avoid">
+                                            <p className="font-bold text-[0.95em] text-slate-700 mb-1">{skill.name}</p>
+                                            <p className="text-[0.95em] text-slate-500 leading-relaxed">{skill.items}</p>
+                                        </div>
+                                    ) : null
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    // Added: Education in Main
+                    case 'education': return data.education.length > 0 && (
+                        <div key="education" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
+                            <h2 className="text-[1.25em] font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
+                                <span style={{ color: data.design?.color }}>{t.education}</span>
+                            </h2>
+                            <div style={gap(3)}>
+                                {data.education.map(edu => (
+                                    <div key={edu.id} className="print-break-avoid relative pl-4 border-l-2 border-slate-100">
+                                        <div className="flex justify-between items-baseline mb-1">
+                                            <p className="font-bold text-[1.1em] text-slate-800">{edu.school}</p>
+                                            <p className="text-[0.8em] text-slate-400 font-mono">{edu.date}</p>
+                                        </div>
+                                        <p className="text-[0.95em] text-slate-600 mb-2">{edu.degree}</p>
+                                        {edu.description && <TextWithBullets text={edu.description} className="text-[0.95em] text-slate-600 leading-relaxed" />}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    // Added: Languages in Main
+                    case 'languages': return data.languages?.length > 0 && (
+                        <div key="languages" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
+                            <h2 className="text-[1.25em] font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
+                                <span style={{ color: data.design?.color }}>{t.languages}</span>
+                            </h2>
+                            <div className="grid grid-cols-2 gap-4">
+                                {data.languages.map(lang => (
+                                    <div key={lang.id} className="flex justify-between items-center bg-slate-50 p-3 rounded print-break-avoid">
+                                        <span className="font-bold text-[0.95em] text-slate-700">{lang.language}</span>
+                                        <span className="text-[0.8em] text-slate-500">{lang.proficiency}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    default: return null;
+                }
+            }
 
             return (
-                <div className="h-full w-full flex text-slate-800 relative p-[15mm] print:p-0" style={{ fontFamily: fontStyle }}>
-                    {/* Sidebar (Left, 30%) */}
-                    <div className="w-[32%] bg-slate-50 border-r border-slate-200 p-8 pt-12 flex flex-col shrink-0">
-                        {/* Avatar */}
-                        {data.personal.avatar && (
-                            <div className="w-32 h-32 mx-auto mb-8 rounded-full overflow-hidden border-4 border-white shadow-md shrink-0">
-                                <img src={data.personal.avatar} alt="Profile" className="w-full h-full object-cover" />
-                            </div>
-                        )}
-
-                        {/* Contact Info */}
-                        <div className="text-sm space-y-4" style={s(2.5)}>
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-200 pb-2">{t.personalInfo}</h3>
-                            {data.personal.email && <div className="flex items-center gap-3"><MailIcon className="w-4 h-4 shrink-0" style={{ color: data.design?.color }} /> <span className="break-all font-medium text-slate-700">{data.personal.email}</span></div>}
-                            {data.personal.phone && <div className="flex items-center gap-3"><PhoneIcon className="w-4 h-4 shrink-0" style={{ color: data.design?.color }} /> <span className="font-medium text-slate-700">{data.personal.phone}</span></div>}
-                            {data.personal.address && <div className="flex items-start gap-3"><MapPinIcon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: data.design?.color }} /> <span className="break-words leading-snug">{data.personal.address}</span></div>}
-                            {data.personal.linkedin && <div className="flex items-center gap-3"><LinkedinIcon className="w-4 h-4 shrink-0" style={{ color: data.design?.color }} /> <span className="break-all" style={{ color: data.design?.color || '#2563eb' }}>{data.personal.linkedin}</span></div>}
-                            {data.personal.website && <div className="flex items-center gap-3"><GlobeIcon className="w-4 h-4 shrink-0" style={{ color: data.design?.color }} /> <span className="break-all" style={{ color: data.design?.color || '#2563eb' }}>{data.personal.website}</span></div>}
-                        </div>
-
-                        {/* Skills */}
-                        {data.skills.length > 0 && (
-                            <div style={s(2.5)}>
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-200 pb-2">{t.skills}</h3>
-                                <div style={gap(1)}>
-                                    {data.skills.map(skill => (
-                                        skill.name ? (
-                                            <div key={skill.id} className="print-break-avoid">
-                                                <p className="font-bold text-sm text-slate-700 mb-1">{skill.name}</p>
-                                                <p className="text-sm text-slate-500 leading-relaxed">{skill.items}</p>
+                <div style={{
+                    fontFamily: fontStyle,
+                    fontSize: (data.design?.bodySize || 12) + 'px',
+                    lineHeight: data.design?.lineHeight || 1.5,
+                    '--heading-size': (data.design?.headingSize || 18) + 'px',
+                    '--subheading-size': (data.design?.subheadingSize || 14) + 'px',
+                    '--body-size': (data.design?.bodySize || 12) + 'px',
+                    '--line-height': data.design?.lineHeight || 1.5
+                }}>
+                    {layout.map((page, i) => (
+                        <div key={page.id} className="sheet bg-white w-[210mm] min-h-[297mm] flex relative shadow-2xl print:p-0 print:shadow-none mb-8 print:mb-0 print:break-before-page overflow-hidden">
+                            {/* Left Sidebar (30%) */}
+                            <div className="w-[30%] bg-slate-50 p-8 border-r border-slate-200 flex flex-col min-h-full">
+                                {i === 0 && (
+                                    <>
+                                        {/* Avatar in Sidebar */}
+                                        {data.personal.avatar && (
+                                            <div className="w-full aspect-square mb-8 rounded-lg overflow-hidden shadow-sm bg-white border border-gray-200">
+                                                <img src={data.personal.avatar} alt="Profile" className="w-full h-full object-cover" />
                                             </div>
-                                        ) : null
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                                        )}
 
-                        {/* Languages */}
-                        {data.languages && data.languages.length > 0 && (
-                            <div style={s(2.5)}>
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-200 pb-2">{t.languages}</h3>
-                                <div style={gap(0.75)}>
-                                    {data.languages.map(lang => (
-                                        lang.language ? (
-                                            <div key={lang.id} className="flex justify-between items-baseline print-break-avoid">
-                                                <span className="font-bold text-sm text-slate-700">{lang.language}</span>
-                                                <span className="text-xs text-slate-500">{lang.proficiency}</span>
-                                            </div>
-                                        ) : null
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Education (Sidebar in Professional usually works well) */}
-                        {data.education.length > 0 && (
-                            <div>
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-200 pb-2">{t.education}</h3>
-                                <div style={gap(1.25)}>
-                                    {data.education.map(edu => (
-                                        <div key={edu.id} className="print-break-avoid">
-                                            <div className="font-bold text-slate-800 text-sm">{edu.school}</div>
-                                            <div className="text-xs text-slate-500 font-medium mb-1">{edu.degree}</div>
-                                            <div className="text-xs text-slate-400 mb-2">{edu.date}</div>
-                                            {edu.description && <TextWithBullets text={edu.description} className="text-xs text-slate-400 leading-snug" />}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Main Content (Right, 70%) */}
-                    <div className="flex-1 p-8" style={{ paddingTop: `${4 * headerSpacing}rem` }}>
-                        <div className="mb-10 border-b-2 pb-6" style={{ borderColor: data.design?.color || '#1e293b' }}>
-                            <h1 className="text-4xl font-extrabold text-slate-900 mb-2 uppercase tracking-tight">{data.personal.fullName}</h1>
-                            <p className="text-xl font-medium tracking-wide bg-slate-100 inline-block px-2 rounded-sm" style={{ color: data.design?.color || '#1d4ed8' }}>{data.personal.role}</p>
-                        </div>
-
-                        {data.personal.summary && (
-                            <div style={{ marginBottom: `${3 * sectionSpacing}rem`, ...pageBreak('summary') }}>
-                                <h2 className="text-lg font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                    {t.labels.summary}
-                                </h2>
-                                <p className="text-slate-600 leading-7 text-justify">{data.personal.summary}</p>
-                            </div>
-                        )}
-
-                        {data.experience.length > 0 && (
-                            <div style={{ marginBottom: `${3 * sectionSpacing}rem`, ...pageBreak('experience') }}>
-                                <h2 className="text-lg font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
-                                    <span style={{ color: data.design?.color }}>{t.experience}</span>
-                                </h2>
-                                <div style={gap(2)}>
-                                    {data.experience.map(exp => (
-                                        <div key={exp.id} className="print-break-avoid">
-                                            <div className="flex justify-between items-baseline mb-1">
-                                                <h3 className="text-xl font-bold text-slate-800">{exp.role}</h3>
-                                                <span className="text-sm font-bold text-slate-400">{exp.date}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 mb-3 text-sm font-medium">
-                                                <span style={{ color: data.design?.color || '#1d4ed8' }}>{exp.company}</span>
-                                                <span className="text-gray-300">|</span>
-                                                <span className="text-gray-500">{exp.location}</span>
-                                            </div>
-                                            <TextWithBullets text={exp.description} className="text-slate-600 leading-relaxed text-sm pl-1" />
-                                            {exp.technologies && (
-                                                <div className="text-xs text-slate-500 mt-3 font-mono">
-                                                    <span className="font-bold mr-2 text-slate-700">{t.labels.technologies}:</span>
-                                                    {exp.technologies}
+                                        {/* Contact Info */}
+                                        <div className="space-y-4 mb-10 text-[0.9em]">
+                                            {data.personal.email && (
+                                                <div className="flex flex-col">
+                                                    <span className="text-[0.8em] font-bold uppercase text-slate-400 mb-1">Email</span>
+                                                    <span className="font-medium text-slate-700 break-words">{data.personal.email}</span>
+                                                </div>
+                                            )}
+                                            {data.personal.phone && (
+                                                <div className="flex flex-col">
+                                                    <span className="text-[0.8em] font-bold uppercase text-slate-400 mb-1">Phone</span>
+                                                    <span className="font-medium text-slate-700">{data.personal.phone}</span>
+                                                </div>
+                                            )}
+                                            {data.personal.address && (
+                                                <div className="flex flex-col">
+                                                    <span className="text-[0.8em] font-bold uppercase text-slate-400 mb-1">Location</span>
+                                                    <span className="font-medium text-slate-700">{data.personal.address}</span>
+                                                </div>
+                                            )}
+                                            {(data.personal.linkedin || data.personal.website) && (
+                                                <div className="pt-2 border-t border-slate-200"></div>
+                                            )}
+                                            {data.personal.linkedin && (
+                                                <div className="flex flex-col">
+                                                    <span className="text-[0.8em] font-bold uppercase text-slate-400 mb-1">LinkedIn</span>
+                                                    <span className="font-medium text-slate-700 text-[0.8em] break-all">{data.personal.linkedin}</span>
+                                                </div>
+                                            )}
+                                            {data.personal.website && (
+                                                <div className="flex flex-col">
+                                                    <span className="text-[0.8em] font-bold uppercase text-slate-400 mb-1">Website</span>
+                                                    <span className="font-medium text-slate-700 text-[0.8em] break-all">{data.personal.website}</span>
                                                 </div>
                                             )}
                                         </div>
-                                    ))}
-                                </div>
+                                    </>
+                                )}
+                                {page.sections.filter(s => getPos(s) === 'sidebar').map(renderSidebarSection)}
                             </div>
-                        )}
 
-                        {data.projects.length > 0 && data.design?.showProjects !== false && (
-                            <div style={pageBreak('projects')}>
-                                <h2 className="text-lg font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
-                                    <span style={{ color: data.design?.color }}>{t.projects}</span>
-                                </h2>
-                                <div style={gap(1.5)}>
-                                    {data.projects.map(proj => (
-                                        <div key={proj.id} className="print-break-avoid">
-                                            <div className="flex items-baseline gap-2 mb-1">
-                                                <h3 className="font-bold text-slate-800">{proj.name}</h3>
-                                                {proj.link && <a href={`https://${proj.link}`} target="_blank" className="text-xs hover:scale-105 transition-transform" style={{ color: data.design?.color || '#2563eb' }}>🔗 {proj.link}</a>}
-                                            </div>
-                                            <TextWithBullets text={proj.description} className="text-sm text-slate-600 leading-relaxed" />
-                                        </div>
-                                    ))}
-                                </div>
+                            {/* Right Content (70%) */}
+                            <div className="w-[70%] p-10 pt-12">
+                                {/* Header with Name & Role (Page 1) */}
+                                {i === 0 && (
+                                    <div style={{ marginBottom: `${3 * headerSpacing}rem` }}>
+                                        <h1 className="text-[2.5em] font-bold text-slate-900 mb-2 uppercase tracking-tight leading-none" style={{ color: data.design?.color }}>{data.personal.fullName}</h1>
+                                        <p className="text-[1.25em] font-medium text-slate-500 tracking-wide uppercase">{data.personal.role}</p>
+                                    </div>
+                                )}
+                                {page.sections.filter(s => getPos(s) === 'main').map(renderMainSection)}
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    ))}
                 </div>
             );
         };
@@ -1336,154 +1830,163 @@
             const spacing = data.design?.spacing || 1;
             const headerSpacing = data.design?.headerSpacing ?? 1;
             const sectionSpacing = data.design?.sectionSpacing ?? 1;
-            const page2Start = data.design?.page2Start;
+
             const s = (rem) => ({ marginBottom: `${rem * spacing}rem` });
             const gap = (rem) => ({ display: 'flex', flexDirection: 'column', gap: `${rem * spacing}rem` });
-            const pageBreak = (section) => page2Start === section ? { breakBefore: 'page' } : {};
+
+            const layout = data.design?.layout || [{ id: 'p1', sections: ['summary', 'experience', 'education', 'skills', 'languages', 'projects'] }];
+
+            const renderSection = (sectionId) => {
+                switch (sectionId) {
+                    case 'summary': return data.personal.summary && (
+                        <div key="summary" className="text-center max-w-2xl mx-auto" style={{ marginBottom: `${2.5 * sectionSpacing}rem` }}>
+                            <p className="text-slate-600 leading-relaxed italic text-[1.125em] opacity-80">"{data.personal.summary}"</p>
+                        </div>
+                    );
+                    case 'experience': return data.experience.length > 0 && (
+                        <div key="experience" style={{ marginBottom: `${3.5 * sectionSpacing}rem` }}>
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className="h-px bg-gray-200 flex-1" style={{ backgroundColor: data.design?.color ? data.design.color + '40' : undefined }}></div>
+                                <h2 className="text-[1.5em] font-serif italic text-slate-800" style={{ color: data.design?.color }}>{t.experience}</h2>
+                                <div className="h-px bg-gray-200 flex-1" style={{ backgroundColor: data.design?.color ? data.design.color + '40' : undefined }}></div>
+                            </div>
+
+                            <div style={gap(2.5)}>
+                                {data.experience.map(exp => (
+                                    <div key={exp.id} className="grid grid-cols-[1fr_3fr] gap-6 print-break-avoid">
+                                        <div className="text-right pt-1">
+                                            <div className="font-bold text-slate-900">{exp.company}</div>
+                                            <div className="text-xs text-gray-400 uppercase tracking-widest mt-1">{exp.date}</div>
+                                            <div className="text-xs text-gray-400 mt-0.5">{exp.location}</div>
+                                        </div>
+                                        <div className="border-l border-gray-100 pl-6 relative">
+                                            <div className="absolute -left-[3px] top-2 w-1.5 h-1.5 rounded-full bg-slate-300" style={{ backgroundColor: data.design?.color }}></div>
+                                            <h3 className="text-[1.125em] font-serif italic font-medium mb-2">{exp.role}</h3>
+                                            <TextWithBullets text={exp.description} className="text-slate-600 leading-relaxed text-[0.9em]" />
+                                            {exp.technologies && (
+                                                <div className="text-[0.8em] text-slate-500 mt-3 font-mono">
+                                                    <span className="font-bold mr-2 text-slate-400">{t.labels.technologies}:</span>
+                                                    {exp.technologies}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    case 'education': return data.education.length > 0 && (
+                        <div key="education" style={{ marginBottom: `${2 * sectionSpacing}rem` }}>
+                            <h2 className="text-[1.25em] font-serif italic text-center mb-6" style={{ color: data.design?.color }}>{t.education}</h2>
+                            <div style={gap(1.5)}>
+                                {data.education.map(edu => (
+                                    <div key={edu.id} className="text-center print-break-avoid">
+                                        <div className="font-bold text-slate-800">{edu.school}</div>
+                                        <div className="text-[0.9em] italic text-gray-600">{edu.degree}</div>
+                                        <div className="text-xs text-gray-400 mt-1 mb-2">{edu.date}</div>
+                                        {edu.description && <TextWithBullets text={edu.description} className="text-sm text-gray-500 italic leading-relaxed text-left inline-block" />}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    case 'skills': return data.skills.length > 0 && (
+                        <div key="skills" style={{ marginBottom: `${2.5 * sectionSpacing}rem` }}>
+                            <h2 className="text-[1.25em] font-serif italic text-center mb-6" style={{ color: data.design?.color }}>{t.skills}</h2>
+                            <div className="text-center" style={gap(1)}>
+                                {data.skills.map(skill => (
+                                    skill.name ? (
+                                        <div key={skill.id} className="print-break-avoid">
+                                            <div className="text-[0.8em] font-bold uppercase tracking-widest text-gray-400 mb-1">{skill.name}</div>
+                                            <div className="text-[0.9em] text-slate-700">{skill.items}</div>
+                                        </div>
+                                    ) : null
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    case 'languages': return data.languages?.length > 0 && (
+                        <div key="languages" style={{ marginBottom: `${2.5 * sectionSpacing}rem` }}>
+                            <h2 className="text-[1.25em] font-serif italic text-center mb-6" style={{ color: data.design?.color }}>{t.languages}</h2>
+                            <div className="text-center" style={gap(0.5)}>
+                                {data.languages.map(lang => (
+                                    lang.language ? (
+                                        <div key={lang.id} className="mb-3 print-break-avoid">
+                                            <span className="font-bold uppercase tracking-wide text-[0.8em] text-slate-500">{lang.language}</span>
+                                            <span className="block text-[0.9em] italic text-gray-400 mt-0.5">{lang.proficiency}</span>
+                                        </div>
+                                    ) : null
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    case 'projects': return data.projects.length > 0 && data.design?.showProjects !== false && (
+                        <div key="projects" className="border-t border-gray-100" style={{ marginTop: `${3 * sectionSpacing}rem`, paddingTop: `${2.5 * sectionSpacing}rem`, borderColor: data.design?.color ? data.design.color + '40' : undefined }}>
+                            <h2 className="text-[1.25em] font-serif italic text-center mb-6" style={{ color: data.design?.color }}>{t.projects}</h2>
+                            <div className="grid grid-cols-1 max-w-3xl mx-auto" style={{ gap: `${1.5 * spacing}rem` }}>
+                                {data.projects.map(proj => (
+                                    <div key={proj.id} className="text-center print-break-avoid">
+                                        <div className="font-bold text-slate-800 mb-1">
+                                            {proj.name}
+                                            {proj.link && <span className="font-normal text-gray-400 text-xs ml-2 font-sans tracking-tight">{proj.link}</span>}
+                                        </div>
+                                        <TextWithBullets text={proj.description} className="text-[0.9em] text-slate-600" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    default: return null;
+                }
+            }
 
             return (
-                <div className="h-full w-full p-[15mm] print:p-0 text-slate-900 relative" style={{ fontFamily: "'Playfair Display', serif" }}>
-                    {/* Header - Centered */}
-                    <div className="text-center overflow-hidden" style={{ marginBottom: `${2.5 * headerSpacing}rem` }}>
-                        {data.personal.avatar && (
-                            <div className="w-28 h-28 mx-auto mb-5 rounded-full overflow-hidden border border-gray-200">
-                                <img src={data.personal.avatar} alt="Profile" className="w-full h-full object-cover" />
-                            </div>
-                        )}
-                        <h1 className="text-5xl italic font-medium mb-3" style={{ color: data.design?.color }}>{data.personal.fullName}</h1>
-                        <p className="text-xs font-sans font-bold tracking-[0.2em] text-gray-500 uppercase mb-6">{data.personal.role}</p>
-
-                        <div className="flex flex-wrap justify-center gap-4 text-sm font-sans text-gray-500 border-t border-b border-gray-100 py-3" style={{ borderColor: data.design?.color ? data.design.color + '40' : undefined }}>
-                            {data.personal.email && <span>{data.personal.email}</span>}
-                            {data.personal.phone && <span>{data.personal.phone}</span>}
-                            {data.personal.address && <span>{data.personal.address}</span>}
-                            {data.personal.website && <span>{data.personal.website}</span>}
-                        </div>
-                    </div>
-
-                    <div className="font-sans">
-                        {/* Use Sans for body text to maintain readability */}
-
-                        {/* Summary */}
-                        {data.personal.summary && (
-                            <div className="text-center max-w-2xl mx-auto" style={{ marginBottom: `${2.5 * sectionSpacing}rem`, ...pageBreak('summary') }}>
-                                <p className="text-slate-600 leading-relaxed italic text-lg opacity-80">"{data.personal.summary}"</p>
-                            </div>
-                        )}
-
-                        {/* Experience */}
-                        {data.experience.length > 0 && (
-                            <div style={{ marginBottom: `${3.5 * sectionSpacing}rem`, ...pageBreak('experience') }}>
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="h-px bg-gray-200 flex-1" style={{ backgroundColor: data.design?.color ? data.design.color + '40' : undefined }}></div>
-                                    <h2 className="text-2xl font-serif italic text-slate-800" style={{ color: data.design?.color }}>{t.experience}</h2>
-                                    <div className="h-px bg-gray-200 flex-1" style={{ backgroundColor: data.design?.color ? data.design.color + '40' : undefined }}></div>
-                                </div>
-
-                                <div style={gap(2.5)}>
-                                    {data.experience.map(exp => (
-                                        <div key={exp.id} className="grid grid-cols-[1fr_3fr] gap-6 print-break-avoid">
-                                            <div className="text-right pt-1">
-                                                <div className="font-bold text-slate-900">{exp.company}</div>
-                                                <div className="text-xs text-gray-400 uppercase tracking-widest mt-1">{exp.date}</div>
-                                                <div className="text-xs text-gray-400 mt-0.5">{exp.location}</div>
-                                            </div>
-                                            <div className="border-l border-gray-100 pl-6 relative">
-                                                <div className="absolute -left-[3px] top-2 w-1.5 h-1.5 rounded-full bg-slate-300" style={{ backgroundColor: data.design?.color }}></div>
-                                                <h3 className="text-lg font-serif italic font-medium mb-2">{exp.role}</h3>
-                                                <TextWithBullets text={exp.description} className="text-slate-600 leading-relaxed text-sm" />
-                                                {exp.technologies && (
-                                                    <div className="text-xs text-slate-500 mt-3 font-mono">
-                                                        <span className="font-bold mr-2 text-slate-400">{t.labels.technologies}:</span>
-                                                        {exp.technologies}
-                                                    </div>
-                                                )}
-                                            </div>
+                <div style={{
+                    fontFamily: "'Playfair Display', serif",
+                    fontSize: (data.design?.bodySize || 12) + 'px',
+                    lineHeight: data.design?.lineHeight || 1.5,
+                    '--heading-size': (data.design?.headingSize || 18) + 'px',
+                    '--subheading-size': (data.design?.subheadingSize || 14) + 'px',
+                    '--body-size': (data.design?.bodySize || 12) + 'px',
+                    '--line-height': data.design?.lineHeight || 1.5
+                }}>
+                    {layout.map((page, i) => (
+                        <div key={page.id} className="sheet bg-white w-[210mm] min-h-[297mm] p-[15mm] print:p-[15mm] relative shadow-2xl print:shadow-none mb-8 print:mb-0 print:break-before-page overflow-hidden">
+                            {/* Header - Centered (Page 1) */}
+                            {i === 0 && (
+                                <div className="text-center overflow-hidden" style={{ marginBottom: `${2.5 * headerSpacing}rem` }}>
+                                    {data.personal.avatar && (
+                                        <div className="w-28 h-28 mx-auto mb-5 rounded-full overflow-hidden border border-gray-200">
+                                            <img src={data.personal.avatar} alt="Profile" className="w-full h-full object-cover" />
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                                    )}
+                                    <h1 className="text-[3em] italic font-medium mb-3" style={{ color: data.design?.color }}>{data.personal.fullName}</h1>
+                                    <p className="text-[0.8em] font-sans font-bold tracking-[0.2em] text-gray-500 uppercase mb-6">{data.personal.role}</p>
 
-                        {/* Education & Skills (Grid) */}
-                        <div className="grid grid-cols-2 gap-12 mt-12 border-t border-gray-100 pt-10">
-                            <div>
-                                {data.education.length > 0 && (
-                                    <div style={{ ...s(2), ...pageBreak('education') }}>
-                                        <h2 className="text-xl font-serif italic text-center mb-6" style={{ color: data.design?.color }}>{t.education}</h2>
-                                        <div style={gap(1.5)}>
-                                            {data.education.map(edu => (
-                                                <div key={edu.id} className="text-center print-break-avoid">
-                                                    <div className="font-bold text-slate-800">{edu.school}</div>
-                                                    <div className="text-sm italic text-gray-600">{edu.degree}</div>
-                                                    <div className="text-xs text-gray-400 mt-1 mb-2">{edu.date}</div>
-                                                    {edu.description && <TextWithBullets text={edu.description} className="text-sm text-gray-500 italic leading-relaxed text-left inline-block" />}
-                                                </div>
-                                            ))}
-                                        </div>
+                                    <div className="flex flex-wrap justify-center gap-4 text-sm font-sans text-gray-500 border-t border-b border-gray-100 py-3" style={{ borderColor: data.design?.color ? data.design.color + '40' : undefined }}>
+                                        {data.personal.email && <span>{data.personal.email}</span>}
+                                        {data.personal.phone && <span>{data.personal.phone}</span>}
+                                        {data.personal.address && <span>{data.personal.address}</span>}
+                                        {data.personal.website && <span>{data.personal.website}</span>}
                                     </div>
-                                )}
-                            </div>
-
-                            <div>
-                                {data.skills.length > 0 && (
-                                    <div style={s(2.5)}>
-                                        <h2 className="text-xl font-serif italic text-center mb-6" style={{ color: data.design?.color }}>{t.skills}</h2>
-                                        <div className="text-center" style={gap(1)}>
-                                            {data.skills.map(skill => (
-                                                skill.name ? (
-                                                    <div key={skill.id} className="print-break-avoid">
-                                                        <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">{skill.name}</div>
-                                                        <div className="text-sm text-slate-700">{skill.items}</div>
-                                                    </div>
-                                                ) : null
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {data.languages && data.languages.length > 0 && (
-                                    <div>
-                                        <h2 className="text-xl font-serif italic text-center mb-6" style={{ color: data.design?.color }}>{t.languages}</h2>
-                                        <div className="text-center" style={gap(0.5)}>
-                                            {data.languages.map(lang => (
-                                                lang.language ? (
-                                                    <div key={lang.id} className="mb-3 print-break-avoid">
-                                                        <span className="font-bold uppercase tracking-wide text-xs text-slate-500">{lang.language}</span>
-                                                        <span className="block text-sm italic text-gray-400 mt-0.5">{lang.proficiency}</span>
-                                                    </div>
-                                                ) : null
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {data.projects.length > 0 && data.design?.showProjects !== false && (
-                            <div className="border-t border-gray-100" style={{ marginTop: `${3 * sectionSpacing}rem`, paddingTop: `${2.5 * sectionSpacing}rem`, borderColor: data.design?.color ? data.design.color + '40' : undefined, ...pageBreak('projects') }}>
-                                <h2 className="text-xl font-serif italic text-center mb-6" style={{ color: data.design?.color }}>{t.projects}</h2>
-                                <div className="grid grid-cols-1 max-w-3xl mx-auto" style={{ gap: `${1.5 * spacing}rem` }}>
-                                    {data.projects.map(proj => (
-                                        <div key={proj.id} className="text-center print-break-avoid">
-                                            <div className="font-bold text-slate-800 mb-1">
-                                                {proj.name}
-                                                {proj.link && <span className="font-normal text-gray-400 text-xs ml-2 font-sans tracking-tight">{proj.link}</span>}
-                                            </div>
-                                            <TextWithBullets text={proj.description} className="text-sm text-slate-600" />
-                                        </div>
-                                    ))}
                                 </div>
-                            </div>
-                        )}
+                            )}
 
-                        <div className="mt-16 text-center">
-                            <div className="w-8 h-8 mx-auto border border-gray-300 rounded-full flex items-center justify-center" style={{ borderColor: data.design?.color, color: data.design?.color }}>
-                                <span className="text-xs font-serif italic">fin</span>
+                            <div className="font-sans">
+                                {page.sections.map(section => renderSection(section))}
                             </div>
+
+                            {/* Fin Marker (Last Page) */}
+                            {i === layout.length - 1 && (
+                                <div className="mt-16 text-center">
+                                    <div className="w-8 h-8 mx-auto border border-gray-300 rounded-full flex items-center justify-center" style={{ borderColor: data.design?.color, color: data.design?.color }}>
+                                        <span className="text-xs font-serif italic">fin</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    </div>
-                </div >
+                    ))}
+                </div>
             );
         };
 
@@ -1502,18 +2005,50 @@
 
             const [lang, setLang] = useState(() => loadState('resume_lang', 'zh'));
             const [theme, setTheme] = useState(() => loadState('resume_theme', 'classic'));
-            const [design, setDesign] = useState(() => loadState('resume_design', { font: 'default', color: '#3b82f6', logo: '', logoPosition: 'header-right', logoSize: 48, logoOpacity: 80, pagedMode: false, showPageNumbers: true, pageNumberPosition: 'bottom-right', spacing: 1 }));
+            const defaultLayout = [
+                { id: 'p1', sections: ['summary', 'experience', 'education', 'projects', 'skills', 'languages'] }
+            ];
+
+            const [design, setDesign] = useState(() => loadState('resume_design', {
+                font: 'default',
+                color: '#3b82f6',
+                logo: '',
+                logoPosition: 'header-right',
+                logoSize: 48,
+                logoOpacity: 80,
+                showPageNumbers: true,
+                pageNumberPosition: 'bottom-right',
+                spacing: 1,
+                fontSize: 15,
+                lineHeight: 1.5,
+                layout: defaultLayout,
+                sectionPositions: {
+                    skills: 'sidebar',
+                    education: 'sidebar',
+                    languages: 'sidebar',
+                    contact: 'sidebar',
+                    summary: 'main',
+                    experience: 'main',
+                    projects: 'main'
+                }
+            }));
+
+            // Migration: Ensure layout exists
+            useEffect(() => {
+                if (!design.layout) {
+                    setDesign(p => ({ ...p, layout: defaultLayout }));
+                }
+            }, []);
+
             const [resume, setResume] = useState(() => {
                 const data = loadState('resume_data_v1', initialData);
-                // Migration: Ensure languages array exists for legacy data
                 if (!data.languages) data.languages = [];
                 return data;
             });
             const [isSaved, setIsSaved] = useState(true);
-            const [activeTab, setActiveTab] = useState('content');
+            const [activeTab, setActiveTab] = useState('design');
 
-            // Inject design into resume data for easier pass-down (or just pass separate prop)
-            // Actually, best to keep separate but for now let's merge or pass as part of theme
+            // Inject design into resume data
             const resumeWithDesign = { ...resume, design };
 
             // Auto-Save Effects
@@ -1534,69 +2069,15 @@
                 const timer = setTimeout(() => {
                     localStorage.setItem('resume_data_v1', JSON.stringify(resume));
                     setIsSaved(true);
-                }, 1000); // 1s Debounce
+                }, 1000);
                 return () => clearTimeout(timer);
             }, [resume]);
 
             const t = uiText[lang];
-
-            const A4_HEIGHT_PX = 1123; // Approx 297mm at 96 DPI
+            const A4_HEIGHT_PX = 1123;
 
             // --- Hooks and Refs ---
             const containerRef = useRef(null);
-            const [numPages, setNumPages] = useState(1);
-
-            // Live Pagination Logic
-            useLayoutEffect(() => {
-                if (!design.pagedMode) {
-                    // Reset if disabled
-                    if (containerRef.current) {
-                        const elements = containerRef.current.querySelectorAll('.print-break-avoid');
-                        elements.forEach(el => el.style.marginTop = '0px');
-                    }
-                    return;
-                }
-
-                // Debounce slightly to allow rendering to settle
-                const timer = setTimeout(() => {
-                    if (!containerRef.current) return;
-
-                    // Reset margins first
-                    const items = containerRef.current.querySelectorAll('.print-break-avoid');
-                    items.forEach(el => el.style.marginTop = '0px');
-
-                    const containerRect = containerRef.current.getBoundingClientRect();
-                    const containerTop = containerRect.top;
-
-                    // Effective page height (A4 - padding if any, but we assume full A4 flow)
-                    // We check breaks at 1x, 2x, 3x A4_HEIGHT_PX.
-
-                    items.forEach(el => {
-                        const rect = el.getBoundingClientRect();
-                        const elTopRelative = rect.top - containerTop;
-                        const elHeight = rect.height;
-                        const elBottomRelative = elTopRelative + elHeight;
-
-                        const startPage = Math.floor(elTopRelative / A4_HEIGHT_PX);
-                        const endPage = Math.floor((elBottomRelative - 1) / A4_HEIGHT_PX);
-
-                        if (startPage !== endPage) {
-                            const targetTop = (startPage + 1) * A4_HEIGHT_PX + 20; // Slight padding
-                            const pushDown = targetTop - elTopRelative;
-                            el.style.marginTop = `${pushDown}px`;
-                        }
-                    });
-
-                    // Final page count calculation
-                    const finalHeight = containerRef.current.scrollHeight;
-                    const pages = Math.ceil(finalHeight / A4_HEIGHT_PX);
-                    setNumPages(pages || 1);
-                }, 50);
-
-                return () => clearTimeout(timer);
-
-            }, [resume, design.pagedMode, theme, design.font, design.logoSize, activeTab]);
-
 
             // Handlers
             const handlePersonalChange = (e) => {
@@ -1607,7 +2088,7 @@
             const handleAvatarUpload = (e) => {
                 const file = e.target.files[0];
                 if (file) {
-                    if (file.size > 2 * 1024 * 1024) { // 2MB Limit Warning
+                    if (file.size > 2 * 1024 * 1024) {
                         alert(lang === 'zh' ? '图片过大，建议上传小于2MB的图片以保证流畅性。' : 'Image too large. Recommended < 2MB.');
                     }
                     const reader = new FileReader();
@@ -1625,7 +2106,7 @@
             const handleLogoUpload = (e) => {
                 const file = e.target.files[0];
                 if (file) {
-                    if (file.size > 1 * 1024 * 1024) { // 1MB
+                    if (file.size > 1 * 1024 * 1024) {
                         alert(lang === 'zh' ? 'Logo 图片过大，建议小于 1MB。' : 'Logo too large. Recommended < 1MB.');
                     }
                     const reader = new FileReader();
@@ -1652,7 +2133,55 @@
                 window.print();
             };
 
-            // Generic List Handlers
+            // Export template as JSON file
+            const exportTemplate = () => {
+                const templateData = {
+                    version: '1.0',
+                    exportDate: new Date().toISOString(),
+                    resume: resume,
+                    design: design,
+                    theme: theme
+                };
+                const blob = new Blob([JSON.stringify(templateData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `resume_template_${resume.personal.fullName?.replace(/\s+/g, '_') || 'untitled'}_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+
+            // Import template from JSON file
+            const importTemplate = (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const templateData = JSON.parse(e.target.result);
+                        if (templateData.resume) {
+                            setResume(templateData.resume);
+                        }
+                        if (templateData.design) {
+                            setDesign(templateData.design);
+                        }
+                        if (templateData.theme) {
+                            setTheme(templateData.theme);
+                        }
+                        alert(lang === 'zh' ? '模板导入成功！' : 'Template imported successfully!');
+                    } catch (err) {
+                        alert(lang === 'zh' ? '导入失败：无效的模板文件' : 'Import failed: Invalid template file');
+                        console.error('Import error:', err);
+                    }
+                };
+                reader.readAsText(file);
+                // Reset input value to allow re-importing same file
+                event.target.value = '';
+            };
+
             const addToList = (listName, emptyItem) => {
                 setResume(prev => ({
                     ...prev,
@@ -1681,6 +2210,70 @@
                     if (targetIndex < 0 || targetIndex >= list.length) return prev;
                     [list[index], list[targetIndex]] = [list[targetIndex], list[index]];
                     return { ...prev, [listName]: list };
+                });
+            };
+
+            // Layout Handlers
+            const addPage = () => {
+                setDesign(prev => ({
+                    ...prev,
+                    layout: [...(prev.layout || defaultLayout), { id: 'p' + Date.now(), sections: [] }]
+                }));
+            };
+
+            const removePage = (pageIndex) => {
+                setDesign(prev => {
+                    const newLayout = [...prev.layout];
+                    const removedPage = newLayout.splice(pageIndex, 1)[0];
+                    // Move orphans to previous page (or first page if no prev)
+                    const targetPageIdx = Math.max(0, pageIndex - 1);
+                    newLayout[targetPageIdx].sections = [...newLayout[targetPageIdx].sections, ...removedPage.sections];
+                    return { ...prev, layout: newLayout };
+                });
+            };
+
+            const moveSection = (pageIndex, sectionIndex, direction) => {
+                setDesign(prev => {
+                    const newLayout = JSON.parse(JSON.stringify(prev.layout));
+                    const page = newLayout[pageIndex];
+
+                    // Same Page Move
+                    const targetIndex = sectionIndex + direction;
+                    if (targetIndex >= 0 && targetIndex < page.sections.length) {
+                        [page.sections[sectionIndex], page.sections[targetIndex]] = [page.sections[targetIndex], page.sections[sectionIndex]];
+                        return { ...prev, layout: newLayout };
+                    }
+
+                    // Move to Prev Page
+                    if (targetIndex < 0 && pageIndex > 0) {
+                        const section = page.sections.splice(sectionIndex, 1)[0];
+                        newLayout[pageIndex - 1].sections.push(section);
+                        return { ...prev, layout: newLayout };
+                    }
+
+                    // Move to Next Page
+                    if (targetIndex >= page.sections.length && pageIndex < newLayout.length - 1) {
+                        const section = page.sections.splice(sectionIndex, 1)[0];
+                        newLayout[pageIndex + 1].sections.unshift(section);
+                        return { ...prev, layout: newLayout };
+                    }
+
+                    return prev;
+                });
+            };
+
+
+            const toggleSectionPosition = (sectionId) => {
+                setDesign(prev => {
+                    const currentPos = prev.sectionPositions?.[sectionId] || 'main'; // Default fallback
+                    const newPos = currentPos === 'sidebar' ? 'main' : 'sidebar';
+                    return {
+                        ...prev,
+                        sectionPositions: {
+                            ...prev.sectionPositions,
+                            [sectionId]: newPos
+                        }
+                    };
                 });
             };
 
@@ -1742,6 +2335,19 @@
                                     <button onClick={reset} className="text-red-500 p-2 hover:bg-red-50 rounded" title={t.reset}>
                                         <RotateCcwIcon />
                                     </button>
+                                    <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                                    <button onClick={exportTemplate} className="text-emerald-600 p-2 hover:bg-emerald-50 rounded" title={lang === 'zh' ? '导出模板' : 'Export Template'}>
+                                        <DownloadIcon />
+                                    </button>
+                                    <label className="text-amber-600 p-2 hover:bg-amber-50 rounded cursor-pointer" title={lang === 'zh' ? '导入模板' : 'Import Template'}>
+                                        <UploadIcon />
+                                        <input
+                                            type="file"
+                                            accept=".json"
+                                            onChange={importTemplate}
+                                            className="hidden"
+                                        />
+                                    </label>
                                 </div>
                             </div>
                             {/* Tabs */}
@@ -1904,28 +2510,6 @@
                             ) : (
                                 <div className="space-y-8 animate-fadeIn">
 
-                                    {/* 0. View Mode */}
-                                    <section className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <LayoutIcon className="w-5 h-5 text-blue-600" />
-                                                <div className="flex flex-col">
-                                                    <span className="font-bold text-slate-800 text-sm">{lang === 'zh' ? '分页预览模式' : 'Paged Preview Mode'}</span>
-                                                    <span className="text-[10px] text-slate-500">{lang === 'zh' ? '开启后模拟打印分页效果' : 'Simulates page breaks'}</span>
-                                                </div>
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={design.pagedMode || false}
-                                                    onChange={(e) => setDesign(p => ({ ...p, pagedMode: e.target.checked }))}
-                                                    className="sr-only peer"
-                                                />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                            </label>
-                                        </div>
-                                    </section>
-
                                     {/* 1. Theme Selection */}
                                     <section>
                                         <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -1954,15 +2538,85 @@
                                         <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                                             <TypeIcon className="w-4 h-4 text-purple-500" /> {t.fontLabel}
                                         </h3>
-                                        <select
-                                            value={design.font}
-                                            onChange={(e) => setDesign(p => ({ ...p, font: e.target.value }))}
-                                            className="w-full p-3 bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium text-slate-700 cursor-pointer"
-                                        >
-                                            {Object.keys(t.fonts).map(k => (
-                                                <option key={k} value={k}>{t.fonts[k]}</option>
-                                            ))}
-                                        </select>
+                                        <div className="space-y-4">
+                                            <select
+                                                value={design.font}
+                                                onChange={(e) => setDesign(p => ({ ...p, font: e.target.value }))}
+                                                className="w-full p-3 bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium text-slate-700 cursor-pointer"
+                                            >
+                                                {Object.keys(t.fonts).map(k => (
+                                                    <option key={k} value={k}>{t.fonts[k]}</option>
+                                                ))}
+                                            </select>
+
+                                            {/* Heading Size Slider */}
+                                            <div>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{lang === 'zh' ? '标题字号' : 'Heading Size'}</span>
+                                                    <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-600">{design.headingSize || 18}px</span>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="14"
+                                                    max="28"
+                                                    step="0.5"
+                                                    value={design.headingSize || 18}
+                                                    onChange={(e) => setDesign(p => ({ ...p, headingSize: parseFloat(e.target.value) }))}
+                                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                                />
+                                            </div>
+
+                                            {/* Subheading Size Slider */}
+                                            <div>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{lang === 'zh' ? '副标题字号' : 'Subheading Size'}</span>
+                                                    <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-600">{design.subheadingSize || 14}px</span>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="10"
+                                                    max="20"
+                                                    step="0.5"
+                                                    value={design.subheadingSize || 14}
+                                                    onChange={(e) => setDesign(p => ({ ...p, subheadingSize: parseFloat(e.target.value) }))}
+                                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                                />
+                                            </div>
+
+                                            {/* Body Size Slider */}
+                                            <div>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{lang === 'zh' ? '正文字号' : 'Body Size'}</span>
+                                                    <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-600">{design.bodySize || 12}px</span>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="9"
+                                                    max="16"
+                                                    step="0.25"
+                                                    value={design.bodySize || 12}
+                                                    onChange={(e) => setDesign(p => ({ ...p, bodySize: parseFloat(e.target.value) }))}
+                                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                                />
+                                            </div>
+
+                                            {/* Line Height Slider */}
+                                            <div>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{lang === 'zh' ? '正文行距' : 'Body Line Height'}</span>
+                                                    <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-600">{(design.lineHeight || 1.5).toFixed(2)}</span>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="1.0"
+                                                    max="2.0"
+                                                    step="0.05"
+                                                    value={design.lineHeight || 1.5}
+                                                    onChange={(e) => setDesign(p => ({ ...p, lineHeight: parseFloat(e.target.value) }))}
+                                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                                />
+                                            </div>
+                                        </div>
                                         <p className="mt-2 text-xs text-gray-400">
                                             * {lang === 'zh' ? '部分字体仅对英文生效' : 'Some fonts apply to English text only'}
                                         </p>
@@ -2082,148 +2736,88 @@
 
                                     <hr className="border-gray-200" />
 
-                                    {/* 5. Paged Preview Mode */}
+
+                                    {/* 5. Page Layout Manager */}
                                     <section>
                                         <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                            <LayoutIcon className="w-4 h-4 text-indigo-500" /> {lang === 'zh' ? '分页预览' : 'Paged Preview'}
-                                        </h3>
-                                        <div className="flex items-center justify-between mb-3">
-                                            <span className="text-sm text-gray-700 font-medium">{lang === 'zh' ? '启用分页预览' : 'Enable Paged View'}</span>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={design.pagedMode || false}
-                                                    onChange={(e) => setDesign(p => ({ ...p, pagedMode: e.target.checked }))}
-                                                    className="sr-only peer"
-                                                />
-                                                <div className="w-10 h-5 bg-gray-200 rounded-full peer peer-checked:bg-blue-600 transition-all after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"></div>
-                                            </label>
-                                        </div>
-                                        <p className="text-xs text-gray-400">{lang === 'zh' ? '开启后，内容会自动调整以适应 A4 分页' : 'When enabled, content will auto-adjust for A4 pagination'}</p>
-                                    </section>
-
-                                    <hr className="border-gray-200" />
-
-                                    {/* 6. Page Numbers */}
-                                    <section>
-                                        <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                            <span className="text-gray-500">#</span> {lang === 'zh' ? '页码设置' : 'Page Numbers'}
+                                            <LayoutIcon className="w-4 h-4 text-indigo-500" /> {lang === 'zh' ? '页面布局管理' : 'Page Layout Manager'}
                                         </h3>
 
-                                        <div className="flex items-center justify-between mb-3">
-                                            <span className="text-sm text-gray-700 font-medium">{lang === 'zh' ? '显示页码' : 'Show Footer'}</span>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={design.pageNumbers?.enabled || false}
-                                                    onChange={(e) => setDesign(p => ({ ...p, pageNumbers: { ...(p.pageNumbers || {}), enabled: e.target.checked } }))}
-                                                    className="sr-only peer"
-                                                />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                            </label>
-                                        </div>
+                                        <div className="space-y-4">
+                                            {design.layout?.map((page, pageIdx) => (
+                                                <div key={page.id} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                                    <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-100">
+                                                        <span className="text-xs font-bold text-gray-500 uppercase">Page {pageIdx + 1}</span>
+                                                        {design.layout.length > 1 && (
+                                                            <button
+                                                                onClick={() => removePage(pageIdx)}
+                                                                className="text-red-400 hover:text-red-500 p-1"
+                                                                title={lang === 'zh' ? '删除页面' : 'Remove Page'}
+                                                            >
+                                                                <Trash2Icon className="w-3 h-3" />
+                                                            </button>
+                                                        )}
+                                                    </div>
 
-                                        {design.pageNumbers?.enabled && (
-                                            <div className="space-y-3">
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    {['left', 'center', 'right'].map(pos => (
-                                                        <button
-                                                            key={pos}
-                                                            onClick={() => setDesign(p => ({ ...p, pageNumbers: { ...(p.pageNumbers || {}), position: pos } }))}
-                                                            className={`px-3 py-2 rounded text-xs border bg-white transition-all capitalize ${design.pageNumbers?.position === pos ? 'border-blue-500 text-blue-600 bg-blue-50' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}
-                                                        >
-                                                            {lang === 'zh' && pos === 'left' ? '左侧' : lang === 'zh' && pos === 'center' ? '中间' : lang === 'zh' ? '右侧' : pos}
-                                                        </button>
-                                                    ))}
+                                                    <div className="space-y-2">
+                                                        {page.sections.map((section, secIdx) => (
+                                                            <div key={section} className="flex items-center justify-between bg-white px-3 py-2 rounded text-sm shadow-sm border border-gray-100">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-slate-700 capitalize">
+                                                                        {t.labels[section] || section}
+                                                                    </span>
+                                                                    {['modern', 'minimal', 'professional'].includes(theme) && (
+                                                                        <button
+                                                                            onClick={() => toggleSectionPosition(section)}
+                                                                            className={`text-[10px] px-1.5 py-0.5 rounded border uppercase font-bold tracking-wider transition-colors ${(design.sectionPositions?.[section] === 'main' || (!design.sectionPositions?.[section] && !['skills', 'education', 'languages', 'contact'].includes(section)))
+                                                                                ? 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100'
+                                                                                : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                                                                                }`}
+                                                                            title="Toggle Column (Sidebar / Main)"
+                                                                        >
+                                                                            {(design.sectionPositions?.[section] === 'main' || (!design.sectionPositions?.[section] && !['skills', 'education', 'languages', 'contact'].includes(section))) ? 'MAIN' : 'SIDE'}
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex items-center gap-1">
+                                                                    <button
+                                                                        onClick={() => moveSection(pageIdx, secIdx, -1)}
+                                                                        className="p-1 text-gray-300 hover:text-blue-500 disabled:opacity-0"
+                                                                        disabled={secIdx === 0 && pageIdx === 0}
+                                                                        title="Up / Move to Prev Page"
+                                                                    >
+                                                                        <ArrowUpIcon className="w-3 h-3" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => moveSection(pageIdx, secIdx, 1)}
+                                                                        className="p-1 text-gray-300 hover:text-blue-500 disabled:opacity-0"
+                                                                        disabled={secIdx === page.sections.length - 1 && pageIdx === design.layout.length - 1}
+                                                                        title="Down / Move to Next Page"
+                                                                    >
+                                                                        <ArrowDownIcon className="w-3 h-3" />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                        {page.sections.length === 0 && (
+                                                            <div className="text-xs text-center text-gray-400 py-2 border border-dashed border-gray-200 rounded">
+                                                                {lang === 'zh' ? '空页面' : 'Empty Page'}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
+                                            ))}
+
+                                            <button
+                                                onClick={addPage}
+                                                className="w-full py-2 flex items-center justify-center gap-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200 dashed"
+                                            >
+                                                <PlusIcon className="w-4 h-4" /> {lang === 'zh' ? '添加新页面' : 'Add New Page'}
+                                            </button>
+
+                                            {/* Unused Modules (Hidden functionality for now, assuming all sections start on Page 1) */}
+                                        </div>
                                     </section>
-
-                                    <hr className="border-gray-200" />
-
-                                    {/* Spacing Control */}
-                                    <section>
-                                        <div className="flex justify-between items-center mb-1">
-                                            <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                                                <span className="text-gray-500 text-xs">↕</span> {lang === 'zh' ? '全局间距' : 'Layout Spacing'}
-                                            </h3>
-                                            <span className="text-xs text-gray-500">{Math.round((design.spacing || 1) * 100)}%</span>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="0.5"
-                                            max="2.0"
-                                            step="0.1"
-                                            value={design.spacing || 1}
-                                            onChange={(e) => setDesign(p => ({ ...p, spacing: parseFloat(e.target.value) }))}
-                                            className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                                        />
-
-                                        {/* Header Spacing (Classic Theme only) */}
-                                        <div className="mt-4 flex justify-between items-center mb-1">
-                                            <span className="text-sm text-gray-700">{lang === 'zh' ? '头部间距' : 'Header Gap'}</span>
-                                            <span className="text-xs text-gray-500">{Math.round((design.headerSpacing ?? 1) * 100)}%</span>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="0.3"
-                                            max="2.0"
-                                            step="0.1"
-                                            value={design.headerSpacing ?? 1}
-                                            onChange={(e) => setDesign(p => ({ ...p, headerSpacing: parseFloat(e.target.value) }))}
-                                            className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                                        />
-
-                                        {/* Section Spacing (Classic Theme only) */}
-                                        <div className="mt-4 flex justify-between items-center mb-1">
-                                            <span className="text-sm text-gray-700">{lang === 'zh' ? '板块间距' : 'Section Gap'}</span>
-                                            <span className="text-xs text-gray-500">{Math.round((design.sectionSpacing ?? 1) * 100)}%</span>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="0.3"
-                                            max="2.0"
-                                            step="0.1"
-                                            value={design.sectionSpacing ?? 1}
-                                            onChange={(e) => setDesign(p => ({ ...p, sectionSpacing: parseFloat(e.target.value) }))}
-                                            className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                                        />
-                                    </section>
-
-                                    {/* Page 2 Start Section */}
-                                    <section className="mt-4">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-sm text-gray-700 font-medium">{lang === 'zh' ? '第二页起始板块' : 'Page 2 Start'}</span>
-                                        </div>
-                                        <select
-                                            value={design.page2Start || ''}
-                                            onChange={(e) => setDesign(p => ({ ...p, page2Start: e.target.value || undefined }))}
-                                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                        >
-                                            <option value="">{lang === 'zh' ? '自动分页（默认）' : 'Auto (Default)'}</option>
-                                            <option value="experience">{lang === 'zh' ? '工作经历' : 'Experience'}</option>
-                                            <option value="education">{lang === 'zh' ? '教育背景' : 'Education'}</option>
-                                            <option value="skills">{lang === 'zh' ? '技能' : 'Skills'}</option>
-                                            <option value="languages">{lang === 'zh' ? '语言' : 'Languages'}</option>
-                                            <option value="projects">{lang === 'zh' ? '项目经历' : 'Projects'}</option>
-                                        </select>
-                                        <p className="text-xs text-gray-400 mt-1">{lang === 'zh' ? '选中的板块将在第二页开始' : 'Selected section starts on page 2'}</p>
-                                    </section>
-
-                                    {/* Projects Visibility Toggle */}
-                                    <div className="flex items-center justify-between mb-3 mt-4">
-                                        <span className="text-sm text-gray-700 font-medium">{lang === 'zh' ? '显示项目经历' : 'Show Projects'}</span>
-                                        <label className="relative inline-flex items-center cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={design.showProjects !== false}
-                                                onChange={(e) => setDesign(p => ({ ...p, showProjects: e.target.checked }))}
-                                                className="sr-only peer"
-                                            />
-                                            <div className="w-10 h-5 bg-gray-200 rounded-full peer peer-checked:bg-blue-600 transition-all after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"></div>
-                                        </label>
-                                    </div>
 
                                     <div className="h-4"></div>
 
@@ -2259,7 +2853,10 @@
                         </div>
 
                         {/* Resume Paper */}
-                        <div ref={containerRef} className={`bg-white shadow-2xl w-[210mm] min-h-[297mm] print:shadow-none print:w-[210mm] print:min-h-0 print:mx-auto relative overflow-visible transition-all duration-300 ${design.pagedMode ? 'pb-[200px]' : ''}`}>
+                        <div
+                            ref={containerRef}
+                            className={`bg-white shadow-2xl w-[210mm] min-h-[297mm] print:shadow-none print:mx-auto relative overflow-visible transition-all duration-300 ${design.pagedMode ? 'pb-[200px]' : ''}`}
+                        >
                             {/* Logo Overlay - fixed in print, absolute in preview */}
                             {design.logo && (
                                 <div className={`absolute z-10 print:fixed print:z-0 pointer-events-none
@@ -2282,33 +2879,6 @@
                             )}
                             {renderTheme()}
 
-                            {/* Page Break Guides */}
-                            <div className="absolute inset-0 pointer-events-none z-50 print:hidden mix-blend-multiply">
-                                <div className="w-full border-b-2 border-dashed border-red-300 opacity-40 absolute top-[297mm] flex justify-end items-end">
-                                    <span className="text-[10px] text-red-400 bg-white/80 px-1 rounded font-mono">PAGE 1 END</span>
-                                </div>
-                                <div className="w-full border-b-2 border-dashed border-red-300 opacity-40 absolute top-[594mm] flex justify-end items-end">
-                                    <span className="text-[10px] text-red-400 bg-white/80 px-1 rounded font-mono">PAGE 2 END</span>
-                                </div>
-                            </div>
-
-                            {/* Page Number Overlay (Custom for Print) */}
-                            {design.pageNumbers?.enabled && (
-                                <div className="absolute inset-x-0 bottom-0 pointer-events-none z-40">
-                                    {/* Page 1 (Approx 280mm) */}
-                                    <div className="absolute top-[280mm] w-full px-12 flex" style={{ justifyContent: design.pageNumbers.position === 'center' ? 'center' : design.pageNumbers.position === 'right' ? 'flex-end' : 'flex-start' }}>
-                                        <span className="text-xs text-gray-400 font-sans">1</span>
-                                    </div>
-                                    {/* Page 2 (Approx 577mm) */}
-                                    <div className="absolute top-[577mm] w-full px-12 flex" style={{ justifyContent: design.pageNumbers.position === 'center' ? 'center' : design.pageNumbers.position === 'right' ? 'flex-end' : 'flex-start' }}>
-                                        <span className="text-xs text-gray-400 font-sans">2</span>
-                                    </div>
-                                    {/* Page 3 (Approx 874mm) */}
-                                    <div className="absolute top-[874mm] w-full px-12 flex" style={{ justifyContent: design.pageNumbers.position === 'center' ? 'center' : design.pageNumbers.position === 'right' ? 'flex-end' : 'flex-start' }}>
-                                        <span className="text-xs text-gray-400 font-sans">3</span>
-                                    </div>
-                                </div>
-                            )}
                         </div>
 
                         <div className="h-20 print:hidden"></div>

@@ -128,6 +128,14 @@ export const TOOLS = [
     color: 'bg-purple-100'
   },
   {
+    id: 'resume-builder',
+    title: 'Resume Builder',
+    icon: '📄',
+    desc: 'Professional Resume/CV Builder',
+    url: '/tools/Resume/index.html',
+    color: 'bg-green-100'
+  },
+  {
     id: 'image-to-pdf',
     title: 'Image to PDF',
     icon: '📑',
