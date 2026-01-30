@@ -2103,7 +2103,9 @@ const AdminApp: React.FC = () => {
 
     const handleSaveProject = async (p: Project) => {
         try {
-            await setDoc(doc(db, 'projects', p.id), p);
+            // Clean undefined values - Firestore doesn't accept undefined
+            const cleanData = JSON.parse(JSON.stringify(p, (key, value) => value === undefined ? null : value));
+            await setDoc(doc(db, 'projects', p.id), cleanData);
             setIsEditing(false);
             setCurrentProject(null);
             alert('Saved successfully!');

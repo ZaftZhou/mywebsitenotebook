@@ -135,13 +135,6 @@
         const { useState } = React;
 
         const App = () => {
-            const [lang, setLang] = useState('en');
-            const [showCopyToast, setShowCopyToast] = useState(false);
-            const [isSaving, setIsSaving] = useState(false);
-            const [theme, setTheme] = useState('classic');
-
-            const [selectedFont, setSelectedFont] = useState("'Georgia', serif");
-
             // Persistence Helper
             const loadState = (key, fallback) => {
                 try {
@@ -160,6 +153,16 @@
                     console.error('Failed to save state', e);
                 }
             };
+
+            const [lang, setLang] = useState('en');
+            const [showCopyToast, setShowCopyToast] = useState(false);
+            const [isSaving, setIsSaving] = useState(false);
+            const [theme, setTheme] = useState('classic');
+            const [lineHeight, setLineHeight] = useState(() => loadState('cover_letter_line_height', 1.8));
+
+            const [selectedFont, setSelectedFont] = useState("'Georgia', serif");
+
+
 
             // 字体列表
             const fontOptions = [
@@ -254,6 +257,7 @@
                     copy: '复制文本',
                     copied: '已复制',
                     export: '导出 / 打印 PDF',
+                    lineSpacing: '行间距',
                     labels: {
                         fullName: '姓名',
                         email: '电子邮箱',
@@ -264,6 +268,7 @@
                         position: '申请职位',
                         companyName: '公司名称',
                         managerName: '招聘经理姓名',
+                        salutation: '称呼语 (开头)',
                         opening: '开场白 (Opening)',
                         body: '核心优势与经历 (Body)',
                         closing: '结语 (Closing)',
@@ -278,6 +283,7 @@
                         position: '例如：产品经理',
                         companyName: '例如：字节跳动',
                         managerName: "若不知道可填 '招聘经理'",
+                        salutation: "默认: 尊敬的XXX 或 Dear XXX,",
                         opening: '说明你是在哪里看到职位的，表达你的强烈兴趣...',
                         body: '展示你的主要成就、技能如何匹配该职位。可以分段...',
                         closing: '感谢阅读，重申面试意愿，附上简历说明...',
@@ -322,6 +328,7 @@
                     copy: 'Copy Text',
                     copied: 'Copied',
                     export: 'Export / Print PDF',
+                    lineSpacing: 'Line Spacing',
                     labels: {
                         fullName: 'Full Name',
                         email: 'Email Address',
@@ -332,6 +339,7 @@
                         position: 'Target Position',
                         companyName: 'Company Name',
                         managerName: 'Hiring Manager Name',
+                        salutation: 'Salutation (Opening)',
                         opening: 'Opening Paragraph',
                         body: 'Body Paragraphs (Skills & Exp)',
                         closing: 'Closing Paragraph',
@@ -346,6 +354,7 @@
                         position: 'e.g. Product Manager',
                         companyName: 'e.g. ByteDance',
                         managerName: "Or leave blank for 'Hiring Manager'",
+                        salutation: "Default: Dear Hiring Manager,",
                         opening: 'State the position you are applying for and how you found it...',
                         body: 'Highlight your achievements, skills, and why you are a good fit...',
                         closing: 'Reiterate your interest and thank the reader...',
@@ -396,6 +405,7 @@
                 opening: '',
                 body: '',
                 closing: '',
+                salutation: '', // User-defined salutation
             };
 
             // Initialize with saved data if available
@@ -424,6 +434,7 @@
                 opening: '获悉贵公司正在招聘高级前端工程师一职，我对此职位非常感兴趣。作为一名拥有5年React开发经验的工程师，我一直关注贵公司在SaaS领域的创新，并渴望能为团队贡献我的技术力量。',
                 body: '在过去的工作中，我主导了多个大型Web应用的重构工作，成功将首屏加载时间降低了40%。我精通React、TypeScript以及Tailwind CSS生态，并具备丰富的性能优化经验。此外，我善于跨部门沟通，曾带领5人小组按时交付了关键的Q4项目。\n\n我相信我的技术背景与解决问题的能力，能够帮助未来科技公司在产品迭代中保持高效与高质量。',
                 closing: '随信附上我的简历，详细介绍了我的工作经历和项目成果。非常感谢您抽出时间阅读我的申请，期待能有面试的机会，进一步交流我对该职位的理解。',
+                salutation: '', // Use default
             };
 
             const exampleDataEn = {
@@ -439,6 +450,7 @@
                 opening: 'I am writing to express my strong interest in the Senior Frontend Engineer position at Future Tech Inc. With over 5 years of experience in building scalable web applications using React and TypeScript, I have long admired your company\'s innovative work in the SaaS sector.',
                 body: 'In my previous role, I led the architectural migration of a legacy system, resulting in a 40% improvement in load times. I possess a deep understanding of the modern frontend ecosystem and have a proven track record of mentoring junior developers.\n\nI am confident that my technical skills and passion for user experience design make me a strong candidate for this role.',
                 closing: 'Enclosed is my resume for your review. Thank you for your time and consideration. I look forward to the possibility of discussing how I can contribute to your team.',
+                salutation: '', // Use default
             };
 
             const t = uiText[lang];
@@ -466,7 +478,9 @@
                 const managerText = formData.managerName || (lang === 'zh' ? '招聘经理' : 'Hiring Manager');
 
                 let salutation = '';
-                if (lang === 'zh') {
+                if (formData.salutation) {
+                    salutation = formData.salutation;
+                } else if (lang === 'zh') {
                     salutation = formData.managerName ? `尊敬的 ${formData.managerName}：` : '尊敬的招聘负责人：';
                 } else {
                     salutation = formData.managerName ? `Dear ${formData.managerName},` : 'Dear Hiring Manager,';
@@ -733,17 +747,28 @@ ${formData.fullName}
             );
 
             // 通用正文组件
-            const LetterBody = ({ theme, data, t, isEn }) => (
-                <div className={`flex-1 text-base space-y-4 whitespace-pre-wrap ${isEn ? 'text-left leading-8' : 'text-justify leading-7'}`}>
-                    <p>
-                        {lang === 'zh' ? (data.managerName ? `尊敬的 ${data.managerName}：` : '尊敬的招聘负责人：') : (data.managerName ? `Dear ${data.managerName},` : 'Dear Hiring Manager,')}
-                    </p>
+            const LetterBody = ({ theme, data, t, isEn }) => {
+                const getSalutation = () => {
+                    if (data.salutation) return data.salutation;
+                    if (lang === 'zh') {
+                        return data.managerName ? `尊敬的 ${data.managerName}：` : '尊敬的招聘负责人：';
+                    } else {
+                        return data.managerName ? `Dear ${data.managerName},` : 'Dear Hiring Manager,';
+                    }
+                };
 
-                    {data.opening ? <p>{data.opening}</p> : <p className="text-gray-300 italic">{t.preview.placeholderOpening}</p>}
-                    {data.body ? <p>{data.body}</p> : <p className="text-gray-300 italic">{t.preview.placeholderBody}</p>}
-                    {data.closing ? <p>{data.closing}</p> : <p className="text-gray-300 italic">{t.preview.placeholderClosing}</p>}
-                </div>
-            );
+                return (
+                    <div className={`flex-1 text-base space-y-4 whitespace-pre-wrap ${isEn ? 'text-left' : 'text-justify'}`} style={{ lineHeight: lineHeight }}>
+                        <p>
+                            {getSalutation()}
+                        </p>
+
+                        {data.opening ? <p>{data.opening}</p> : <p className="text-gray-300 italic">{t.preview.placeholderOpening}</p>}
+                        {data.body ? <p>{data.body}</p> : <p className="text-gray-300 italic">{t.preview.placeholderBody}</p>}
+                        {data.closing ? <p>{data.closing}</p> : <p className="text-gray-300 italic">{t.preview.placeholderClosing}</p>}
+                    </div>
+                );
+            };
 
             return (
                 <div className="min-h-screen font-sans flex flex-col bg-gray-50">
@@ -877,6 +902,7 @@ ${formData.fullName}
                                     <InputGroup label={t.labels.position} name="position" value={formData.position} onChange={handleInputChange} placeholder={t.placeholders.position} />
                                     <InputGroup label={t.labels.companyName} name="companyName" value={formData.companyName} onChange={handleInputChange} placeholder={t.placeholders.companyName} />
                                     <InputGroup label={t.labels.managerName} name="managerName" value={formData.managerName} onChange={handleInputChange} placeholder={t.placeholders.managerName} />
+                                    <InputGroup label={t.labels.salutation} name="salutation" value={formData.salutation} onChange={handleInputChange} placeholder={t.placeholders.salutation} />
                                 </div>
                             </section>
 
@@ -1009,6 +1035,28 @@ ${formData.fullName}
                                     </select>
                                 </section>
                             )}
+
+                            <section className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                                <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-2">
+                                    <TypeIcon className="text-blue-600 w-5 h-5" /> {t.lineSpacing}
+                                </h3>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="range"
+                                        min="1.2"
+                                        max="2.5"
+                                        step="0.1"
+                                        value={lineHeight}
+                                        onChange={(e) => {
+                                            const val = parseFloat(e.target.value);
+                                            setLineHeight(val);
+                                            saveState('cover_letter_line_height', val);
+                                        }}
+                                        className="flex-1"
+                                    />
+                                    <span className="text-sm font-mono text-gray-600 w-12 text-right">{lineHeight.toFixed(1)}</span>
+                                </div>
+                            </section>
                         </div>
 
                     </main>
