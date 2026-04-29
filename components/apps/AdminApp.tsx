@@ -818,6 +818,7 @@ const DevDiaryEditor: React.FC = () => {
 
 const SettingsEditor: React.FC = () => {
     const { settings, loading } = useSettings();
+    const { projects } = useProjects();
     const [formData, setFormData] = useState<SiteSettings>({
         profile: {
             status: 'Open to Work',
@@ -835,11 +836,34 @@ const SettingsEditor: React.FC = () => {
         welcome: {
             greeting: "Hello, I'm Zhou Bowen.",
             tagline: "Unity Dev • Tech Artist • Turku, Finland 🇫🇮",
+            heroLine1: "Interactive",
+            heroLine2: "Experiences",
+            heroLine3: "Engineer.",
             homePhotoUrl: ""
         },
         widgets: {
             toolboxTitle: "Toolbox",
             toolboxColor: ""
+        },
+        homepage: {
+            recentProjectIds: [],
+            lifeItems: [
+                {
+                    title: "Silence & Nature",
+                    desc: "Hiking in the Finnish archipelago or foraging in local forests. Nature is where I reset my mind.",
+                    image: "https://images.unsplash.com/photo-1500829243541-74b676fecc20?q=80&w=1000&auto=format&fit=crop"
+                },
+                {
+                    title: "Ice Swimming",
+                    desc: "Avantouinti. The ultimate system reboot after a long week of coding.",
+                    image: "https://images.unsplash.com/photo-1549468057-5b6faf4ae621?q=80&w=800&auto=format&fit=crop"
+                },
+                {
+                    title: "Photography",
+                    desc: "Documenting the stark contrasts of Nordic light and minimalist architecture.",
+                    image: "https://images.unsplash.com/photo-1493606371202-6275828f90f3?q=80&w=800&auto=format&fit=crop"
+                }
+            ]
         }
     });
     const [isSaving, setIsSaving] = useState(false);
@@ -860,6 +884,58 @@ const SettingsEditor: React.FC = () => {
         } finally {
             setIsSaving(false);
         }
+    };
+
+    const defaultLifeItems = [
+        {
+            title: "Silence & Nature",
+            desc: "Hiking in the Finnish archipelago or foraging in local forests. Nature is where I reset my mind.",
+            image: "https://images.unsplash.com/photo-1500829243541-74b676fecc20?q=80&w=1000&auto=format&fit=crop"
+        },
+        {
+            title: "Ice Swimming",
+            desc: "Avantouinti. The ultimate system reboot after a long week of coding.",
+            image: "https://images.unsplash.com/photo-1549468057-5b6faf4ae621?q=80&w=800&auto=format&fit=crop"
+        },
+        {
+            title: "Photography",
+            desc: "Documenting the stark contrasts of Nordic light and minimalist architecture.",
+            image: "https://images.unsplash.com/photo-1493606371202-6275828f90f3?q=80&w=800&auto=format&fit=crop"
+        }
+    ];
+
+    const homepageLifeItems = formData.homepage?.lifeItems?.length ? formData.homepage.lifeItems : defaultLifeItems;
+
+    const updateRecentProject = (index: number, projectId: string) => {
+        const next = [...(formData.homepage?.recentProjectIds || [])];
+        next[index] = projectId;
+        setFormData({
+            ...formData,
+            homepage: {
+                ...formData.homepage,
+                recentProjectIds: next.filter(Boolean)
+            }
+        });
+    };
+
+    const updateLifeItem = (index: number, updates: Partial<(typeof defaultLifeItems)[number]>) => {
+        const next = [...homepageLifeItems];
+        next[index] = { ...next[index], ...updates };
+        setFormData({
+            ...formData,
+            homepage: {
+                ...formData.homepage,
+                lifeItems: next
+            }
+        });
+    };
+
+    const uploadLifeImage = async (index: number, file?: File) => {
+        if (!file) return;
+        const storageRef = ref(storage, `life_images/life_${index}_${Date.now()}_${file.name}`);
+        await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(storageRef);
+        updateLifeItem(index, { image: url });
     };
 
     if (loading) return <div className="p-8"><Loader className="animate-spin" /></div>;
@@ -983,6 +1059,20 @@ const SettingsEditor: React.FC = () => {
                                 <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Tagline / Subtext</label>
                                 <input className="w-full border-2 border-ink/20 focus:border-ink p-3 rounded outline-none transition-colors font-medium bg-white" value={formData.welcome?.tagline || ''} onChange={e => setFormData({ ...formData, welcome: { ...formData.welcome, tagline: e.target.value } })} />
                             </div>
+                            <div className="grid md:grid-cols-3 gap-3 border-t border-ink/10 pt-4">
+                                <div>
+                                    <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Hero Line 1</label>
+                                    <input value={formData.welcome?.heroLine1 || ''} placeholder="Interactive" onChange={e => setFormData({ ...formData, welcome: { ...formData.welcome, heroLine1: e.target.value } })} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Hero Line 2</label>
+                                    <input value={formData.welcome?.heroLine2 || ''} placeholder="Experiences" onChange={e => setFormData({ ...formData, welcome: { ...formData.welcome, heroLine2: e.target.value } })} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Hero Line 3</label>
+                                    <input value={formData.welcome?.heroLine3 || ''} placeholder="Engineer." onChange={e => setFormData({ ...formData, welcome: { ...formData.welcome, heroLine3: e.target.value } })} />
+                                </div>
+                            </div>
                             <div className="border-t border-ink/10 pt-4">
                                 <label className="block text-xs font-bold uppercase mb-2 text-gray-500">Home Photo</label>
                                 <div className="flex items-center gap-4">
@@ -1064,6 +1154,79 @@ const SettingsEditor: React.FC = () => {
                                     Remove
                                 </button>
                             )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-white p-8 rounded-lg border-2 border-ink shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                    <Globe size={120} />
+                </div>
+                <h3 className="text-xl font-bold mb-6 flex items-center gap-2 border-b-2 border-ink/10 pb-3 relative z-10">
+                    <Globe size={24} className="text-accent" /> Homepage Sections
+                </h3>
+                <div className="grid gap-8 relative z-10">
+                    <div>
+                        <label className="block text-xs font-bold uppercase mb-3 text-gray-500">Recent Works</label>
+                        <div className="grid md:grid-cols-2 gap-3">
+                            {[0, 1].map(index => (
+                                <select
+                                    key={index}
+                                    value={formData.homepage?.recentProjectIds?.[index] || ''}
+                                    onChange={e => updateRecentProject(index, e.target.value)}
+                                >
+                                    <option value="">Auto project {index + 1}</option>
+                                    {projects.map(project => (
+                                        <option key={project.id} value={project.id}>{project.title}</option>
+                                    ))}
+                                </select>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="border-t border-ink/10 pt-6">
+                        <label className="block text-xs font-bold uppercase mb-3 text-gray-500">Life & Hobbies Cards</label>
+                        <div className="grid gap-4">
+                            {homepageLifeItems.map((item, index) => (
+                                <div key={index} className="grid md:grid-cols-[120px_minmax(0,1fr)] gap-4 p-4 rounded-[24px] border border-ink/10 bg-bg/50">
+                                    <div className="space-y-2">
+                                        <div className="w-full aspect-square rounded-[20px] overflow-hidden bg-ink/5 border border-ink/10">
+                                            {item.image ? (
+                                                <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-ink/25">
+                                                    <ImageIcon size={24} />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <input
+                                            type="file"
+                                            id={`life-image-upload-${index}`}
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={e => uploadLifeImage(index, e.target.files?.[0])}
+                                        />
+                                        <label htmlFor={`life-image-upload-${index}`} className="w-full bg-ink text-white px-3 py-2 rounded-full text-[10px] font-bold cursor-pointer hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">
+                                            <Upload size={12} /> Upload
+                                        </label>
+                                    </div>
+                                    <div className="grid gap-3">
+                                        <div>
+                                            <label className="block text-[10px] font-bold uppercase mb-1 text-gray-500">Title</label>
+                                            <input value={item.title} onChange={e => updateLifeItem(index, { title: e.target.value })} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold uppercase mb-1 text-gray-500">Description</label>
+                                            <textarea value={item.desc} onChange={e => updateLifeItem(index, { desc: e.target.value })} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold uppercase mb-1 text-gray-500">Image URL</label>
+                                            <input value={item.image} onChange={e => updateLifeItem(index, { image: e.target.value })} />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -1916,20 +2079,29 @@ const ProjectEditor: React.FC<{ project?: Project | null; onSave: (p: Project) =
     const handleContentChange = (field: keyof Project['content'], value: any) => setFormData(prev => ({ ...prev, content: { ...prev.content, [field]: value } }));
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-2xl max-h-[85vh] overflow-y-auto border-2 border-ink shadow-floating rounded-lg flex flex-col mb-20">
-                <div className="p-4 border-b-2 border-ink/10 flex justify-between items-center bg-paper sticky top-0 z-10">
-                    <h3 className="font-bold text-lg">{project ? 'Edit Project' : 'New Project'}</h3>
-                    <button onClick={onCancel} className="bg-red-500 text-white w-6 h-6 rounded flex items-center justify-center font-bold">x</button>
+        <div className="fixed inset-0 bg-bg z-50 overflow-y-auto">
+            <div className="min-h-screen px-5 md:px-10 py-8 md:py-12">
+                <div className="max-w-[1500px] mx-auto">
+                <div className="sticky top-0 z-30 -mx-5 md:-mx-10 px-5 md:px-10 py-4 mb-10 bg-bg/85 backdrop-blur-xl border-b border-ink/10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div>
+                        <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-ink/40 mb-3">Project Editor</p>
+                        <h3 className="font-display font-medium text-5xl md:text-7xl leading-none">{project ? 'Edit Project' : 'New Project'}</h3>
+                    </div>
+                    <div className="flex gap-3">
+                        <button onClick={onCancel} className="px-5 py-3 text-ink/55 font-bold hover:text-ink rounded-full border border-ink/10 hover:border-ink/30 bg-white/40">Cancel</button>
+                        <button onClick={() => onSave(formData)} className="px-6 py-3 bg-ink text-bg font-bold rounded-full shadow-sm hover:shadow-md flex items-center gap-2">
+                            <Save size={16} /> Save Project
+                        </button>
+                    </div>
                 </div>
 
 
 
-                <div className="p-6 space-y-4">
+                <div className="space-y-10 pb-32">
                     {/* Cover Image Section */}
-                    <div className="bg-gray-50 p-4 rounded-lg border border-ink/10 flex gap-4 items-center">
+                    <div className="bg-white/55 backdrop-blur p-6 md:p-8 rounded-[32px] border border-ink/10 grid lg:grid-cols-[420px_minmax(0,1fr)] gap-8 items-center">
                         <div
-                            className="w-32 aspect-video bg-gray-200 border-2 border-dashed border-ink/20 rounded flex items-center justify-center cursor-pointer hover:bg-gray-100 bg-cover bg-center relative group"
+                            className="w-full aspect-video bg-gray-200 border border-dashed border-ink/20 rounded-[28px] flex items-center justify-center cursor-pointer hover:bg-gray-100 bg-cover bg-center relative group overflow-hidden"
                             style={{ backgroundImage: formData.coverImage ? `url("${formData.coverImage}")` : undefined }}
                             onClick={() => document.getElementById('cover-upload')?.click()}
                         >
@@ -1940,9 +2112,9 @@ const ProjectEditor: React.FC<{ project?: Project | null; onSave: (p: Project) =
                                 </div>
                             )}
                         </div>
-                        <div className="flex-1">
-                            <h4 className="font-bold text-sm">Cover Image</h4>
-                            <p className="text-xs text-gray-500 mb-2">Used for the project card thumbnail. Should be 16:9 aspect ratio.</p>
+                        <div className="flex-1 space-y-3">
+                            <h4 className="font-display font-medium text-3xl">Cover Image</h4>
+                            <p className="text-sm leading-7 text-ink/55 max-w-xl">Used for the project card thumbnail and homepage previews. A wide image works best, but the public page now keeps the full image visible.</p>
                             <input
                                 id="cover-upload"
                                 type="file"
@@ -1964,7 +2136,9 @@ const ProjectEditor: React.FC<{ project?: Project | null; onSave: (p: Project) =
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/55 backdrop-blur p-6 md:p-8 rounded-[32px] border border-ink/10">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-ink/40 mb-6">Basic Information</div>
+                    <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-5">
                         <div>
                             <label className="block text-xs font-bold uppercase mb-1">ID (Unique)</label>
                             <input className="w-full border-2 border-ink/20 p-2 rounded" value={formData.id} onChange={e => handleChange('id', e.target.value)} disabled={!!project} />
@@ -1984,8 +2158,11 @@ const ProjectEditor: React.FC<{ project?: Project | null; onSave: (p: Project) =
                             <input className="w-full border-2 border-ink/20 p-2 rounded" value={formData.year} onChange={e => handleChange('year', e.target.value)} />
                         </div>
                     </div>
+                    </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/55 backdrop-blur p-6 md:p-8 rounded-[32px] border border-ink/10">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-ink/40 mb-6">Case Study Copy</div>
+                    <div className="grid lg:grid-cols-2 gap-5">
                         <div>
                             <label className="block text-xs font-bold uppercase mb-1">Overview</label>
                             <textarea className="w-full border-2 border-ink/20 p-2 rounded h-24" value={formData.content.overview} onChange={e => handleContentChange('overview', e.target.value)} />
@@ -2025,8 +2202,11 @@ const ProjectEditor: React.FC<{ project?: Project | null; onSave: (p: Project) =
                             <label htmlFor="featured-toggle" className="text-sm font-bold cursor-pointer select-none">Featured / Pin to Dashboard</label>
                         </div>
                     </div>
+                    </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/55 backdrop-blur p-6 md:p-8 rounded-[32px] border border-ink/10">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-ink/40 mb-6">Tags & Visual Category</div>
+                    <div className="grid lg:grid-cols-2 gap-5">
                         <div>
                             <label className="block text-xs font-bold uppercase mb-1">Tags (comma sep)</label>
                             <input className="w-full border-2 border-ink/20 p-2 rounded" value={formData.tags.join(', ')} onChange={e => handleChange('tags', e.target.value.split(',').map((s: string) => s.trim()))} />
@@ -2049,8 +2229,9 @@ const ProjectEditor: React.FC<{ project?: Project | null; onSave: (p: Project) =
                             </div>
                         </div>
                     </div>
+                    </div>
 
-                    <div className="bg-gray-50 p-4 rounded-lg border border-ink/10">
+                    <div className="bg-white/55 backdrop-blur p-6 md:p-8 rounded-[32px] border border-ink/10">
                         <MediaListEditor
                             media={formData.media || []}
                             onChange={(newMedia) => handleChange('media', newMedia)}
@@ -2059,14 +2240,9 @@ const ProjectEditor: React.FC<{ project?: Project | null; onSave: (p: Project) =
                     </div>
                 </div>
 
-                <div className="p-4 border-t-2 border-ink/10 flex justify-end gap-2 bg-gray-50">
-                    <button onClick={onCancel} className="px-4 py-2 text-gray-500 font-bold hover:bg-gray-200 rounded">Cancel</button>
-                    <button onClick={() => onSave(formData)} className="px-4 py-2 bg-ink text-white font-bold rounded shadow-sm hover:shadow-md flex items-center gap-2">
-                        <Save size={16} /> Save Project
-                    </button>
                 </div>
-            </div>
-        </div >
+                </div>
+        </div>
     );
 };
 

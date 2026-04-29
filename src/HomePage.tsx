@@ -353,12 +353,6 @@ const pageTransition = { duration: 0.8, ease: [0.22, 1, 0.36, 1] };
 
 const ProjectItem = ({ project, index, onClick }: { project: any, index: number, onClick: () => void }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start end", "end start"]
-  });
-  
-  const y = useTransform(scrollYProgress, [0, 1], ["-20%", "20%"]);
 
   return (
     <motion.div 
@@ -390,10 +384,9 @@ const ProjectItem = ({ project, index, onClick }: { project: any, index: number,
       <div className="w-full xl:w-7/12 relative z-10 mt-8 xl:mt-0 overflow-hidden rounded-[2rem] aspect-[4/3] xl:aspect-[16/10] bg-ink/5">
         <motion.img 
           layoutId={`project-image-${project.title}`}
-          style={{ y, scale: 1.15 }}
           src={project.image} 
           alt={project.title} 
-          className="absolute inset-0 w-full h-[140%] -top-[20%] object-cover transition-transform duration-1000 group-hover:scale-105 origin-center" 
+          className="absolute inset-0 w-full h-full object-contain transition-opacity duration-700 group-hover:opacity-90" 
         />
         <div className="absolute inset-0 bg-ink/10 group-hover:bg-transparent transition-colors duration-500" />
       </div>
@@ -448,6 +441,9 @@ const ProjectDetail = ({ project, projects, onSelectProject }: any) => {
   const currentIndex = projects.findIndex((p: any) => p.title === project.title);
   const nextProject = projects[(currentIndex + 1) % projects.length];
   const prevProject = projects[(currentIndex - 1 + projects.length) % projects.length];
+  const galleryItems = (project.gallery || [])
+    .map((item: any) => typeof item === 'string' ? { type: 'image', url: item, caption: '' } : item)
+    .filter((item: any) => item?.url);
 
   return (
     <motion.div 
@@ -518,20 +514,57 @@ const ProjectDetail = ({ project, projects, onSelectProject }: any) => {
         </motion.div>
 
         {/* Gallery */}
-        {project.gallery && project.gallery.length > 0 && (
-          <div className="w-full space-y-8 md:space-y-12 mb-20 md:mb-32">
-            {project.gallery.map((img: string, idx: number) => (
+        {galleryItems.length > 0 && (
+          <div className="w-full mb-20 md:mb-32">
+            <div className="flex items-end justify-between gap-8 mb-8 md:mb-12">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.28em] text-ink/40 mb-3">Visual Archive</div>
+                <h3 className="text-3xl md:text-5xl font-display font-medium text-ink">Project Mosaic</h3>
+              </div>
+              <div className="hidden md:block h-px flex-1 max-w-sm bg-ink/10">
+                <div className="h-px w-28 bg-accent" />
+              </div>
+            </div>
+
+            <div className="rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border border-ink/10 bg-ink/[0.03] columns-1 md:columns-2 xl:columns-3 gap-0">
+              {galleryItems.map((item: any, idx: number) => (
               <motion.div 
                 key={idx}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: false, margin: "-100px" }}
-                transition={{ duration: 0.8 }}
-                className="w-full aspect-[4/3] md:aspect-video relative bg-ink/5 rounded-[2rem] overflow-hidden"
+                transition={{ duration: 0.8, delay: Math.min(idx * 0.04, 0.24), ease: [0.76, 0, 0.24, 1] }}
+                className="group relative break-inside-avoid overflow-hidden"
               >
-                <img src={img} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
+                {item.type === 'video' ? (
+                  <video
+                    src={item.url}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="w-full h-auto object-contain bg-ink"
+                  />
+                ) : (
+                  <img
+                    src={item.url}
+                    alt={item.caption || `Gallery ${idx + 1}`}
+                    className="w-full h-auto object-contain transition-transform duration-1000 ease-out group-hover:scale-[1.02]"
+                  />
+                )}
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/55 via-ink/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="pointer-events-none absolute left-5 right-5 bottom-5 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
+                  <div className="inline-flex rounded-full bg-bg/85 backdrop-blur px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-ink/50 border border-ink/10 mb-2">
+                    {item.type === 'video' ? 'Video' : 'Image'} {String(idx + 1).padStart(2, '0')}
+                  </div>
+                  {item.caption && (
+                    <p className="max-w-[90%] text-sm md:text-base font-display font-medium text-bg drop-shadow-sm">
+                      {item.caption}
+                    </p>
+                  )}
+                </div>
               </motion.div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
@@ -542,7 +575,7 @@ const ProjectDetail = ({ project, projects, onSelectProject }: any) => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: false, margin: "-100px" }}
           transition={{ duration: 0.8 }}
-          className="w-full bg-accent/[0.03] rounded-[3rem] p-10 md:p-16 border border-accent/10 mb-32"
+          className="hidden w-full bg-accent/[0.03] rounded-[3rem] p-10 md:p-16 border border-accent/10 mb-32"
         >
           <h3 className="text-2xl font-display font-medium text-ink mb-12">Key Outcomes</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-12">
@@ -904,7 +937,7 @@ export default function App() {
     category: p.category,
     tags: p.tags || [],
     image: p.coverImage || p.media?.[0]?.url || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop",
-    gallery: p.media?.map((m: any) => m.url) || [],
+    gallery: p.media || [],
     color: p.themeColor || "bg-ink",
     desc: p.description || p.shortDescription || "A detailed project exploring new interfaces.",
     year: p.year || "2024",
@@ -925,6 +958,20 @@ export default function App() {
   }));
 
   const tools = TOOLS;
+  const recentProjectIds = settings?.homepage?.recentProjectIds || [];
+  const recentProjects = recentProjectIds.length > 0
+    ? recentProjectIds
+      .map(id => projects.find(project => project.id === id || project.title === id))
+      .filter(Boolean)
+      .slice(0, 2)
+    : projects.slice(0, 2);
+  const configuredLifeItems = settings?.homepage?.lifeItems?.length
+    ? settings.homepage.lifeItems.map((item, index) => ({
+      ...lifeItems[index],
+      ...item,
+      span: lifeItems[index]?.span || ""
+    }))
+    : lifeItems;
   const resumeSkills = rawSkills.length > 0 ? rawSkills.map(s => ({ category: s.name || s.category, items: s.items || s.skills?.join(' · ') || '' })) : [
     { category: "AI Workflow", items: "GitHub Copilot · Claude (Code) · Cursor · CodeX" },
     { category: "Game Engines", items: "Unity (primary) · Unreal (basic)" },
@@ -939,6 +986,9 @@ export default function App() {
   const [activeSection, setActiveSection] = useState<Section>("home");
   const [time, setTime] = useState("");
   const photo = settings?.welcome?.homePhotoUrl || settings?.welcome?.avatarUrl || null;
+  const heroLine1 = settings?.welcome?.heroLine1 || "Interactive";
+  const heroLine2 = settings?.welcome?.heroLine2 || "Experiences";
+  const heroLine3 = settings?.welcome?.heroLine3 || "Engineer.";
   const [selectedProject, setSelectedProject] = useState<any | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<any | null>(null);
   const [showAllProjects, setShowAllProjects] = useState(false);
@@ -1079,17 +1129,17 @@ export default function App() {
 
                 <div className="overflow-hidden pb-8 -mb-8 mb-2 md:mb-4 flex justify-start relative z-10 pointer-events-none">
                   <motion.div initial={{ y: "110%", rotate: 2 }} animate={!loading ? { y: 0, rotate: 0 } : {}} transition={{ duration: 1.2, delay: 0.2, ease: [0.76, 0, 0.24, 1] }} className="pb-2">
-                    Interactive
+                    {heroLine1}
                   </motion.div>
                 </div>
                 <div className="overflow-hidden pb-8 -mb-8 flex justify-center -mt-2 md:-mt-4 lg:-mt-6 relative z-10 pointer-events-none">
                   <motion.div initial={{ y: "110%", rotate: 2 }} animate={!loading ? { y: 0, rotate: 0 } : {}} transition={{ duration: 1.2, delay: 0.3, ease: [0.76, 0, 0.24, 1] }} className="italic bg-clip-text text-transparent bg-gradient-to-r from-accent via-sage to-coral animate-gradient bg-[length:200%_auto] transition-all opacity-90 hover:opacity-100 pointer-events-auto cursor-crosshair px-4 sm:px-6 pb-2">
-                    Experiences
+                    {heroLine2}
                   </motion.div>
                 </div>
                 <div className="overflow-hidden pb-8 -mb-8 flex justify-end mt-0 md:-mt-2 lg:-mt-6 relative z-10 pointer-events-none">
                   <motion.div initial={{ y: "110%", rotate: 2 }} animate={!loading ? { y: 0, rotate: 0 } : {}} transition={{ duration: 1.2, delay: 0.4, ease: [0.76, 0, 0.24, 1] }} className="pb-2">
-                    Engineer.
+                    {heroLine3}
                   </motion.div>
                 </div>
               </div>
@@ -1119,10 +1169,10 @@ export default function App() {
                     <button onClick={() => scrollTo("work")} className="text-[10px] font-bold uppercase tracking-widest text-accent hover:opacity-70 transition-opacity flex items-center gap-1">All <ArrowUpRight size={10} /></button>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {projects.slice(0, 2).map((project, idx) => (
+                    {recentProjects.map((project, idx) => (
                        <motion.div layoutId={`project-container-${project.title}`} key={idx} className="group cursor-pointer flex items-center gap-4 p-2 -mx-2 rounded-xl hover:bg-ink/5 transition-colors border border-transparent hover:border-ink/10" onClick={() => setSelectedProject(project)}>
                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-ink/5 relative flex-shrink-0">
-                           <motion.img layoutId={`project-image-${project.title}`} src={project.image} alt={project.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                           <motion.img layoutId={`project-image-${project.title}`} src={project.image} alt={project.title} className="w-full h-full object-contain group-hover:opacity-90 transition-opacity duration-500" />
                          </div>
                          <div className="flex-1 min-w-0">
                            <motion.h5 layoutId={`project-title-${project.title}`} className="text-sm font-display font-medium text-ink truncate group-hover:text-accent transition-colors">{project.title}</motion.h5>
@@ -1290,7 +1340,7 @@ export default function App() {
               </div>
               <div className="lg:w-3/4 border-t border-ink/10 lg:border-t-0 mt-8 lg:mt-0 pt-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-                  {lifeItems.map((item, i) => (
+                  {configuredLifeItems.map((item, i) => (
                     <LifeItemCard key={item.title} item={{ ...item, span: "" }} index={i} />
                   ))}
                 </div>

@@ -81,12 +81,23 @@ export interface SiteSettings {
   welcome: {
     greeting: string;
     tagline: string;
+    heroLine1?: string;
+    heroLine2?: string;
+    heroLine3?: string;
     avatarUrl?: string; // New field for custom welcome image
     homePhotoUrl?: string; // Homepage hero background photo
   };
   widgets: {
     toolboxTitle: string;
     toolboxColor: string; // fallback color if needed
+  };
+  homepage?: {
+    recentProjectIds?: string[];
+    lifeItems?: Array<{
+      title: string;
+      desc: string;
+      image: string;
+    }>;
   };
 }
 
