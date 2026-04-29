@@ -85,7 +85,7 @@ export const PROJECTS: Project[] = [
     ]
   },
   {
-    id: "p5", title: "Personal Site", category: "Web", year: "2024", role: "Full Stack", tags: ["Vite", "Node.js"], outcome: "Portfolio", color: "bg-cat-web", featured: false, oneLiner: "Component-based OS portfolio.",
+    id: "p5", title: "Notebook OS", category: "Web", year: "2024", role: "Full Stack", tags: ["Vite", "Node.js"], outcome: "Portfolio", color: "bg-cat-web", featured: true, oneLiner: "Component-based OS portfolio.",
     content: {
       overview: "This website! A structured display of my personal brand, featuring a 'Notebook OS' theme, Node.js backend scripts, and a highly polished React frontend.",
       stack: ["React", "Vite", "Tailwind", "Node.js"],

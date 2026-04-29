@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth, db, storage } from '../../src/firebase';
 import { useAuth } from '../../src/context/AuthContext';
@@ -833,7 +834,8 @@ const SettingsEditor: React.FC = () => {
         },
         welcome: {
             greeting: "Hello, I'm Zhou Bowen.",
-            tagline: "Unity Dev • Tech Artist • Turku, Finland 🇫🇮"
+            tagline: "Unity Dev • Tech Artist • Turku, Finland 🇫🇮",
+            homePhotoUrl: ""
         },
         widgets: {
             toolboxTitle: "Toolbox",
@@ -980,6 +982,47 @@ const SettingsEditor: React.FC = () => {
                             <div>
                                 <label className="block text-xs font-bold uppercase mb-1 text-gray-500">Tagline / Subtext</label>
                                 <input className="w-full border-2 border-ink/20 focus:border-ink p-3 rounded outline-none transition-colors font-medium bg-white" value={formData.welcome?.tagline || ''} onChange={e => setFormData({ ...formData, welcome: { ...formData.welcome, tagline: e.target.value } })} />
+                            </div>
+                            <div className="border-t border-ink/10 pt-4">
+                                <label className="block text-xs font-bold uppercase mb-2 text-gray-500">Home Photo</label>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-24 h-24 rounded-full border-2 border-dashed border-ink/20 overflow-hidden bg-gray-50 flex items-center justify-center shrink-0">
+                                        {formData.welcome?.homePhotoUrl ? (
+                                            <img src={formData.welcome.homePhotoUrl} alt="Home photo" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <ImageIcon size={24} className="text-gray-300" />
+                                        )}
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        <input
+                                            type="file"
+                                            id="home-photo-upload"
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={async (e) => {
+                                                if (e.target.files?.[0]) {
+                                                    const file = e.target.files[0];
+                                                    const storageRef = ref(storage, `home_photos/home_${Date.now()}_${file.name}`);
+                                                    await uploadBytes(storageRef, file);
+                                                    const url = await getDownloadURL(storageRef);
+                                                    setFormData({ ...formData, welcome: { ...formData.welcome, homePhotoUrl: url } });
+                                                }
+                                            }}
+                                        />
+                                        <label htmlFor="home-photo-upload" className="bg-ink text-white px-4 py-2 rounded text-xs font-bold cursor-pointer hover:bg-gray-800 transition-colors flex items-center gap-2 shadow-sm">
+                                            <Upload size={14} /> Upload Home Photo
+                                        </label>
+                                        {formData.welcome?.homePhotoUrl && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, welcome: { ...formData.welcome, homePhotoUrl: '' } })}
+                                                className="px-3 py-2 rounded text-xs font-bold border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+                                            >
+                                                Remove
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -2027,6 +2070,50 @@ const ProjectEditor: React.FC<{ project?: Project | null; onSave: (p: Project) =
     );
 };
 
+type AdminTab = 'projects' | 'skills' | 'settings' | 'dev_diary';
+
+const ADMIN_TABS: Array<{
+    id: AdminTab;
+    label: string;
+    eyebrow: string;
+    title: string;
+    description: string;
+    icon: React.ReactNode;
+}> = [
+    {
+        id: 'projects',
+        label: 'Projects',
+        eyebrow: 'Portfolio Library',
+        title: 'Curate the work shelf.',
+        description: 'Edit featured projects, visual media, categories, and the public case-study order.',
+        icon: <Database size={14} />
+    },
+    {
+        id: 'skills',
+        label: 'Skills',
+        eyebrow: 'Capability Index',
+        title: 'Tune the skill language.',
+        description: 'Keep the resume and experience vocabulary aligned with the public site.',
+        icon: <Star size={14} />
+    },
+    {
+        id: 'settings',
+        label: 'Settings',
+        eyebrow: 'Site Atmosphere',
+        title: 'Shape the first impression.',
+        description: 'Manage profile copy, homepage photo, welcome text, music, and widget details.',
+        icon: <Wrench size={14} />
+    },
+    {
+        id: 'dev_diary',
+        label: 'Dev Diary',
+        eyebrow: 'Notebook Entries',
+        title: 'Draft the process archive.',
+        description: 'Write and compose long-form build notes with media blocks and sections.',
+        icon: <BookOpen size={14} />
+    }
+];
+
 const AdminApp: React.FC = () => {
     const { user, loading } = useAuth();
     const { projects } = useProjects();
@@ -2035,9 +2122,16 @@ const AdminApp: React.FC = () => {
     const [error, setError] = useState('');
     const [msg, setMsg] = useState('');
 
-    const [activeTab, setActiveTab] = useState<'projects' | 'skills' | 'settings' | 'dev_diary'>('projects');
+    const [activeTab, setActiveTab] = useState<AdminTab>('projects');
     const [isEditing, setIsEditing] = useState(false);
     const [currentProject, setCurrentProject] = useState<Project | null>(null);
+    const activeTabMeta = ADMIN_TABS.find(tab => tab.id === activeTab) || ADMIN_TABS[0];
+    const featuredCount = projects.filter(project => project.featured).length;
+    const tabButtonClass = (tab: typeof activeTab) =>
+        `px-4 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 border transition-all whitespace-nowrap ${activeTab === tab
+            ? 'bg-ink text-bg border-ink shadow-sm'
+            : 'bg-white/45 text-ink/55 border-ink/10 hover:text-ink hover:border-accent/40 hover:bg-white/80'
+        }`;
 
     const handleLogin = async (e: React.FormEvent) => {
         // ... (login logic)
@@ -2123,52 +2217,82 @@ const AdminApp: React.FC = () => {
         }
     };
 
-    if (loading) return <div className="p-8 text-center">Loading auth...</div>;
+    if (loading) return (
+        <div className="admin-modern min-h-screen flex items-center justify-center bg-bg text-ink">
+            <div className="rounded-full border-2 border-ink bg-white px-5 py-3 font-mono text-xs uppercase tracking-widest shadow-paper">
+                Loading auth...
+            </div>
+        </div>
+    );
 
     if (!user) {
         return (
-            <div className="flex flex-col items-center justify-center h-full bg-paper p-8">
-                <div className="bg-white p-8 border-2 border-ink shadow-paper max-w-sm w-full">
-                    <div className="flex justify-center mb-6">
-                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center border-2 border-ink">
-                            <Lock className="w-8 h-8 text-red-500" />
+            <div className="admin-modern min-h-screen flex flex-col items-center justify-center bg-bg p-6 text-ink relative overflow-hidden">
+                <div className="absolute inset-0 dot-pattern pointer-events-none" />
+                <motion.div
+                    initial={{ opacity: 0, y: 28, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.8, ease: [0.76, 0, 0.24, 1] }}
+                    className="relative w-full max-w-5xl grid lg:grid-cols-[1.1fr_0.9fr] gap-10 items-center"
+                >
+                    <div className="hidden lg:block">
+                        <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-ink/45 mb-6">Private Editorial Desk</p>
+                        <h1 className="font-display text-7xl xl:text-8xl leading-[0.9] font-medium max-w-2xl">
+                            Admin
+                            <span className="block text-accent italic">workspace.</span>
+                        </h1>
+                        <div className="mt-10 h-2 w-40 rounded-full bg-ink/10 overflow-hidden">
+                            <div className="h-full w-20 rounded-full bg-accent" />
+                        </div>
+                        <p className="mt-8 max-w-md text-sm leading-7 text-ink/55">
+                            A quiet control surface for shaping the portfolio, notebook, homepage image, and public-facing profile details.
+                        </p>
+                    </div>
+                    <div className="relative bg-white/70 backdrop-blur-xl p-8 md:p-10 border border-ink/10 shadow-paper max-w-md w-full rounded-[34px] justify-self-center">
+                        <div className="flex justify-between items-start mb-10">
+                            <div>
+                                <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-ink/45 mb-3">Restricted Access</p>
+                                <h2 className="text-4xl md:text-5xl font-display font-medium leading-none">Sign in</h2>
+                            </div>
+                            <div className="w-14 h-14 bg-bg rounded-full flex items-center justify-center border border-ink/10">
+                                <Lock className="w-6 h-6 text-accent" />
+                            </div>
+                        </div>
+                        <form onSubmit={handleLogin} className="space-y-5">
+                            <div>
+                                <label className="block text-[10px] font-bold uppercase tracking-widest mb-2 text-ink/50">Email</label>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={e => setEmail(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-bold uppercase tracking-widest mb-2 text-ink/50">Password</label>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                />
+                            </div>
+                            {error && <p className="text-accent text-xs font-bold leading-5">{error}</p>}
+                            <button className="w-full bg-ink text-bg py-4 font-bold rounded-full hover:-translate-y-0.5 hover:shadow-paper-hover transition-all">
+                                Authenticate
+                            </button>
+                        </form>
+                        <div className="mt-6 text-[10px] text-ink/40 font-mono uppercase tracking-widest">
+                            Authorized personnel only.
                         </div>
                     </div>
-                    <h2 className="text-2xl font-bold text-center mb-6 font-hand">System Access</h2>
-                    <form onSubmit={handleLogin} className="space-y-4">
-                        <div>
-                            <label className="block text-xs font-bold uppercase mb-1">Email</label>
-                            <input
-                                className="w-full border-2 border-ink/20 p-2 rounded focus:border-ink outline-none"
-                                type="email"
-                                value={email}
-                                onChange={e => setEmail(e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold uppercase mb-1">Password</label>
-                            <input
-                                className="w-full border-2 border-ink/20 p-2 rounded focus:border-ink outline-none"
-                                type="password"
-                                value={password}
-                                onChange={e => setPassword(e.target.value)}
-                            />
-                        </div>
-                        {error && <p className="text-red-500 text-xs font-bold">{error}</p>}
-                        <button className="w-full bg-ink text-white py-2 font-bold rounded hover:shadow-lg transition-shadow">
-                            Authenticate
-                        </button>
-                    </form>
-                    <div className="mt-4 text-[10px] text-gray-400 text-center">
-                        Restricted Area. Authorized Personnel Only.
-                    </div>
-                </div>
+                </motion.div>
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col h-full bg-paper relative">
+        <div className="admin-modern min-h-screen bg-bg text-ink relative overflow-hidden">
+            <div className="fixed inset-0 dot-pattern pointer-events-none" />
+            <div className="fixed left-1/2 top-10 h-[520px] w-[520px] -translate-x-1/2 rounded-full border border-ink/5 pointer-events-none" />
             {/* Project Editor Modal - Remains as overlay for creation/editing projects */}
             {isEditing && (
                 <ProjectEditor
@@ -2178,171 +2302,202 @@ const AdminApp: React.FC = () => {
                 />
             )}
 
-            <div className="bg-ink text-white p-4 flex flex-col md:flex-row justify-between items-center z-10 shadow-md gap-4">
-                <div className="flex items-center justify-between w-full md:w-auto gap-4">
-                    <h1 className="text-xl font-bold font-hand flex items-center gap-2">
-                        <Database className="text-tape" /> Admin Console
-                    </h1>
-                    <div className="flex gap-2 ml-4">
-                        <button
-                            onClick={() => setActiveTab('projects')}
-                            className={`px-3 py-1 rounded font-bold text-xs ${activeTab === 'projects' ? 'bg-white text-ink' : 'text-gray-400 hover:text-white'}`}
-                        >
-                            Projects
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('skills')}
-                            className={`px-3 py-1 rounded font-bold text-xs flex items-center gap-1 ${activeTab === 'skills' ? 'bg-white text-ink' : 'text-gray-400 hover:text-white'}`}
-                        >
-                            <Star size={12} /> Skills
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('settings')}
-                            className={`px-3 py-1 rounded font-bold text-xs flex items-center gap-1 ${activeTab === 'settings' ? 'bg-white text-ink' : 'text-gray-400 hover:text-white'}`}
-                        >
-                            <Wrench size={12} /> Settings
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('dev_diary')}
-                            className={`px-3 py-1 rounded font-bold text-xs flex items-center gap-1 ${activeTab === 'dev_diary' ? 'bg-white text-ink' : 'text-gray-400 hover:text-white'}`}
-                        >
-                            <BookOpen size={12} /> Dev Diary
-                        </button>
+            <div className="relative z-10 px-5 md:px-10 pt-8 md:pt-12 pb-16">
+                <div className="max-w-[1500px] mx-auto">
+                    <motion.header
+                        initial={{ opacity: 0, y: 32 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.9, ease: [0.76, 0, 0.24, 1] }}
+                        className="grid xl:grid-cols-[minmax(0,1fr)_420px] gap-12 md:gap-16 items-end mb-16"
+                    >
+                        <div>
+                            <p className="font-mono text-[10px] uppercase tracking-[0.38em] text-ink/45 mb-6">Content Control Room</p>
+                            <h1 className="font-display text-[18vw] sm:text-8xl lg:text-9xl leading-[0.82] font-medium tracking-normal">
+                                Admin
+                                <span className="block italic text-accent">Studio.</span>
+                            </h1>
+                        </div>
+                        <div className="space-y-8">
+                            <p className="text-base md:text-lg leading-8 text-ink/60">
+                                A quiet editing surface for the portfolio, homepage atmosphere, notebook entries, and public profile details.
+                            </p>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink/45">{user.email}</span>
+                                <button onClick={() => signOut(auth)} className="bg-white/60 backdrop-blur border border-ink/10 hover:border-accent/50 px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all hover:-translate-y-0.5">
+                                    <LogOut size={12} /> Logout
+                                </button>
+                            </div>
+                        </div>
+                    </motion.header>
+
+                    <div className="grid xl:grid-cols-[280px_minmax(0,1fr)] gap-10 md:gap-14 items-start">
+                        <aside className="xl:sticky xl:top-10 space-y-8">
+                            <nav className="space-y-3">
+                                {ADMIN_TABS.map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`group w-full text-left rounded-[28px] border p-5 transition-all ${activeTab === tab.id
+                                            ? 'bg-ink text-bg border-ink shadow-paper'
+                                            : 'bg-white/45 backdrop-blur border-ink/10 hover:bg-white/80 hover:border-accent/40'
+                                            }`}
+                                    >
+                                        <div className="flex items-center justify-between gap-4">
+                                            <span className={`font-mono text-[10px] uppercase tracking-[0.28em] ${activeTab === tab.id ? 'text-bg/60' : 'text-ink/40'}`}>{tab.eyebrow}</span>
+                                            <span className={`w-8 h-8 rounded-full border flex items-center justify-center ${activeTab === tab.id ? 'border-bg/20 text-bg' : 'border-ink/10 text-accent group-hover:border-accent/40'}`}>
+                                                {tab.icon}
+                                            </span>
+                                        </div>
+                                        <div className="mt-5 text-2xl font-display font-medium">{tab.label}</div>
+                                    </button>
+                                ))}
+                            </nav>
+                            <div className="rounded-[32px] border border-ink/10 bg-white/45 backdrop-blur p-6">
+                                <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink/40 mb-5">Library Pulse</p>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <div className="text-4xl font-display font-medium">{projects.length}</div>
+                                        <div className="text-[10px] uppercase tracking-widest text-ink/40 mt-1">Projects</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-4xl font-display font-medium text-accent">{featuredCount}</div>
+                                        <div className="text-[10px] uppercase tracking-widest text-ink/40 mt-1">Featured</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </aside>
+
+                        <main className="min-w-0">
+                            <motion.section
+                                key={`${activeTab}-intro`}
+                                initial={{ opacity: 0, y: 24 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.65, ease: [0.76, 0, 0.24, 1] }}
+                                className="mb-12"
+                            >
+                                <div className="flex flex-wrap gap-2 mb-8">
+                                    {ADMIN_TABS.map(tab => (
+                                        <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={tabButtonClass(tab.id)}>
+                                            {tab.icon} {tab.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-ink/45 mb-4">{activeTabMeta.eyebrow}</p>
+                                <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-8 items-end">
+                                    <h2 className="font-display text-5xl md:text-7xl leading-[0.92] font-medium max-w-4xl">{activeTabMeta.title}</h2>
+                                    <p className="text-sm leading-7 text-ink/55">{activeTabMeta.description}</p>
+                                </div>
+                                <div className="mt-10 h-px bg-ink/10">
+                                    <div className="h-px w-40 bg-accent" />
+                                </div>
+                            </motion.section>
+
+                            <AnimatePresence mode="wait">
+                                {activeTab === 'projects' && (
+                                    <motion.div
+                                        key="projects"
+                                        initial={{ opacity: 0, y: 28 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -12 }}
+                                        transition={{ duration: 0.55, ease: [0.76, 0, 0.24, 1] }}
+                                        className="space-y-12"
+                                    >
+                                        <section className="grid md:grid-cols-[1fr_1fr] gap-4">
+                                            <button
+                                                onClick={() => { setCurrentProject(null); setIsEditing(true); }}
+                                                className="group min-h-44 rounded-[34px] bg-ink text-bg p-8 text-left transition-all hover:-translate-y-1 hover:shadow-paper-hover"
+                                            >
+                                                <Plus size={22} className="mb-8 text-accent group-hover:rotate-90 transition-transform" />
+                                                <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-bg/50 mb-3">Primary Action</div>
+                                                <div className="text-3xl font-display font-medium">Create New Project</div>
+                                            </button>
+                                            <div className="rounded-[34px] border border-ink/10 bg-white/45 backdrop-blur p-8">
+                                                <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-ink/40 mb-5">System Tools</div>
+                                                <div className="flex flex-wrap gap-3">
+                                                    <button onClick={handleSeed} className="px-4 py-2 bg-white/70 border border-ink/10 rounded-full text-xs font-bold hover:border-accent/50 transition-colors">
+                                                        Re-seed Projects
+                                                    </button>
+                                                    <button onClick={handleSeedSkills} className="px-4 py-2 bg-white/70 border border-ink/10 rounded-full text-xs font-bold hover:border-accent/50 transition-colors">
+                                                        Seed Skills
+                                                    </button>
+                                                </div>
+                                                {msg && <p className="mt-5 text-xs leading-6 text-ink/55">{msg}</p>}
+                                            </div>
+                                        </section>
+
+                                        <section>
+                                            <div className="flex items-center justify-between gap-6 mb-6">
+                                                <div>
+                                                    <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-ink/40 mb-2">Existing Projects</p>
+                                                    <h3 className="text-3xl font-display font-medium">{projects.length} entries</h3>
+                                                </div>
+                                                <div className="hidden md:block h-px flex-1 bg-ink/10 max-w-xs" />
+                                            </div>
+                                            <div className="grid md:grid-cols-2 2xl:grid-cols-3 gap-5">
+                                                {projects.map((p, index) => (
+                                                    <motion.article
+                                                        key={p.id}
+                                                        initial={{ opacity: 0, y: 24 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ duration: 0.45, delay: Math.min(index * 0.03, 0.3), ease: [0.76, 0, 0.24, 1] }}
+                                                        className="group rounded-[32px] border border-ink/10 bg-white/55 backdrop-blur p-6 hover:bg-white/85 hover:border-accent/40 transition-all"
+                                                    >
+                                                        <div className="flex items-start justify-between gap-4 mb-10">
+                                                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border border-ink/10 ${p.color}`}>
+                                                                {p.category}
+                                                            </span>
+                                                            <span className="font-mono text-[10px] uppercase tracking-widest text-ink/35">{p.year}</span>
+                                                        </div>
+                                                        <h4 className="text-3xl font-display font-medium leading-none mb-4">{p.title}</h4>
+                                                        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink/35 break-all">{p.id}</p>
+                                                        <div className="mt-8 flex items-center justify-between border-t border-ink/10 pt-4">
+                                                            <button
+                                                                onClick={() => { setCurrentProject(p); setIsEditing(true); }}
+                                                                className="text-xs font-bold rounded-full px-4 py-2 bg-ink text-bg hover:-translate-y-0.5 transition-all flex items-center gap-2"
+                                                            >
+                                                                <Edit2 size={14} /> Edit
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDelete(p.id)}
+                                                                className="text-xs font-bold rounded-full px-4 py-2 border border-ink/10 text-accent hover:border-accent/50 transition-colors flex items-center gap-2"
+                                                            >
+                                                                <Trash2 size={14} /> Delete
+                                                            </button>
+                                                        </div>
+                                                    </motion.article>
+                                                ))}
+                                                {projects.length === 0 && (
+                                                    <div className="md:col-span-2 2xl:col-span-3 rounded-[32px] border border-dashed border-ink/15 bg-white/35 p-12 text-center text-ink/45">
+                                                        No projects found. Create one or use the seed tools.
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </section>
+                                    </motion.div>
+                                )}
+
+                                {activeTab === 'skills' && (
+                                    <motion.div key="skills" initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.55, ease: [0.76, 0, 0.24, 1] }}>
+                                        <SkillsEditor onClose={() => setActiveTab('projects')} />
+                                    </motion.div>
+                                )}
+
+                                {activeTab === 'settings' && (
+                                    <motion.div key="settings" initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.55, ease: [0.76, 0, 0.24, 1] }} className="max-w-5xl">
+                                        <SettingsEditor />
+                                    </motion.div>
+                                )}
+
+                                {activeTab === 'dev_diary' && (
+                                    <motion.div key="dev_diary" initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.55, ease: [0.76, 0, 0.24, 1] }}>
+                                        <DevDiaryEditor />
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </main>
                     </div>
-                </div>
-                <div className="flex items-center gap-4">
-                    <span className="text-xs text-gray-400 font-mono hidden sm:inline-block">Logged in as {user.email}</span>
-                    <button onClick={() => signOut(auth)} className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-xs font-bold flex items-center gap-1">
-                        <LogOut size={12} /> <span className="hidden sm:inline">Logout</span>
-                    </button>
                 </div>
             </div>
-
-            <div className="p-6 overflow-y-auto flex-1">
-
-                {/* PROJECTS TAB */}
-                {activeTab === 'projects' && (
-                    <div className="animate-fade-in">
-                        <h3 className="font-bold border-b border-ink/10 pb-2 mb-4 flex items-center gap-2">
-                            <Plus size={16} /> Quick Actions
-                        </h3>
-                        <div className="flex gap-4 mb-8">
-                            <button
-                                onClick={() => { setCurrentProject(null); setIsEditing(true); }}
-                                className="flex-1 py-4 bg-ink text-white rounded font-bold hover:opacity-90 text-sm flex items-center justify-center gap-2"
-                            >
-                                <Plus size={16} /> Create New Project
-                            </button>
-                            <button onClick={() => setActiveTab('skills')} className="flex-1 py-4 bg-white border border-ink text-ink rounded font-bold hover:bg-gray-50 text-sm">
-                                Edit Skills
-                            </button>
-                        </div>
-
-                        {/* Migration Tools (Collapsed by default or small) */}
-                        <div className="mb-8 p-4 border border-ink/10 rounded-lg bg-gray-50">
-                            <h4 className="font-bold text-xs uppercase text-gray-400 mb-2">System Tools</h4>
-                            <div className="flex gap-2">
-                                <button onClick={handleSeed} className="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-bold hover:bg-gray-50">
-                                    Re-seed Projects
-                                </button>
-                                <button onClick={handleSeedSkills} className="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-bold hover:bg-gray-50">
-                                    Seed Skills (Static)
-                                </button>
-                                <span className="text-xs text-ink ml-2 self-center">{msg}</span>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 className="font-bold mb-4 flex items-center gap-2">
-                                Existing Projects <span className="text-xs font-normal text-gray-500">({projects.length})</span>
-                            </h3>
-
-                            <div className="bg-white border-2 border-ink rounded-lg overflow-hidden shadow-sm">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-gray-50 border-b-2 border-ink/10 text-xs uppercase font-bold text-gray-500">
-                                        <tr>
-                                            <th className="p-4">ID</th>
-                                            <th className="p-4">Title</th>
-                                            <th className="p-4">Category</th>
-                                            <th className="p-4">Year</th>
-                                            <th className="p-4 text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-ink/5">
-                                        {projects.map(p => (
-                                            <tr key={p.id} className="hover:bg-blue-50/50 transition-colors group">
-                                                <td className="p-4 font-mono text-xs">{p.id}</td>
-                                                <td className="p-4 font-bold">{p.title}</td>
-                                                <td className="p-4">
-                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border border-ink/10 ${p.color}`}>
-                                                        {p.category}
-                                                    </span>
-                                                </td>
-                                                <td className="p-4 text-gray-500">{p.year}</td>
-                                                <td className="p-4 text-right flex justify-end gap-2">
-                                                    <button
-                                                        onClick={() => { setCurrentProject(p); setIsEditing(true); }}
-                                                        className="p-2 hover:bg-white hover:shadow-sm border border-transparent hover:border-ink/20 rounded text-blue-600"
-                                                        title="Edit"
-                                                    >
-                                                        <Edit2 size={16} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(p.id)}
-                                                        className="p-2 hover:bg-white hover:shadow-sm border border-transparent hover:border-ink/20 rounded text-red-500"
-                                                        title="Delete"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {projects.length === 0 && (
-                                            <tr>
-                                                <td colSpan={5} className="p-8 text-center text-gray-400">
-                                                    No projects found. Use Migration or Create New.
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* SKILLS TAB */}
-                {activeTab === 'skills' && (
-                    <div className="animate-fade-in">
-                        <SkillsEditor onClose={() => setActiveTab('projects')} />
-                    </div>
-                )}
-
-                {/* SETTINGS TAB */}
-                {activeTab === 'settings' && (
-                    <div className="max-w-4xl mx-auto animate-fade-in">
-                        <div className="flex items-center justify-between mb-8 border-b-2 border-ink pb-4">
-                            <h2 className="text-3xl font-hand font-bold flex items-center gap-2">
-                                <Wrench size={32} /> General Settings
-                            </h2>
-                        </div>
-                        <SettingsEditor />
-                    </div>
-                )}
-
-                {/* DEV DIARY TAB */}
-                {activeTab === 'dev_diary' && (
-                    <div className="max-w-7xl mx-auto animate-fade-in">
-                        <div className="flex items-center justify-between mb-8 border-b-2 border-ink pb-4">
-                            <h2 className="text-3xl font-hand font-bold flex items-center gap-2">
-                                <BookOpen size={32} /> Dev Diary / Notebook
-                            </h2>
-                        </div>
-                        <DevDiaryEditor />
-                    </div>
-                )}
-
-            </div >
         </div >
     );
 };

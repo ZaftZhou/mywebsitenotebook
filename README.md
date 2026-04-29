@@ -6,6 +6,10 @@
 
 This contains everything you need to run your app locally.
 
+## Design System
+
+All future page generation and interface changes should follow [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md).
+
 View your app in AI Studio: https://ai.studio/apps/drive/1GmkA8nbHuK2ID4zWZqn64OzgQyJI5fLS
 
 ## Run Locally

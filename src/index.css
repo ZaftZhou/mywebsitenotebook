@@ -1,5 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+
+html {
+  scroll-behavior: smooth;
+}
 
 @theme {
     --color-paper: #F9F7F1;
@@ -12,8 +17,15 @@
     --color-cat-3d: #A78BFA;
 
     --font-hand: "Patrick Hand", cursive;
-    --font-sans: "Inter", sans-serif;
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
     --font-mono: "JetBrains Mono", monospace;
+    --font-display: "Outfit", sans-serif;
+
+    --color-bg: #FAF9F6;
+    --color-sage: #B5C18E;
+    --color-accent: #D06950;
+    --color-coral: #E5989B;
+    --color-amber: #FEF3E2;
 
     --shadow-paper: 4px 4px 0px rgba(24, 24, 27, 0.1);
     --shadow-paper-hover: 6px 6px 0px rgba(24, 24, 27, 0.15);
@@ -26,7 +38,6 @@
 body {
     background-color: #F9F7F1;
     color: #18181b;
-    overflow: hidden;
     font-family: 'Inter', sans-serif;
 }
 
@@ -80,4 +91,118 @@ body {
 
 .transform-style-3d {
     transform-style: preserve-3d;
+}
+
+@layer utilities {
+  .animate-gradient {
+    animation: gradient-x 6s linear infinite;
+  }
+  @keyframes gradient-x {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  .font-display { @apply font-display; }
+  .dot-pattern {
+    background-image: radial-gradient(var(--color-ink) 1px, transparent 1px);
+    background-size: 32px 32px;
+    opacity: 0.04;
+  }
+  .text-huge {
+    font-size: clamp(3rem, 12vw, 10rem);
+    line-height: 0.85;
+    letter-spacing: -0.02em;
+  }
+  .text-outline {
+    -webkit-text-stroke: 1px var(--color-ink);
+    color: transparent;
+  }
+  .text-outline-active {
+    -webkit-text-stroke: 1px transparent;
+    color: var(--color-ink);
+  }
+  .mask-fade {
+    mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+  }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+@layer components {
+  .admin-modern input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .admin-modern textarea,
+  .admin-modern select {
+    @apply bg-bg/70 border-2 border-ink/15 rounded-2xl px-4 py-3 outline-none transition-colors;
+  }
+
+  .admin-modern input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+  .admin-modern textarea:focus,
+  .admin-modern select:focus {
+    @apply border-ink bg-white;
+  }
+
+  .admin-modern label {
+    @apply text-ink/55 tracking-widest;
+  }
+
+  .admin-modern textarea {
+    @apply min-h-28;
+  }
+
+  .admin-modern > * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(24, 24, 27, 0.25) transparent;
+  }
+
+  .admin-modern ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .admin-modern ::-webkit-scrollbar-thumb {
+    background: rgba(24, 24, 27, 0.22);
+    border-radius: 999px;
+  }
+
+  .admin-modern table {
+    @apply rounded-[28px] overflow-hidden;
+  }
+
+  .admin-modern th {
+    @apply font-mono text-[10px] uppercase tracking-widest text-ink/40;
+  }
+
+  .admin-modern td {
+    @apply text-ink/70;
+  }
+
+  .admin-modern button {
+    @apply transition-all;
+  }
+}
+
+.admin-modern .bg-white {
+  background-color: rgba(255, 255, 255, 0.58);
+  backdrop-filter: blur(18px);
+}
+
+.admin-modern .bg-gray-50,
+.admin-modern .bg-gray-100 {
+  background-color: rgba(250, 249, 246, 0.72);
+}
+
+.admin-modern .border-ink\/20,
+.admin-modern .border-ink\/10,
+.admin-modern .border-gray-200,
+.admin-modern .border-gray-300 {
+  border-color: rgba(28, 28, 28, 0.1);
+}
+
+.admin-modern .rounded,
+.admin-modern .rounded-lg {
+  border-radius: 1.5rem;
+}
+
+.admin-modern .shadow-sm,
+.admin-modern .shadow-md {
+  box-shadow: none;
 }

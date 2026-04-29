@@ -82,6 +82,7 @@ export interface SiteSettings {
     greeting: string;
     tagline: string;
     avatarUrl?: string; // New field for custom welcome image
+    homePhotoUrl?: string; // Homepage hero background photo
   };
   widgets: {
     toolboxTitle: string;
