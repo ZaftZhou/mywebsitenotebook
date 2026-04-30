@@ -7,7 +7,7 @@ import {
   Download,
   Music2,
   ChevronRight,
-  ArrowRight
+  ArrowRight,
 } from "lucide-react";
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
@@ -110,13 +110,14 @@ const lifeItems = [
   }
 ];
 
-const resumeSkills = [
-  { category: "AI Workflow", items: "GitHub Copilot · Claude (Code) · Cursor · CodeX" },
-  { category: "Game Engines", items: "Unity (primary) · Unreal (basic)" },
-  { category: "Web / Mobile", items: "React Native (Expo) · Three.js · Node.js · TypeScript · Firebase · Python · C#" },
-  { category: "Workflow", items: "GitHub · Jira · Cloud deployment · CI/CD (GitHub Actions)" },
-  { category: "Graphics", items: "Blender · Maya · ZBrush · Substance Painter · 3ds Max · Marmoset Toolbag" },
-  { category: "Creative", items: "Lightroom · Photoshop · Premiere Pro · After Effects" }
+
+const defaultResumeSkillGroups = [
+  { category: "AI Workflow", items: ["GitHub Copilot", "Claude (Code)", "Cursor", "CodeX"] },
+  { category: "Game Engines", items: ["Unity (primary)", "Unreal (basic)"] },
+  { category: "Web / Mobile", items: ["React Native (Expo)", "Three.js", "Node.js", "TypeScript", "Firebase", "Python", "C#"] },
+  { category: "Workflow", items: ["GitHub", "Jira", "Cloud deployment", "CI/CD (GitHub Actions)"] },
+  { category: "Graphics", items: ["Blender", "Maya", "ZBrush", "Substance Painter", "3ds Max", "Marmoset Toolbag"] },
+  { category: "Creative", items: ["Lightroom", "Photoshop", "Premiere Pro", "After Effects"] }
 ];
 
 const experiences = [
@@ -786,6 +787,154 @@ const LifeItemCard = ({ item, index }: { item: any, index: number }) => {
   );
 };
 
+const LifeCollageSection = ({ items, portrait, centerImage }: { items: any[]; portrait?: string | null; centerImage?: string | null }) => {
+  const interestItems = items.filter((item) => item?.title || item?.image).slice(0, 6);
+  const fallbackPortrait = interestItems.find((item) => item?.image)?.image;
+  const portraitImage = centerImage || portrait || fallbackPortrait;
+  const collageItems = [
+    { title: "Basketball", image: "/images/life/collage/basketball.png" },
+    { title: "Cooking", image: "/images/life/collage/cooking.png" },
+    { title: "Photography", image: "/images/life/collage/photography.png" },
+    { title: "Design & Development", image: "/images/life/collage/gaming.png" }
+  ];
+  const cardSlots = [
+    { className: "lg:left-[8%] lg:top-[12%] lg:w-[28%]", connector: "M30 33 C36 37 42 43 47 51" },
+    { className: "lg:right-[7%] lg:top-[11%] lg:w-[28%]", connector: "M70 33 C64 37 58 43 53 51" },
+    { className: "lg:left-[7%] lg:top-[48%] lg:w-[28%]", connector: "M29 63 C37 62 43 59 48 55" },
+    { className: "lg:right-[7%] lg:top-[48%] lg:w-[28%]", connector: "M71 63 C63 62 57 59 52 55" }
+  ];
+  const doodles = [
+    { src: "/images/life/doodles/list.png", className: "right-[15.5%] bottom-[6.2%] w-[16rem] rotate-0 opacity-92" }
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 40 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: false, margin: "-100px" }}
+      transition={{ duration: 0.9, ease: [0.76, 0, 0.24, 1] }}
+      className="relative min-h-[980px] overflow-hidden px-5 py-12 md:p-14"
+    >
+      <div className="absolute inset-0 bg-[#F4EEE4]" />
+      <div className="absolute inset-0 opacity-[0.07] bg-[radial-gradient(circle_at_1px_1px,rgba(28,28,28,0.2)_1px,transparent_0)] bg-[length:18px_18px]" />
+      <div className="absolute left-[9%] top-[10%] hidden h-64 w-64 rounded-full border border-accent/15 lg:block" />
+      <div className="absolute right-[8%] bottom-[9%] hidden h-80 w-80 rounded-full border border-ink/10 lg:block" />
+      <motion.img
+        src="/images/life/portrait-paper-brush.png"
+        alt=""
+        aria-hidden="true"
+        initial={{ opacity: 0, scale: 0.98, rotate: -7 }}
+        whileInView={{ opacity: 0.68, scale: 1, rotate: -7 }}
+        viewport={{ once: false, margin: "-120px" }}
+        transition={{ duration: 0.9, delay: 0.04, ease: [0.76, 0, 0.24, 1] }}
+        className="pointer-events-none absolute left-1/2 top-1/2 z-[2] hidden w-[43%] max-w-none -translate-x-1/2 -translate-y-1/2 mix-blend-multiply lg:block"
+      />
+      <div className="pointer-events-none absolute inset-0 z-[26] hidden lg:block">
+        {doodles.map((doodle, index) => (
+          <motion.img
+            key={doodle.src}
+            src={doodle.src}
+            alt=""
+            aria-hidden="true"
+            initial={{ opacity: 0, y: 14, rotate: index % 2 === 0 ? -4 : 4 }}
+            whileInView={{ opacity: 1, y: 0, rotate: 0 }}
+            viewport={{ once: false, margin: "-120px" }}
+            transition={{ duration: 0.7, delay: 1.05 + index * 0.06, ease: [0.76, 0, 0.24, 1] }}
+            className={`absolute mix-blend-multiply ${doodle.className}`}
+          />
+        ))}
+      </div>
+
+      <svg className="pointer-events-none absolute inset-0 z-[14] hidden h-full w-full lg:block" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <defs>
+          <filter id="life-rough-line">
+            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="8" />
+            <feDisplacementMap in="SourceGraphic" scale="0.22" />
+          </filter>
+        </defs>
+        {cardSlots.map((slot, index) => (
+          <g key={`life-line-${index}`} filter="url(#life-rough-line)">
+            <motion.path
+              d={slot.connector}
+              fill="none"
+              stroke="rgba(174,119,72,0.34)"
+              strokeWidth="0.075"
+              strokeLinecap="round"
+              initial={{ pathLength: 0, opacity: 0 }}
+              whileInView={{ pathLength: 1, opacity: 1 }}
+              viewport={{ once: false, margin: "-120px" }}
+              transition={{ duration: 1.05, delay: 0.7 + index * 0.1, ease: [0.76, 0, 0.24, 1] }}
+            />
+          </g>
+        ))}
+      </svg>
+
+      <motion.img
+        src="/images/life/love-life-growing.png"
+        alt=""
+        aria-hidden="true"
+        initial={{ opacity: 0, y: 22, rotate: -2 }}
+        whileInView={{ opacity: 0.82, y: 0, rotate: -2 }}
+        viewport={{ once: false, margin: "-100px" }}
+        transition={{ duration: 0.8, delay: 1.35, ease: [0.76, 0, 0.24, 1] }}
+        className="pointer-events-none absolute bottom-[5%] left-[6%] z-[26] hidden w-[28%] mix-blend-multiply lg:block"
+      />
+
+      <div className="relative z-20 flex min-h-[820px] flex-col items-center justify-center gap-7 lg:block">
+        <motion.div
+          initial={{ opacity: 0, y: 34, scale: 0.96 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: false, margin: "-120px" }}
+          transition={{ duration: 0.85, delay: 0.12, ease: [0.76, 0, 0.24, 1] }}
+          className="relative z-30 lg:absolute lg:left-1/2 lg:top-1/2 lg:w-[36%] lg:-translate-x-1/2 lg:-translate-y-1/2"
+        >
+          <div className="absolute inset-x-8 bottom-2 h-8 rounded-full bg-ink/15 blur-xl" />
+          <div className="relative w-72 md:w-96 lg:w-full">
+            {portraitImage ? (
+              <img
+                src={portraitImage}
+                alt="Personal portrait"
+                className="relative z-10 w-full h-auto max-h-[900px] object-contain drop-shadow-[0_24px_32px_rgba(28,28,28,0.16)]"
+              />
+            ) : (
+              <div className="relative z-10 w-full aspect-[3/5] rounded-full border border-dashed border-ink/15 flex items-center justify-center text-ink/35 font-display text-4xl">
+                Life
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {collageItems.map((item, index) => (
+          <motion.article
+            key={`${item.title || "life"}-${index}`}
+            initial={{ opacity: 0, y: 28, scale: 0.96 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={{ once: false, margin: "-100px" }}
+            transition={{ duration: 0.75, delay: 0.48 + index * 0.12, ease: [0.76, 0, 0.24, 1] }}
+            whileHover={{ y: -6, rotate: index % 2 === 0 ? -1.5 : 1.5 }}
+            className={`relative z-[18] w-full max-w-xs lg:absolute ${cardSlots[index]?.className || ""}`}
+          >
+            {item.image && (
+              <div className="relative inline-block">
+                <img src={item.image} alt={item.title || "Life interest"} className="relative z-10 block w-full h-auto object-contain drop-shadow-[0_16px_22px_rgba(28,28,28,0.08)]" />
+              </div>
+            )}
+          </motion.article>
+        ))}
+
+        <div className="hidden">
+          {["Stay Curious", "Be Present", "Keep Creating", "Enjoy the Process"].map((line, index) => (
+            <div key={line} className="flex items-center gap-3 py-1.5 border-b border-ink/10 last:border-b-0 text-sm font-hand text-ink/70">
+              <span className="text-accent">{index === 0 ? "✦" : index === 1 ? "◎" : index === 2 ? "✎" : "♡"}</span>
+              {line}
+            </div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 const AllProjectsOverlay = ({ projects, onClose, onSelectProject }: { projects: any[], onClose: () => void, onSelectProject: (p: any) => void }) => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [activeCategory, setActiveCategory] = useState<string>("All");
@@ -972,14 +1121,24 @@ export default function App() {
       span: lifeItems[index]?.span || ""
     }))
     : lifeItems;
-  const resumeSkills = rawSkills.length > 0 ? rawSkills.map(s => ({ category: s.name || s.category, items: s.items || s.skills?.join(' · ') || '' })) : [
-    { category: "AI Workflow", items: "GitHub Copilot · Claude (Code) · Cursor · CodeX" },
-    { category: "Game Engines", items: "Unity (primary) · Unreal (basic)" },
-    { category: "Web / Mobile", items: "React Native (Expo) · Three.js · Node.js · TypeScript · Firebase · Python · C#" },
-    { category: "Workflow", items: "GitHub · Jira · Cloud deployment · CI/CD (GitHub Actions)" },
-    { category: "Graphics", items: "Blender · Maya · ZBrush · Substance Painter · 3ds Max · Marmoset Toolbag" },
-    { category: "Creative", items: "Lightroom · Photoshop · Premiere Pro · After Effects" }
-  ];
+
+  const groupedResumeSkills = rawSkills
+    .map((skill: any) => {
+      const rawItems = Array.isArray(skill.items)
+        ? skill.items
+        : Array.isArray(skill.skills)
+          ? skill.skills
+          : typeof skill.items === "string"
+            ? skill.items.split(/\u00b7|\u00c2\u00b7|\|/)
+            : [];
+
+      return {
+        category: skill.category || skill.name,
+        items: rawItems.map((item: string) => item.trim()).filter(Boolean)
+      };
+    })
+    .filter(group => group.category && group.items.length > 0);
+  const displayResumeSkills = groupedResumeSkills.length > 0 ? groupedResumeSkills : defaultResumeSkillGroups;
 
   const loading = projectsLoading || postsLoading || skillsLoading || settingsLoading;
 
@@ -1330,20 +1489,18 @@ export default function App() {
           </div>
           <section 
             id="life"
-            className="pt-16 md:pt-40 px-6 md:px-20 lg:px-40 pb-40"
+            className="pt-16 md:pt-40 pb-40"
           >
-            <div className="w-full max-w-[1400px] mx-auto flex flex-col lg:flex-row gap-12 lg:gap-24 relative">
-              <div className="lg:w-1/4 shrink-0">
-                <div className="lg:sticky lg:top-40 z-20">
+            <div className="px-6 md:px-20 lg:px-40">
+              <div className="w-full max-w-[1400px] mx-auto flex flex-col lg:flex-row gap-12 lg:gap-24 relative">
+                <div className="lg:w-1/4 shrink-0">
                   <SectionHeading subtitle="Personal Interests" className="mb-0">Life & Hobbies</SectionHeading>
                 </div>
               </div>
-              <div className="lg:w-3/4 border-t border-ink/10 lg:border-t-0 mt-8 lg:mt-0 pt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-                  {configuredLifeItems.map((item, i) => (
-                    <LifeItemCard key={item.title} item={{ ...item, span: "" }} index={i} />
-                  ))}
-                </div>
+            </div>
+            <div className="mt-12 md:mt-16 w-full bg-[#F4EEE4]">
+              <div className="w-full">
+                <LifeCollageSection items={configuredLifeItems} portrait={photo} centerImage="/images/life/center-person.png" />
               </div>
             </div>
           </section>
@@ -1491,27 +1648,27 @@ export default function App() {
                 </div>
 
                 {/* TECHNICAL SKILLS & LANGUAGES */}
-                <div className="flex flex-col gap-6 md:gap-8 border-t border-ink/10 pt-16">
+                <div className="flex flex-col gap-12 md:gap-14 border-t border-ink/10 pt-16">
                   <div>
                     <h4 className="text-[10px] uppercase font-bold text-accent tracking-[0.4em]">
                       Skills
                     </h4>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-12">
-                    {resumeSkills.map((skill, i) => (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-20 lg:gap-x-28 gap-y-16">
+                    {displayResumeSkills.map((skill, i) => (
                       <motion.div 
                         key={i} 
                         viewport={{ once: true, margin: "-50px" }}
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, ease: "easeOut", delay: i * 0.1 }}
-                        className="space-y-4 pb-4"
+                        className="space-y-5 pb-2"
                       >
-                        <h5 className="text-[10px] font-bold uppercase tracking-widest text-ink/80">{skill.category}</h5>
-                        <div className="flex flex-wrap gap-2">
-                          {skill.items.split('·').map((item, idx) => (
-                            <span key={idx} className="px-3 py-1 bg-ink-[0.02] border border-ink/10 text-ink/70 text-xs rounded-md">
-                              {item.trim()}
+                        <h5 className="text-[11px] font-bold uppercase tracking-[0.18em] text-ink/75">{skill.category}</h5>
+                        <div className="flex flex-wrap gap-2.5">
+                          {skill.items.map((item: string, idx: number) => (
+                            <span key={idx} className="px-4 py-2 bg-white/35 border border-ink/10 text-ink/65 text-sm rounded-md leading-none">
+                              {item}
                             </span>
                           ))}
                         </div>
@@ -1522,21 +1679,21 @@ export default function App() {
                       initial={{ opacity: 0, y: 20 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, ease: "easeOut", delay: 0.5 }}
-                      className="space-y-4 pb-4"
+                      className="space-y-5 pb-4 md:col-span-1"
                     >
-                      <h5 className="text-[10px] font-bold uppercase tracking-widest text-ink/80">Languages</h5>
-                      <div className="flex flex-col gap-3 mt-2">
-                        <div className="flex justify-between items-center border-b border-ink/5 pb-2">
-                          <span className="text-sm text-ink/80">Mandarin Chinese</span>
-                          <span className="text-[10px] uppercase font-bold tracking-widest text-ink/40">Native</span>
+                      <h5 className="text-[11px] font-bold uppercase tracking-[0.18em] text-ink/75">Languages</h5>
+                      <div className="flex flex-col mt-4 max-w-xl">
+                        <div className="flex justify-between items-center border-b border-ink/8 py-3">
+                          <span className="text-base text-ink/75">Mandarin Chinese</span>
+                          <span className="text-[10px] uppercase font-bold tracking-[0.18em] text-ink/40">Native</span>
                         </div>
-                        <div className="flex justify-between items-center border-b border-ink/5 pb-2">
-                          <span className="text-sm text-ink/80">English</span>
-                          <span className="text-[10px] uppercase font-bold tracking-widest text-ink/40">Fluent</span>
+                        <div className="flex justify-between items-center border-b border-ink/8 py-3">
+                          <span className="text-base text-ink/75">English</span>
+                          <span className="text-[10px] uppercase font-bold tracking-[0.18em] text-ink/40">Fluent</span>
                         </div>
-                        <div className="flex justify-between items-center border-b border-ink/5 pb-2">
-                          <span className="text-sm text-ink/80">Japanese</span>
-                          <span className="text-[10px] uppercase font-bold tracking-widest text-ink/40">Basic</span>
+                        <div className="flex justify-between items-center border-b border-ink/8 py-3">
+                          <span className="text-base text-ink/75">Japanese</span>
+                          <span className="text-[10px] uppercase font-bold tracking-[0.18em] text-ink/40">Basic</span>
                         </div>
                       </div>
                     </motion.div>

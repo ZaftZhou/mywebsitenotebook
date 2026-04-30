@@ -8,7 +8,7 @@ import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebas
 import { Project, MediaItem, Skill, SiteSettings, BlogPost, PostType, ContentBlock, PostSection } from '../../types';
 import { Lock, LogOut, Upload, Database, Plus, Trash2, Edit2, Save, Image as ImageIcon, Film, X, Loader, ArrowUp, ArrowDown, Star, Globe, Copy, Wrench, Music, User, Pin, Download, BookOpen, GripVertical, FileText, Video, Code } from 'lucide-react';
 import { useProjects, useSkills, useSettings, usePosts } from '../../src/hooks/useContent';
-import { PROJECTS, SKILLS, DEFAULT_TEMPLATES } from '../../constants';
+import { SKILLS, DEFAULT_TEMPLATES } from '../../constants';
 // Add doc/addDoc/etc imports needed for SkillsEditor if not present
 // Actually I see doc/setDoc/deleteDoc/collection/ref/uploadBytes/getDownloadURL/listAll are imported.
 // I need addDoc, query, orderBy, onSnapshot which might be missing.
@@ -2340,37 +2340,6 @@ const AdminApp: React.FC = () => {
         }
     };
 
-    const handleSeed = async () => {
-        console.log("Starting migration...");
-        setMsg('Seeding... check console for details.');
-
-        try {
-            console.log("Projects to migrate:", PROJECTS);
-            const collectionRef = collection(db, 'projects');
-
-            for (const p of PROJECTS) {
-                console.log("Writing project:", p.id);
-                try {
-                    await Promise.race([
-                        setDoc(doc(db, 'projects', p.id), p),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout: Firestore write took too long. Check if Database is created in Console.")), 5000))
-                    ]);
-                    console.log("Success:", p.id);
-                } catch (innerErr: any) {
-                    console.error("Failed to write project:", p.id, innerErr);
-                    alert(`Failed to write ${p.id}: ${innerErr.message}`);
-                    throw innerErr;
-                }
-            }
-            setMsg('Success! Projects migrated. Refresh page.');
-            alert('Migration Successful!');
-        } catch (err: any) {
-            console.error("Migration Error:", err);
-            setMsg('Error: ' + err.message);
-            alert('Error: ' + err.message);
-        }
-    };
-
     const handleSaveProject = async (p: Project) => {
         try {
             // Clean undefined values - Firestore doesn't accept undefined
@@ -2590,9 +2559,6 @@ const AdminApp: React.FC = () => {
                                             <div className="rounded-[34px] border border-ink/10 bg-white/45 backdrop-blur p-8">
                                                 <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-ink/40 mb-5">System Tools</div>
                                                 <div className="flex flex-wrap gap-3">
-                                                    <button onClick={handleSeed} className="px-4 py-2 bg-white/70 border border-ink/10 rounded-full text-xs font-bold hover:border-accent/50 transition-colors">
-                                                        Re-seed Projects
-                                                    </button>
                                                     <button onClick={handleSeedSkills} className="px-4 py-2 bg-white/70 border border-ink/10 rounded-full text-xs font-bold hover:border-accent/50 transition-colors">
                                                         Seed Skills
                                                     </button>
@@ -2644,7 +2610,7 @@ const AdminApp: React.FC = () => {
                                                 ))}
                                                 {projects.length === 0 && (
                                                     <div className="md:col-span-2 2xl:col-span-3 rounded-[32px] border border-dashed border-ink/15 bg-white/35 p-12 text-center text-ink/45">
-                                                        No projects found. Create one or use the seed tools.
+                                                        No projects found. Create one from the primary action above.
                                                     </div>
                                                 )}
                                             </div>
