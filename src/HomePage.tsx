@@ -445,6 +445,14 @@ const ProjectDetail = ({ project, projects, onSelectProject }: any) => {
   const galleryItems = (project.gallery || [])
     .map((item: any) => typeof item === 'string' ? { type: 'image', url: item, caption: '' } : item)
     .filter((item: any) => item?.url);
+  const getMediaLink = (item: any) => item?.linkUrl || item?.href || item?.link || item?.targetUrl || "";
+  const normalizeMediaLink = (url: string) => {
+    const value = url.trim();
+    if (!value) return "";
+    if (/^(https?:\/\/|mailto:|tel:|\/|#)/i.test(value)) return value;
+    return `https://${value}`;
+  };
+  const isNewTabLink = (url: string) => /^(https?:\/\/|mailto:|tel:)/i.test(url);
 
   return (
     <motion.div 
@@ -528,16 +536,9 @@ const ProjectDetail = ({ project, projects, onSelectProject }: any) => {
             </div>
 
             <div className="rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border border-ink/10 bg-ink/[0.03] columns-1 md:columns-2 xl:columns-3 gap-0">
-              {galleryItems.map((item: any, idx: number) => (
-              <motion.div 
-                key={idx}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: false, margin: "-100px" }}
-                transition={{ duration: 0.8, delay: Math.min(idx * 0.04, 0.24), ease: [0.76, 0, 0.24, 1] }}
-                className="group relative break-inside-avoid overflow-hidden"
-              >
-                {item.type === 'video' ? (
+              {galleryItems.map((item: any, idx: number) => {
+                const mediaLink = normalizeMediaLink(getMediaLink(item));
+                const mediaBody = item.type === 'video' ? (
                   <video
                     src={item.url}
                     controls
@@ -551,20 +552,53 @@ const ProjectDetail = ({ project, projects, onSelectProject }: any) => {
                     alt={item.caption || `Gallery ${idx + 1}`}
                     className="w-full h-auto object-contain transition-transform duration-1000 ease-out group-hover:scale-[1.02]"
                   />
-                )}
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/55 via-ink/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="pointer-events-none absolute left-5 right-5 bottom-5 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-                  <div className="inline-flex rounded-full bg-bg/85 backdrop-blur px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-ink/50 border border-ink/10 mb-2">
-                    {item.type === 'video' ? 'Video' : 'Image'} {String(idx + 1).padStart(2, '0')}
-                  </div>
-                  {item.caption && (
-                    <p className="max-w-[90%] text-sm md:text-base font-display font-medium text-bg drop-shadow-sm">
-                      {item.caption}
-                    </p>
-                  )}
-                </div>
-              </motion.div>
-              ))}
+                );
+
+                return (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: false, margin: "-100px" }}
+                    transition={{ duration: 0.8, delay: Math.min(idx * 0.04, 0.24), ease: [0.76, 0, 0.24, 1] }}
+                    className={`group relative break-inside-avoid overflow-hidden ${mediaLink ? 'cursor-pointer' : ''}`}
+                  >
+                    {mediaLink && item.type !== 'video' ? (
+                      <a
+                        href={mediaLink}
+                        target={isNewTabLink(mediaLink) ? "_blank" : undefined}
+                        rel={isNewTabLink(mediaLink) ? "noopener noreferrer" : undefined}
+                        aria-label={`Open ${item.caption || `gallery item ${idx + 1}`}`}
+                        className="block"
+                      >
+                        {mediaBody}
+                      </a>
+                    ) : mediaBody}
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/55 via-ink/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="pointer-events-none absolute left-5 right-5 bottom-5 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
+                      <div className="inline-flex rounded-full bg-bg/85 backdrop-blur px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-ink/50 border border-ink/10 mb-2">
+                        {item.type === 'video' ? 'Video' : 'Image'} {String(idx + 1).padStart(2, '0')}
+                      </div>
+                      {item.caption && (
+                        <p className="max-w-[90%] text-sm md:text-base font-display font-medium text-bg drop-shadow-sm">
+                          {item.caption}
+                        </p>
+                      )}
+                    </div>
+                    {mediaLink && (
+                      <a
+                        href={mediaLink}
+                        target={isNewTabLink(mediaLink) ? "_blank" : undefined}
+                        rel={isNewTabLink(mediaLink) ? "noopener noreferrer" : undefined}
+                        onClick={(event) => event.stopPropagation()}
+                        className="absolute right-5 top-5 z-10 inline-flex items-center gap-1.5 rounded-full border border-bg/50 bg-ink/70 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-bg opacity-0 backdrop-blur transition-opacity duration-300 group-hover:opacity-100"
+                      >
+                        Open <ArrowUpRight size={12} />
+                      </a>
+                    )}
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
         )}
