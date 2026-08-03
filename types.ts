@@ -31,6 +31,11 @@ export interface Project {
   media: MediaItem[];
   coverImage?: string; // Dedicated cover image URL
   demoUrl?: string; // Optional URL for project demo
+  liveUrl?: string;
+  githubUrl?: string;
+  description?: string;
+  shortDescription?: string;
+  themeColor?: string;
 }
 
 export interface Skill {

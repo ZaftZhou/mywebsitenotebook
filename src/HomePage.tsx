@@ -475,11 +475,11 @@ const ProjectDetail = ({ project, projects, onSelectProject }: any) => {
           <div className="md:col-span-8 space-y-8">
             <h3 className="text-xl font-display font-medium text-ink">Project Overview</h3>
             <p className="text-xl font-light leading-relaxed text-ink/80">
-              This is a detailed view of the {project.title} project. It beautifully expands from the list using smoothly interpolated geometry, and now features a full-page reading experience.
+              {project.overview || project.desc}
             </p>
-            <p className="text-base font-light leading-relaxed text-ink/60">
-              Pellentesque sodales congue ex a vulputate. Morbi at ex ac est tempus eleifend. Vivamus vehicula libero eu turpis tristique euismod. Suspendisse eu ipsum libero.
-            </p>
+            {project.desc && project.desc !== project.overview && (
+              <p className="text-base font-light leading-relaxed text-ink/60">{project.desc}</p>
+            )}
           </div>
           <div className="md:col-span-4">
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-ink/40 mb-6 border-b border-ink/10 pb-4">Technologies Stack</h3>
@@ -488,6 +488,16 @@ const ProjectDetail = ({ project, projects, onSelectProject }: any) => {
                 <span key={tag} className="border border-ink/10 px-3 py-1.5 rounded-full text-[10px] uppercase tracking-widest font-bold text-ink/60">{tag}</span>
               ))}
             </div>
+            {project.link && (
+              <a
+                href={normalizeMediaLink(project.link)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-8 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-bg transition-colors hover:bg-accent"
+              >
+                Visit live project <ArrowUpRight size={13} />
+              </a>
+            )}
           </div>
         </div>
 
@@ -511,13 +521,13 @@ const ProjectDetail = ({ project, projects, onSelectProject }: any) => {
           <div className="space-y-6">
             <h3 className="text-2xl font-display font-medium text-ink">The Challenge</h3>
             <p className="text-lg font-light leading-relaxed text-ink/80">
-              Navigating the complexities of user engagement required a fundamental rethink of our interaction paradigms. The legacy system was plagued by fragmented flows and inconsistent state management.
+              {project.challenge || "Designing a clear product experience while balancing technical constraints, performance, and real-world usability."}
             </p>
           </div>
           <div className="space-y-6">
             <h3 className="text-2xl font-display font-medium text-ink">The Solution</h3>
             <p className="text-lg font-light leading-relaxed text-ink/80">
-              We engineered a seamless, unified architecture leveraging modern UI frameworks. By decoupling the state from the view layer, we achieved a resilient and fluid user interface.
+              {project.solution || "Built a focused, responsive system with a modular architecture and a visual language tailored to the product's core workflow."}
             </p>
           </div>
         </motion.div>
@@ -1122,10 +1132,13 @@ export default function App() {
     image: p.coverImage || p.media?.[0]?.url || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop",
     gallery: p.media || [],
     color: p.themeColor || "bg-ink",
-    desc: p.description || p.shortDescription || "A detailed project exploring new interfaces.",
+    desc: p.description || p.shortDescription || p.oneLiner || p.content?.overview || "A detailed project exploring new interfaces.",
+    overview: p.content?.overview || p.description || p.shortDescription || p.oneLiner,
+    challenge: p.content?.challenges,
+    solution: p.content?.solutions,
     year: p.year || "2024",
     role: p.role || "Lead Developer",
-    link: p.liveUrl || p.githubUrl,
+    link: p.liveUrl || p.demoUrl || p.githubUrl,
     featured: p.featured || false
   }));
 

@@ -30,6 +30,33 @@ export const DEFAULT_TEMPLATES: Record<PostType, PostSection[]> = {
 
 export const PROJECTS: Project[] = [
   {
+    id: "baolu-route",
+    title: "Baolu Route",
+    category: "Web",
+    year: "2026",
+    role: "Product Designer & Full-Stack Developer",
+    tags: ["Next.js", "Firebase", "MapLibre", "Vercel"],
+    outcome: "Live delivery operations tool",
+    color: "bg-emerald-200",
+    featured: true,
+    oneLiner: "A mobile-first 3D route and building-status tool for newspaper delivery teams in Finland.",
+    description: "A mobile-first 3D route and building-status tool for newspaper delivery teams in Finland.",
+    content: {
+      overview: "Baolu Route turns public building and address data into an interactive delivery workspace. Couriers can define a delivery area, group buildings and apartment entrances, track completed or exceptional deliveries, and publish a read-only visual report.",
+      stack: ["Next.js", "TypeScript", "Firebase", "MapLibre GL", "Vercel"],
+      results: ["Production deployment", "Account-based cloud sync", "Responsive field workflow"],
+      challenges: "Turning incomplete public map data into a fast, reliable workflow that remains easy to operate outdoors on a phone.",
+      solutions: "Combined a 3D building map with editable delivery groups, clear green-orange-gray status semantics, manual data correction, Firebase persistence, and shareable reports."
+    },
+    coverImage: "/images/projects/baolu-route/poster-en.png",
+    demoUrl: "https://route.zhou.studio",
+    liveUrl: "https://route.zhou.studio",
+    media: [
+      { type: "image", url: "/images/projects/baolu-route/mobile-map-en.png", aspect: "aspect-[2/3]", caption: "3D delivery map and building-level status", color: "bg-emerald-50", linkUrl: "https://route.zhou.studio" },
+      { type: "image", url: "/images/projects/baolu-route/mobile-groups-en.png", aspect: "aspect-[2/3]", caption: "Group completion with per-building exceptions", color: "bg-emerald-50", linkUrl: "https://route.zhou.studio" }
+    ]
+  },
+  {
     id: "p1", title: "Finnish Learning", category: "App", year: "2024", role: "Solo Dev", tags: ["React Native", "Expo", "TypeScript"], outcome: "Productivity", color: "bg-blue-200", featured: true, oneLiner: "Vocabulary learning app with custom categorization flows.",
     content: {
       overview: "A mobile productivity app designed for effective language acquisition. It features a custom vocabulary database, categorized learning flows, and interactive quizzes.",
