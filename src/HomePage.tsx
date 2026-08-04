@@ -7,6 +7,7 @@ import {
   Download,
   Music2,
   ChevronRight,
+  ArrowLeft,
   ArrowRight,
 } from "lucide-react";
 import { useState, useEffect, useRef, type ReactNode } from "react";
@@ -352,6 +353,243 @@ const pageVariants = {
 };
 const pageTransition = { duration: 0.8, ease: [0.22, 1, 0.36, 1] };
 
+const ProjectShowcase = ({
+  projects,
+  onOpenProject,
+  onOpenAll
+}: {
+  projects: any[];
+  onOpenProject: (project: any) => void;
+  onOpenAll: () => void;
+}) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    if (activeIndex >= projects.length) setActiveIndex(0);
+  }, [activeIndex, projects.length]);
+
+  if (!projects.length) return null;
+
+  const activeProject = projects[activeIndex];
+  const nextIndex = (activeIndex + 1) % projects.length;
+  const nextProject = projects[nextIndex];
+  const result = activeProject.outcome || activeProject.results?.[0] || activeProject.year;
+  const summary = activeProject.desc || activeProject.overview;
+  const selectPrevious = () => setActiveIndex((activeIndex - 1 + projects.length) % projects.length);
+  const selectNext = () => setActiveIndex(nextIndex);
+
+  return (
+    <div className="mx-auto w-full max-w-[1600px] border-y border-ink/10 bg-[#F5F0E8] shadow-[0_28px_80px_rgba(28,28,28,0.08)]">
+      <div
+        className="outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+        tabIndex={0}
+        aria-label="Selected project chapters. Use the left and right arrow keys to change project."
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowLeft') selectPrevious();
+          if (event.key === 'ArrowRight') selectNext();
+        }}
+      >
+        <div className="hidden min-h-[690px] lg:grid lg:grid-cols-[0.8fr_1.35fr_3.05fr_0.95fr]">
+          <div className="relative flex flex-col justify-between overflow-hidden bg-accent px-8 py-10 text-[#F8F1E8]">
+            <div className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.24em]">
+              <span className="h-px w-8 bg-current/60" />
+              Current chapter
+            </div>
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={activeIndex}
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -40 }}
+                transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                className="-ml-3 font-display text-[clamp(8rem,13vw,13rem)] font-medium leading-[0.72] tracking-[-0.1em]"
+                aria-hidden="true"
+              >
+                {String(activeIndex + 1).padStart(2, '0')}
+              </motion.span>
+            </AnimatePresence>
+            <p className="max-w-[10rem] text-[10px] font-medium uppercase leading-relaxed tracking-[0.2em] text-[#F8F1E8]/75">
+              Selected work<br />2022—{new Date().getFullYear()}
+            </p>
+          </div>
+
+          <div className="flex flex-col justify-between border-r border-ink/10 bg-[#F8F4ED] px-9 py-10 xl:px-11">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeProject.id || activeProject.title}
+                initial={{ opacity: 0, x: -18 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 18 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="flex h-full flex-col"
+              >
+                <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.22em] text-ink/45">
+                  <span>{String(activeIndex + 1).padStart(2, '0')}</span>
+                  <span className="h-px flex-1 bg-ink/15" />
+                  <span>{activeProject.category}</span>
+                </div>
+                <div className="mt-16 xl:mt-20">
+                  <h2 className="font-editorial text-[clamp(2.8rem,4vw,5rem)] font-semibold leading-[0.83] tracking-[-0.055em] text-ink">
+                    {activeProject.title}
+                  </h2>
+                  <p className="mt-8 max-w-[22rem] text-sm leading-7 text-ink/60">{summary}</p>
+                </div>
+                <div className="mt-auto space-y-7 pt-14">
+                  <div className="grid grid-cols-[4.5rem_1fr] gap-4 border-t border-ink/10 pt-5 text-xs">
+                    <span className="font-semibold uppercase tracking-[0.16em] text-ink/35">Role</span>
+                    <span className="leading-5 text-ink/75">{activeProject.role}</span>
+                  </div>
+                  <div className="grid grid-cols-[4.5rem_1fr] gap-4 border-t border-ink/10 pt-5 text-xs">
+                    <span className="font-semibold uppercase tracking-[0.16em] text-ink/35">Tools</span>
+                    <span className="leading-5 text-ink/75">{activeProject.tags.slice(0, 4).join(' · ') || 'Design & Development'}</span>
+                  </div>
+                  <div className="grid grid-cols-[4.5rem_1fr] gap-4 border-t border-ink/10 pt-5 text-xs">
+                    <span className="font-semibold uppercase tracking-[0.16em] text-ink/35">Impact</span>
+                    <span className="font-medium leading-5 text-accent">{result}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onOpenProject(activeProject)}
+                  className="group mt-10 flex w-full items-center justify-between border-t border-ink pt-5 text-left text-xs font-bold uppercase tracking-[0.18em] text-ink transition-colors hover:text-accent"
+                >
+                  View case study
+                  <ArrowUpRight size={18} className="transition-transform group-hover:-translate-y-1 group-hover:translate-x-1" />
+                </button>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          <div className="relative flex items-center justify-center overflow-hidden bg-[#D9D5CE] px-[6%] py-[7%]">
+            <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:radial-gradient(rgba(28,28,28,0.18)_0.7px,transparent_0.7px)] [background-size:7px_7px]" />
+            <AnimatePresence mode="wait">
+              <motion.button
+                key={activeProject.id || activeProject.title}
+                type="button"
+                onClick={() => onOpenProject(activeProject)}
+                initial={{ opacity: 0, scale: 0.95, rotate: -1 }}
+                animate={{ opacity: 1, scale: 1, rotate: -1.35 }}
+                exit={{ opacity: 0, scale: 1.03, rotate: 0.5 }}
+                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                className="group relative z-10 w-full max-w-[860px] bg-[#FCFAF5] p-3 shadow-[0_32px_75px_rgba(28,28,28,0.22)] outline-none transition-shadow hover:shadow-[0_38px_90px_rgba(28,28,28,0.29)] focus-visible:ring-2 focus-visible:ring-accent xl:p-4"
+                aria-label={`Open ${activeProject.title} case study`}
+              >
+                <div className="aspect-[4/3] w-full overflow-hidden bg-white">
+                  <img src={activeProject.image} alt={`${activeProject.title} project preview`} className="h-full w-full object-contain transition-transform duration-700 group-hover:scale-[1.015]" />
+                </div>
+              </motion.button>
+            </AnimatePresence>
+            <p className="absolute bottom-5 left-6 z-10 text-[9px] font-bold uppercase tracking-[0.22em] text-ink/35">Selected frame · {activeProject.year}</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={selectNext}
+            className="group relative overflow-hidden text-left text-white outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
+            aria-label={`Show next project: ${nextProject.title}`}
+          >
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={nextProject.id || nextProject.title}
+                initial={{ opacity: 0, scale: 1.05 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.6 }}
+                src={nextProject.image}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover grayscale-[35%] transition-transform duration-700 group-hover:scale-105"
+              />
+            </AnimatePresence>
+            <div className="absolute inset-0 bg-[#756579]/80 mix-blend-multiply" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/45" />
+            <div className="relative flex h-full flex-col justify-between px-7 py-10">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/75">Next chapter</div>
+              <div>
+                <span className="font-display text-8xl font-medium leading-none tracking-[-0.08em] text-white/90">{String(nextIndex + 1).padStart(2, '0')}</span>
+                <h3 className="mt-8 font-editorial text-4xl font-semibold leading-[0.9] tracking-[-0.04em]">{nextProject.title}</h3>
+                <p className="mt-5 text-[10px] font-semibold uppercase leading-5 tracking-[0.2em] text-white/65">
+                  {nextProject.tags.slice(0, 3).join(' · ') || nextProject.category}
+                </p>
+                <span className="mt-8 inline-flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em]">
+                  Explore next <ArrowRight size={16} className="transition-transform group-hover:translate-x-1.5" />
+                </span>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <div className="lg:hidden">
+          <div className="grid grid-cols-[5.5rem_1fr] border-b border-ink/10">
+            <div className="flex items-end bg-accent px-4 py-6 text-[#F8F1E8]">
+              <span className="font-display text-6xl font-medium leading-none tracking-[-0.09em]">{String(activeIndex + 1).padStart(2, '0')}</span>
+            </div>
+            <div className="flex flex-col justify-between bg-[#F8F4ED] px-5 py-6">
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-ink/40">Current chapter · {activeProject.category}</p>
+              <h2 className="mt-6 font-editorial text-4xl font-semibold leading-[0.9] tracking-[-0.045em] text-ink sm:text-5xl">{activeProject.title}</h2>
+            </div>
+          </div>
+          <AnimatePresence mode="wait">
+            <motion.button
+              key={activeProject.id || activeProject.title}
+              type="button"
+              onClick={() => onOpenProject(activeProject)}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              className="block w-full bg-[#D9D5CE] px-5 py-8 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent sm:px-10 sm:py-12"
+            >
+              <div className="rotate-[-1deg] bg-[#FCFAF5] p-2 shadow-[0_20px_45px_rgba(28,28,28,0.2)] sm:p-3">
+                <div className="aspect-[4/3] overflow-hidden bg-white">
+                  <img src={activeProject.image} alt={`${activeProject.title} project preview`} className="h-full w-full object-contain" />
+                </div>
+              </div>
+            </motion.button>
+          </AnimatePresence>
+          <div className="bg-[#F8F4ED] px-5 py-7 sm:px-10 sm:py-9">
+            <p className="text-sm leading-6 text-ink/60">{summary}</p>
+            <div className="mt-7 grid grid-cols-2 gap-x-5 gap-y-6 border-t border-ink/10 pt-6 text-xs">
+              <div>
+                <span className="block text-[9px] font-bold uppercase tracking-[0.18em] text-ink/35">Role</span>
+                <span className="mt-2 block leading-5 text-ink/75">{activeProject.role}</span>
+              </div>
+              <div>
+                <span className="block text-[9px] font-bold uppercase tracking-[0.18em] text-ink/35">Impact</span>
+                <span className="mt-2 block font-medium leading-5 text-accent">{result}</span>
+              </div>
+            </div>
+            <button type="button" onClick={() => onOpenProject(activeProject)} className="mt-8 flex w-full items-center justify-between border-t border-ink pt-4 text-xs font-bold uppercase tracking-[0.17em] text-ink">
+              View case study <ArrowUpRight size={17} />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex min-h-32 flex-col border-t border-ink/10 bg-[#F8F4ED] lg:flex-row">
+          <div className="grid flex-1 grid-cols-3 sm:grid-cols-5 lg:flex">
+            {projects.map((project, index) => (
+              <button
+                key={project.id || project.title}
+                type="button"
+                onClick={() => setActiveIndex(index)}
+                aria-current={activeIndex === index ? 'true' : undefined}
+                className={`group relative min-h-20 border-r border-ink/10 px-4 py-5 text-left transition-colors lg:min-w-[150px] lg:flex-1 lg:px-6 lg:py-7 ${activeIndex === index ? 'bg-[#EEE6DB]' : 'hover:bg-[#F1EBE2]'}`}
+              >
+                <span className={`text-[10px] font-bold tracking-[0.18em] ${activeIndex === index ? 'text-accent' : 'text-ink/30'}`}>{String(index + 1).padStart(2, '0')}</span>
+                <span className={`mt-3 hidden truncate text-xs font-semibold lg:block ${activeIndex === index ? 'text-ink' : 'text-ink/45'}`}>{project.title}</span>
+                <span className={`absolute bottom-0 left-0 h-1 bg-accent transition-all duration-500 ${activeIndex === index ? 'w-full' : 'w-0 group-hover:w-1/3'}`} />
+              </button>
+            ))}
+          </div>
+          <div className="flex min-h-20 items-stretch border-t border-ink/10 lg:min-w-[290px] lg:border-l lg:border-t-0">
+            <button type="button" onClick={selectPrevious} className="flex flex-1 items-center justify-center border-r border-ink/10 text-ink transition-colors hover:bg-accent hover:text-white" aria-label="Previous project"><ArrowLeft size={20} /></button>
+            <button type="button" onClick={selectNext} className="flex flex-1 items-center justify-center border-r border-ink/10 text-ink transition-colors hover:bg-accent hover:text-white" aria-label="Next project"><ArrowRight size={20} /></button>
+            <button type="button" onClick={onOpenAll} className="flex flex-[1.25] items-center justify-center px-4 text-center text-[9px] font-bold uppercase tracking-[0.15em] text-accent transition-colors hover:bg-accent hover:text-white">All cases</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ProjectItem = ({ project, index, onClick }: { project: any, index: number, onClick: () => void }) => {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -417,9 +655,11 @@ const ProjectOverlay = ({
     >
       <button 
         onClick={onClose}
+        type="button"
+        aria-label="Close project case study"
         className="fixed top-[4.5rem] right-6 md:top-10 md:right-10 w-9 h-9 md:w-12 md:h-12 flex items-center justify-center bg-white/80 backdrop-blur-md border border-ink/10 rounded-full z-[60] hover:bg-white text-ink hover:text-accent transition-all group"
       >
-        <span className="text-base md:text-xl group-hover:rotate-90 transition-transform duration-300">✕</span>
+        <span aria-hidden="true" className="text-xl leading-none md:text-2xl group-hover:rotate-90 transition-transform duration-300">×</span>
       </button>
       
       <AnimatePresence mode="wait">
@@ -502,11 +742,12 @@ const ProjectDetail = ({ project, projects, onSelectProject }: any) => {
         </div>
 
         {/* Main Image */}
-        <div className="w-full aspect-video md:aspect-[21/9] relative bg-ink/5 rounded-[2rem] md:rounded-[3rem] overflow-hidden mb-20 md:mb-32">
+        <div className="w-full relative bg-ink/5 rounded-[2rem] md:rounded-[3rem] overflow-hidden mb-20 md:mb-32">
           <motion.img 
             layoutId={`project-image-${project.title}`}
             src={project.image} 
-            className="w-full h-full object-cover" 
+            alt={project.title}
+            className="w-full h-auto object-contain"
           />
         </div>
 
@@ -545,7 +786,7 @@ const ProjectDetail = ({ project, projects, onSelectProject }: any) => {
               </div>
             </div>
 
-            <div className="rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border border-ink/10 bg-ink/[0.03] columns-1 md:columns-2 xl:columns-3 gap-0">
+            <div className="columns-1 md:columns-2 2xl:columns-3 gap-0">
               {galleryItems.map((item: any, idx: number) => {
                 const mediaLink = normalizeMediaLink(getMediaLink(item));
                 const mediaBody = item.type === 'video' ? (
@@ -560,7 +801,7 @@ const ProjectDetail = ({ project, projects, onSelectProject }: any) => {
                   <img
                     src={item.url}
                     alt={item.caption || `Gallery ${idx + 1}`}
-                    className="w-full h-auto object-contain transition-transform duration-1000 ease-out group-hover:scale-[1.02]"
+                    className="w-full h-auto object-contain"
                   />
                 );
 
@@ -571,7 +812,7 @@ const ProjectDetail = ({ project, projects, onSelectProject }: any) => {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: false, margin: "-100px" }}
                     transition={{ duration: 0.8, delay: Math.min(idx * 0.04, 0.24), ease: [0.76, 0, 0.24, 1] }}
-                    className={`group relative break-inside-avoid overflow-hidden ${mediaLink ? 'cursor-pointer' : ''}`}
+                    className={`group relative mb-0 inline-block w-full break-inside-avoid overflow-visible align-top ${mediaLink ? 'cursor-pointer' : ''}`}
                   >
                     {mediaLink && item.type !== 'video' ? (
                       <a
@@ -1136,11 +1377,16 @@ export default function App() {
     overview: p.content?.overview || p.description || p.shortDescription || p.oneLiner,
     challenge: p.content?.challenges,
     solution: p.content?.solutions,
+    results: p.content?.results || [],
+    outcome: p.outcome,
     year: p.year || "2024",
     role: p.role || "Lead Developer",
     link: p.liveUrl || p.demoUrl || p.githubUrl,
     featured: p.featured || false
   }));
+
+  const featuredProjects = projects.filter(project => project.featured);
+  const showcaseProjects = (featuredProjects.length ? featuredProjects : projects).slice(0, 5);
 
   const articles = rawPosts.map(p => ({
     id: p.id,
@@ -1399,41 +1645,26 @@ export default function App() {
           </div>
           <section 
             id="work"
-            className="pt-16 md:pt-40 px-6 md:px-20 lg:px-40 pb-40"
+            className="pt-16 pb-32 md:pt-24 md:pb-40"
           >
-            <div className="w-full max-w-[1400px] mx-auto flex flex-col relative">
-              {/* Header row: title left, button right */}
-              <div className="flex items-center justify-between mb-12 md:mb-16">
-                <div className="overflow-hidden">
-                  <motion.p 
-                    initial={{ y: "100%" }} whileInView={{ y: 0 }} viewport={{ once: false, margin: "-50px" }} transition={{ duration: 0.5, ease: "easeOut" }}
-                    className="text-[11px] md:text-[13px] font-bold uppercase tracking-[0.2em] text-ink/60"
-                  >
-                    Selected Projects
-                  </motion.p>
-                </div>
-                <button 
-                  onClick={() => setShowAllProjects(true)}
-                  className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-accent border border-accent/30 hover:bg-accent hover:text-bg transition-colors rounded-full px-5 md:px-8 py-2.5 md:py-3 flex items-center gap-2 group"
-                >
-                  <span>See All Cases</span>
-                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                </button>
+            <div className="mx-auto mb-9 flex w-full max-w-[1600px] items-end justify-between px-6 md:mb-12 md:px-10 lg:hidden">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-accent">Selected projects</p>
+                <h2 className="mt-3 font-editorial text-4xl font-semibold tracking-[-0.04em] text-ink md:text-6xl">A chapter for each idea.</h2>
               </div>
-
-              {/* Project list */}
-              <div className="flex flex-col">
-                {projects.filter(p => p.featured).map((project, i) => (
-                  <ProjectItem key={project.title} project={project} index={i} onClick={() => {
-                    if (project.title.toLowerCase().includes('notebook os') || project.title.toLowerCase().includes('personal site')) {
-                      navigate('/os');
-                    } else {
-                      setSelectedProject(project);
-                    }
-                  }} />
-                ))}
-              </div>
+              <p className="hidden max-w-[20rem] text-right text-xs leading-6 text-ink/45 md:block">Browse the work as a sequence of stories—each shaped by a different problem, medium and outcome.</p>
             </div>
+            <ProjectShowcase
+              projects={showcaseProjects}
+              onOpenAll={() => setShowAllProjects(true)}
+              onOpenProject={(project) => {
+                if (project.title.toLowerCase().includes('notebook os') || project.title.toLowerCase().includes('personal site')) {
+                  navigate('/os');
+                } else {
+                  setSelectedProject(project);
+                }
+              }}
+            />
           </section>
 
         {/* --- NOTEBOOK SECTION --- */}
