@@ -184,8 +184,8 @@ html.story-document body {
 .story-project { position: relative; height: 165vh; min-height: 1100px; background: var(--story-ink); }
 .story-project-sticky { position: sticky; top: 0; height: 100vh; min-height: 700px; overflow: hidden; isolation: isolate; }
 .story-project-number { position: absolute; z-index: 1; top: 8vh; left: 5vw; color: rgba(155,124,255,.21); font-size: min(29vw, 430px); font-weight: 700; line-height: 1; letter-spacing: -.1em; }
-.story-project-image { position: absolute; z-index: 2; overflow: hidden; background: var(--story-panel); }
-.story-project-image img { width: 100%; height: 100%; object-fit: cover; }
+.story-project-image { position: absolute; z-index: 2; overflow: hidden; display: grid; place-items: center; background: var(--story-panel); }
+.story-project-image img { width: 100%; height: 100%; object-fit: contain; object-position: center; }
 .story-missing-image { height: 100%; display: grid; place-items: center; color: var(--story-muted); text-transform: uppercase; font: 400 10px/1 'Space Mono', monospace; letter-spacing: .16em; }
 .story-project-copy { position: absolute; z-index: 4; }
 .story-project-copy h3 { margin: 10px 0 22px; text-transform: uppercase; font-size: clamp(58px, 7vw, 112px); line-height: .82; letter-spacing: -.055em; }
@@ -211,13 +211,13 @@ html.story-document body {
 
 .story-project-poster { background: #071824; }
 .story-project-poster .story-project-number { top: 4vh; left: 46vw; color: rgba(82,174,232,.14); }
-.story-project-poster .story-project-image { inset: 10vh 8vw 10vh 8vw; clip-path: inset(0 0 0 43%); }
+.story-project-poster .story-project-image { top: 10vh; right: 5vw; bottom: 10vh; left: 42vw; clip-path: none; }
 .story-project-poster .story-project-copy { left: 8vw; top: 18vh; width: 36vw; }
 .story-project-poster .story-kicker, .story-project-poster .story-project-copy dt { color: #58aee8; }
 
 .story-project-slice { background: #17131c; }
 .story-project-slice .story-project-number { left: auto; right: 8vw; color: rgba(200,97,73,.15); }
-.story-project-slice .story-project-image { top: 0; left: 0; width: 48vw; height: 100vh; clip-path: inset(8vh 0 8vh 0); }
+.story-project-slice .story-project-image { top: 8vh; left: 0; width: 48vw; height: 84vh; clip-path: none; }
 .story-project-slice .story-project-copy { right: 8vw; top: 24vh; width: 38vw; }
 .story-project-slice .story-kicker, .story-project-slice .story-project-copy dt { color: var(--story-coral); }
 
