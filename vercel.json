@@ -5,16 +5,12 @@
     "outputDirectory": "dist",
     "rewrites": [
         {
-            "source": "/",
-            "destination": "/studio/index.html"
-        },
-        {
             "source": "/projects/:path*",
             "destination": "https://my-portfolio-mu-sooty-32.vercel.app/projects/:path*"
         },
         {
             "source": "/(.*)",
-            "destination": "/"
+            "destination": "/app.html"
         }
     ]
 }

@@ -3,11 +3,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import DesktopOS from './DesktopOS';
 import AdminApp from './components/apps/AdminApp';
 
-// The home page is a static document (public/studio/index.html) served at "/" by vercel.json.
-// When the SPA itself lands on "/" (client-side navigation, or local dev), load that document.
+// The home page is a static document (public/index.html). The SPA is served from app.html for
+// /os and /admin; if it lands on "/" (client-side navigation), load the static home page instead.
 const StudioHome = () => {
   useEffect(() => {
-    window.location.replace('/studio/index.html');
+    window.location.replace('/');
   }, []);
   return null;
 };
