@@ -111,7 +111,7 @@ html.locked .dock { opacity: 0; pointer-events: none; transform: translate(-50%,
 .hero::after { content: ''; position: absolute; left: 36px; right: 36px; bottom: 38px; height: 1px; background: var(--line); opacity: calc(1 - var(--t)); }
 .hero-copy { position: absolute; z-index: 4; top: 19%; left: 6vw; width: min(620px, 47vw); transform: translateY(calc(var(--t) * -9vh)); }
 .hero h1 { margin: 0; display: flex; flex-direction: column; text-transform: uppercase; font-size: clamp(86px, 11.2vw, 174px); line-height: .76; letter-spacing: -.075em; font-variation-settings: 'wdth' 108; }
-.hero h1 span { display: block; overflow: hidden; padding-right: .06em; }
+.hero h1 span { display: block; width: max-content; max-width: none; overflow: hidden; padding-right: .06em; }
 .hero h1 span b { display: block; font-weight: 700; animation: rise .9s var(--out) both; }
 .hero h1 span + span b { animation-delay: .11s; }
 @keyframes rise { from { transform: translateY(110%); } }
